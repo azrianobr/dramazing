@@ -4,7 +4,7 @@
 
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { T, cutBeats, episodeScenes, epTag, flag, loadWork, phrases, segmentsOf, speakSeconds } from './lib.mjs';
+import { T, cutBeats, episodeScenes, epTag, flag, lang, loadWork, phrases, segmentsOf, speakSeconds } from './lib.mjs';
 
 const argv = process.argv.slice(2);
 if (!flag(argv, '--work')) { console.log(T('validate.mjs --work <作品目录> --ep <集>', 'validate.mjs --work <work dir> --ep <episode>', 'validate.mjs --work <작품 폴더> --ep <화>')); process.exit(0); }
@@ -71,6 +71,9 @@ if (lo && (total < lo * 0.9 || total > hi * 1.1)) warn.push(T(`整集分镜 ${to
 const missing = [...new Set(segmentsOf(W.storyboard, ep).flatMap((s) => s.cuts.flatMap((c) => c.chars ?? [])))]
   .filter((id) => !W.char.get(id)?.alias?.en);
 if (missing.length) warn.push(T(`人物 ${missing.join(J)} 没写 alias.en：视频模型不认识人名，提示词里需要外貌短语`, `characters ${missing.join(J)} have no alias.en: video models do not know names, the prompt needs an appearance phrase`, `인물 ${missing.join(J)}에 alias.en이 없습니다: 영상 모델은 이름을 모르니 외모 문구가 필요합니다`));
+// trait 要有故事语言和英文两项，缺故事语言那项时视频提示词会把它整条跳过
+const noTrait = W.project.characters.filter((c) => c.trait && (!c.trait[lang()] || !c.trait.en)).map((c) => c.id);
+if (noTrait.length) warn.push(T(`人物 ${noTrait.join(J)} 的 trait 缺 ${lang()} 或 en：缺的那项不会写进视频提示词`, `characters ${noTrait.join(J)}: trait lacks ${lang()} or en; the missing one never reaches the video prompt`, `인물 ${noTrait.join(J)}: trait에 ${lang()} 또는 en이 없습니다. 빠진 쪽은 영상 프롬프트에 들어가지 않습니다`));
 if (!existsSync(join(W.work, 'story.txt'))) warn.push(T('作品目录里没有 story.txt（原文），复盘和改编时没法对照', 'no story.txt (the source text) in the work dir; reviews and adaptation have nothing to check against', '작품 폴더에 story.txt(원문)가 없습니다. 회고와 각색 때 대조할 수 없습니다'));
 
 const nSeg = segmentsOf(W.storyboard, ep).length, nCut = segmentsOf(W.storyboard, ep).reduce((s, g) => s + g.cuts.length, 0);

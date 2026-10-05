@@ -59,7 +59,7 @@ For a complete example, see `examples/渡口/` (Chinese, 6 episodes). English an
 - `images.provider`: how images are made, `manual` (default) / `cmd` / `codex`. See `adapters/image.md`.
 - `video.target`: which tool the video prompts are written for, `grok` / `generic` / your own `scripts/targets/<name>.mjs`. If `durations` is missing, the target's own duration options are used.
 - `alias`: an appearance phrase. Video tools do not know character names, so names in prompts are replaced with this phrase. `en` is used in English sentences; the story-language entry (`zh` / `ko`) is used in story-language sentences. English stories need only `en`. If it is missing, the name is used as is.
-- `trait` (optional): a character's unusual feature, such as a blind eye, a scar or a limp. When the character faces the camera, the prompt says "keep it throughout" once in English and once in the story language. Same keys as `alias`. The first frame alone cannot hold it: the video tool will "fix" it (tested on Grok).
+- `trait` (optional): a character's unusual feature, such as a blind eye, a scar or a limp. When the character faces the camera, the prompt says "keep it throughout" once in English and once in the story language. Same keys as `alias`: write the story-language key and `en`. Without the story-language key the trait never reaches the prompt; `validate.mjs` warns about it. The first frame alone cannot hold it: the video tool will "fix" it (tested on Grok).
 - `ambient`: the scene's ambience. Each key is a lighting value (`light`) from the script; `*` is the default.
 - `sheet`: the sheet prompt. For a character, describe the face, hair, costume and age in full. For a young woman, state that she is an adult, or she may be judged a minor. See `prompt-rules.md`.
 
