@@ -1,6 +1,15 @@
 # 出一集的流程
 
-一集从分镜到成片分 12 步。以《渡口》第 4 到第 6 集为例，每集约 2 到 3 小时，用掉 Grok 周额度的 6% 到 12%。
+一集从分镜到成片分 12 步。每一步只规定输入和输出（放在作品目录的哪里），用什么工具都行：
+
+| 环节 | 输入 → 输出 | 实测过的工具 | 换别的工具 |
+|---|---|---|---|
+| 写剧本、分镜 | 原文 → `script.json`、`storyboard.json` | Claude Code | 任何能读 SKILL.md 的 AI 助手，或人工写 |
+| 出图 | `tasks.json` → `sheets/*.png`、`frames/*/f*.png` | Codex CLI | 见 `adapters/image.md`：手动用任何出图工具，或接你自己的命令行 |
+| 出片 | 首帧 + `prompts.json` → `video/E01-03/s1.mp4` | Grok 网页 | 见 `adapters/video-other.md`：可灵、即梦、Veo、Runway 等 |
+| 剪辑、字幕 | 镜头 → 成片 | ffmpeg + whisper.cpp（开源） | 一般不用换 |
+
+参考数据：《渡口》第 4 到第 6 集用 Codex + Grok，每集约 2 到 3 小时，用掉 Grok 周额度的 6% 到 12%。
 
 下面的命令都在 skill 根目录运行，`W` 是作品目录，`EP` 是集数：
 
@@ -40,7 +49,7 @@ node scripts/frames.mjs batch --work $W
 
 - 提示「N 张参考图还没出」时，再跑一遍。
 - 重画已有的图加 `--redo`；只改一处用 `fix`：`frames.mjs fix --work $W --target frames/E01-03/f2.png --prompt <文件> --ref frames/E01-03/f2.png`。
-- 出图需要 [Codex CLI](https://github.com/openai/codex)，用的是它内置的出图功能。
+- 出图方式由 `--provider` 或 `project.json` 的 `images.provider` 决定：`manual`（默认，导出说明后用任何工具出图，再用 `place` 放回）、`cmd`（接你自己的命令行）、`codex`。见 `adapters/image.md`。
 
 ### 3. 看图
 
@@ -62,10 +71,15 @@ python3 scripts/preview.py --work $W --ep $EP
 ### 5. 生成提示词
 
 ```bash
-node scripts/grok-prompts.mjs --work $W --ep $EP
+node scripts/video-prompts.mjs --work $W --ep $EP --target grok   # 或 generic，或你自己写的 targets/<工具>.mjs
 ```
 
-写到 `video/prompts.json`，同时打印预检警告。已有的条目不覆盖，手改过的提示词可以放心重跑。
+写两份文件，同时打印预检警告：
+
+- `video/shots.json`：镜头描述（动作、视线、运镜、台词、限制），和用哪个视频工具无关。
+- `video/prompts.json`：按目标工具渲染好的提示词和时长档位。
+
+已有的条目不覆盖，手改过的提示词可以放心重跑。换工具时加 `--force` 重新渲染。
 
 ### 6. 逐条过提示词
 
@@ -84,17 +98,20 @@ node scripts/grok-prompts.mjs --work $W --ep $EP
 
 ### 8. 出片
 
-在 Grok 网页上出片，见 `grok-web.md`。设置：1080p，6 秒或 10 秒（按 `prompts.json` 里的 `seconds`），只传首帧。下载的文件命名为 `grok-E01-03-s1.mp4`。
+在视频工具里逐条出片：上传首帧，粘贴 `prompts.json` 里这一条的 `prompt`，时长选 `seconds`。下载的文件名里带上镜头号，比如 `E01-03-s1.mp4`（前面加工具名也行）。
 
-出片前、批量出完、返工后，各去用量页读一次百分比，记进 `_logs/usage.tsv`。
+- Grok：见 `adapters/video-grok.md`（实测过）。
+- 其他工具：见 `adapters/video-other.md`（未实测，第一集先多出几条试探镜头）。
+
+出片前、批量出完、返工后，各记一次用量（额度百分比、积分或花费），写进 `_logs/usage.tsv`。
 
 ### 9. 收片
 
 ```bash
-bash scripts/grok-ingest.sh $W
+bash scripts/ingest.sh $W            # 默认从 ~/Downloads 收；别的目录写在第二个参数
 ```
 
-把 `~/Downloads` 里的 `grok-*.mp4` 收进 `video/E01-03/s1.mp4`。已有同名镜头时，旧的改名为 `s1.old.mp4`，并记一次返工。
+把文件名里带 `E01-03-s1` 的视频收进 `video/E01-03/s1.mp4`。已有同名镜头时，旧的改名为 `s1.old.mp4`，并记一次返工。
 
 收完先核对：每切都有片，镜头和分镜图对得上。批量提交时漏交过。
 
@@ -132,8 +149,6 @@ node scripts/assemble.mjs --work $W --ep $EP --loudnorm --align
 | Python 3 + Pillow | 剪辑、审片、字幕、预览 |
 | ffmpeg / ffprobe | 所有视频处理 |
 | [whisper.cpp](https://github.com/ggerganov/whisper.cpp)（`whisper-cli`）+ `ggml-large-v3-turbo` 和 `ggml-silero-v5.1.2` 模型 | 测台词时长、对齐字幕。模型目录默认 `~/models/whisper`，可用环境变量 `WHISPER_MODELS` 改 |
-| Codex CLI | 出设定图和分镜图 |
-| Grok 网页账号 | 出片 |
+| 一个出图工具 | 出设定图和分镜图，要能传参考图。实测：Codex CLI |
+| 一个「首帧 + 文字 → 视频」的工具 | 出片，要能说中文台词。实测：Grok 网页 |
 | 中文字体 | 字幕和预览，默认 macOS 的 STHeiti，可用环境变量 `SUB_FONT` 改 |
-
-`frames.mjs` 用 macOS 自带的 `sips` 转图片格式，在其他系统上要换成 ImageMagick。

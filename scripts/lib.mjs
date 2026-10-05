@@ -29,7 +29,7 @@ export const epTag = (n) => `E${String(n).padStart(2, '0')}`;
 
 // 只数汉字、字母、数字，标点不算
 export const countChars = (t) => [...String(t).replace(/[^\p{Script=Han}\p{L}\p{N}]/gu, '')].length;
-// Grok 念中文约 3 字/秒，再加 1 秒起音（实测）
+// 视频模型念中文约 3 字/秒，再加 1 秒起音（Grok 实测，换工具后按实际校准）
 export const speakSeconds = (t) => countChars(t) / 3 + 1;
 // 台词里的破折号会被念成「一」，统一换成逗号
 export const speakable = (t) => String(t).replace(/——|—|--/g, '，').replace(/，([。！？])/g, '$1');

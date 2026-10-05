@@ -7,6 +7,12 @@
   150
  ],
  "style": "写实电影质感，1930 年代民国江南，自然光，轻微胶片颗粒",
+ "images": {
+  "provider": "codex"
+ },
+ "video": {
+  "target": "grok"
+ },
  "characters": [
   {
    "id": "C01",

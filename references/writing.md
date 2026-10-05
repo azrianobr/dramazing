@@ -1,6 +1,6 @@
 # 从原文到分镜
 
-这一段没有脚本，由 Claude 读原文后写 `project.json`、`script.json`、`storyboard.json`。格式见 `data-format.md`。
+这一段没有脚本，由 AI 助手读原文后写 `project.json`、`script.json`、`storyboard.json`。格式见 `data-format.md`。
 下面是写的时候要守的规则，都来自实际出片时踩过的坑。
 
 ## 1. 先定规模

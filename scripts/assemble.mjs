@@ -19,7 +19,7 @@ function ffprobe(file) {
   return { width: v.width, height: v.height, duration: Number(j.format.duration), audio: j.streams.some((s) => s.codec_type === 'audio') };
 }
 
-// 剧本台词里的破折号 Grok 会念成「一」，提示词里已换成逗号；字幕跟着念法走（speakable）
+// 剧本台词里的破折号会被视频模型念成「一」（Grok 实测），提示词里已换成逗号；字幕跟着念法走（speakable）
 
 // 每切在段内的起点：有 cut.py 的 <段>.shots.json 就用实际剪接时长（台词说完才切，常比分镜长），
 // 被 skip 的切起点并到下一个镜头；没有就用分镜时长

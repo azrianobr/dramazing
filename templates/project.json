@@ -7,6 +7,12 @@
   150
  ],
  "style": "写实电影质感，自然光，轻微胶片颗粒",
+ "images": {
+  "provider": "manual"
+ },
+ "video": {
+  "target": "generic"
+ },
  "characters": [
   {
    "id": "C01",

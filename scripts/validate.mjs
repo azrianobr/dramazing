@@ -19,7 +19,7 @@ for (const sc of scenes) {
   if (!W.scene.has(sc.scene)) err.push(`剧本第 ${sc.index} 场的场景 ${sc.scene} 不在 project.json 里`);
   for (const b of sc.beats) {
     if (b.who && !W.char.has(b.who)) err.push(`第 ${sc.index} 场第 ${b.n} 拍：说话人 ${b.who} 不在 project.json 里`);
-    if (b.say && /——|—|--/.test(b.say)) err.push(`第 ${sc.index} 场第 ${b.n} 拍：台词有破折号，Grok 会念成「一」，改成逗号`);
+    if (b.say && /——|—|--/.test(b.say)) err.push(`第 ${sc.index} 场第 ${b.n} 拍：台词有破折号，视频模型会念成「一」，改成逗号`);
     if (b.tone && /[，。]?(抹|擦|拍|摸|握|拿|放下|站起|坐下|转身|走)/.test(b.tone)) warn.push(`第 ${sc.index} 场第 ${b.n} 拍：tone 里像是动作（${b.tone}），动作要单独写成一拍 act，tone 只写语气`);
   }
 }
@@ -46,7 +46,7 @@ for (const seg of segmentsOf(W.storyboard, ep)) {
     if (talk > 10) err.push(`${k}：台词约 ${talk.toFixed(1)} 秒，一条视频最长 10 秒装不下，拆成两切`);
     else if (talk > c.seconds + 0.5) warn.push(`${k}：台词约 ${talk.toFixed(1)} 秒，分镜给 ${c.seconds} 秒，剪辑会按台词留长`);
     if (c.camera && !['Static Shot', 'Handheld'].includes(c.camera) && !c.move?.to && !c.move?.stop) warn.push(`${k}：${c.camera} 没写 move.to / move.stop，AI 会一直动`);
-    if (['Pull Out', 'Pan', 'Rack Focus', 'Crane'].includes(c.camera)) warn.push(`${k}：${c.camera} 的首帧要画成运镜「起点」的构图，画成终点 Grok 就没东西可动`);
+    if (['Pull Out', 'Pan', 'Rack Focus', 'Crane'].includes(c.camera)) warn.push(`${k}：${c.camera} 的首帧要画成运镜「起点」的构图，画成终点模型就没东西可动`);
     if (/年轻|少女|姑娘|女孩|学生/.test(c.frame ?? '') && !/成年/.test(c.frame ?? '') && ['close', 'extreme-close', 'medium-close'].includes(c.size))
       warn.push(`${k}：近景里的年轻人物没写「成年」，可能被判成未成年人而不出片`);
   });
@@ -65,7 +65,7 @@ const [lo, hi] = Array.isArray(target) ? target : [target, target];
 if (lo && (total < lo * 0.9 || total > hi * 1.1)) warn.push(`整集分镜 ${total.toFixed(1)} 秒，目标 ${lo === hi ? lo : `${lo}–${hi}`} 秒`);
 const missing = [...new Set(segmentsOf(W.storyboard, ep).flatMap((s) => s.cuts.flatMap((c) => c.chars ?? [])))]
   .filter((id) => !W.char.get(id)?.alias?.en);
-if (missing.length) warn.push(`人物 ${missing.join('、')} 没写 alias.en：Grok 不认识人名，提示词里需要外貌短语`);
+if (missing.length) warn.push(`人物 ${missing.join('、')} 没写 alias.en：视频模型不认识人名，提示词里需要外貌短语`);
 if (!existsSync(join(W.work, 'story.txt'))) warn.push('作品目录里没有 story.txt（原文），复盘和改编时没法对照');
 
 console.log(`${epTag(ep)}：${segmentsOf(W.storyboard, ep).length} 段，${segmentsOf(W.storyboard, ep).reduce((s, g) => s + g.cuts.length, 0)} 切，${total.toFixed(1)} 秒`);

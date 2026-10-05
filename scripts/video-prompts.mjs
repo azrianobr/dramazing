@@ -1,19 +1,25 @@
 #!/usr/bin/env node
-// 按分镜给每个镜头写一条 Grok 网页视频提示词（首帧 = 该切的分镜图），并做出片前预检。
+// 按分镜给每个镜头写视频提示词（首帧 = 该切的分镜图），并做出片前预检。分两层：
+//   1. 镜头描述 shots.json：动作、视线、运镜、台词、限制，和用哪个视频工具无关；
+//   2. 按目标工具渲染成 prompts.json：每个工具的时长档位和写法不同，见 scripts/targets/。
 // 草稿要逐条过一遍再用：动作方向对不对首帧、谁出镜、台词是不是这一切说的。
 // 已有的条目不覆盖（--force 才覆盖），手改过的提示词可以放心重跑。
 // 每条规则后面括号里是它来自哪次实测，规则说明见 references/prompt-rules.md。
 
 import { existsSync, mkdirSync } from 'node:fs';
+import { readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import {
   cutBeats, episodeScenes, epTag, flag, loadWork, readOpt, segmentsOf, speakSeconds, speakable, writeJson,
 } from './lib.mjs';
 
+const TARGETS = readdirSync(new URL('./targets/', import.meta.url)).filter((f) => f.endsWith('.mjs')).map((f) => f.slice(0, -4));
+
 const argv = process.argv.slice(2);
 if (!flag(argv, '--work')) {
-  console.log(`grok-prompts.mjs --work <作品目录> --ep <集> [--dir video] [--out <目录>] [--force]
-  写 <dir>/prompts.json（键 E02-03/s1 → {img, seconds, prompt}），打印预检警告。
+  console.log(`video-prompts.mjs --work <作品目录> --ep <集> [--target <工具>] [--dir video] [--out <目录>] [--force]
+  写 <dir>/shots.json（镜头描述，和工具无关）和 <dir>/prompts.json（键 E02-03/s1 → {img, seconds, prompt}），打印预检警告。
+  --target 视频工具：${TARGETS.join(' / ')}，默认读 project.json 的 video.target，再默认 generic
   人物外貌短语、异样特征、场景环境动态都从 project.json 读（见 references/data-format.md）。
   --out 把结果写到别的目录（回归测试用，不碰正式文件）`);
   process.exit(0);
@@ -25,19 +31,20 @@ const outDir = flag(argv, '--out') ? resolve(flag(argv, '--out')) : dir;
 const force = argv.includes('--force');
 const outFile = join(outDir, 'prompts.json');
 const out = readOpt(outFile);
+const shotsFile = join(outDir, 'shots.json');
+const shots = readOpt(shotsFile);
+const targetName = flag(argv, '--target') ?? W.project.video?.target ?? 'generic';
+if (!TARGETS.includes(targetName)) { console.error(`✗ 没有这个视频工具：${targetName}（可选 ${TARGETS.join(' / ')}）`); process.exit(1); }
+const target = (await import(`./targets/${targetName}.mjs`)).default;
+const durations = W.project.video?.durations ?? target.durations; // 工具的时长档位，升序
 
 const charName = new Map([...W.char.values()].map((c) => [c.id, c.name]));
 const byName = new Map([...W.char.values()].map((c) => [c.name, c]));
-const en = (n) => byName.get(n)?.alias?.en ?? n; // 英文句子里用外貌短语代替人名：Grok 不认识人名
+const en = (n) => byName.get(n)?.alias?.en ?? n; // 英文句子里用外貌短语代替人名：视频模型不认识人名
 const zh = (n) => byName.get(n)?.alias?.zh ?? n;
 const who = (id) => en(charName.get(id) ?? id);
 const names = W.names;
 
-// 胶片质感防塑料脸；不点名「不要出现的东西」（没有反向提示词，点名反而招来）
-const HEAD = W.project.video?.head ||
-  'Real film footage shot on 35mm, natural soft contrast, gentle film grain, muted colors, no HDR, no oversharpening, no beauty filter. ' +
-  'Keep the exact composition, faces and costumes from the image; faces stay unchanged throughout.';
-const TAIL = 'No subtitles, no text, no music.';
 const CAM = { 'Static Shot': 'Locked-off static camera.', 'Tracking Shot': 'Smooth tracking camera.', 'Push In': 'Slow small push-in.', 'Pull Out': 'Slow small pull-out.', 'Pan': 'Slow pan.', 'Handheld': 'Gentle handheld camera.' };
 
 // 运镜：一镜只做一个主运镜，写全「名称 + 方向 + 速度 + 对象 + 起止画面 + 停点」，只写名称 AI 会一直动或乱动。
@@ -111,10 +118,11 @@ for (const seg of segmentsOf(W.storyboard, epNo)) {
     // 台词：语气说明放在台词后面并注明不念，放前面括号里会被当台词念出来；
     // 只写 lips in sync 时，压低声音这类语气会被做成嘴不动的画外音，要写明每个字都张嘴
     // 心声：说话人不能动嘴，否则画面里的人会对口型
-    const said = lines.map((l) => (l.kind === 'line'
-      ? `${who(l.who)} says, in Mandarin Chinese with clearly moving lips in sync with every syllable (his or her mouth opens and closes visibly on each word): "${speakable(l.say)}"${l.tone ? ` (performance note, never spoken aloud: ${l.tone})` : ''}`
-      : `An off-screen inner-voice narration${l.who ? ` by ${who(l.who)}` : ''}${l.tone ? ` (${l.tone})` : ''}, in Mandarin Chinese: "${speakable(l.say)}" It is a voiceover only: nobody on screen moves their lips or speaks.`)).join(' Then ');
-    const seconds = talk > 5.5 || c.seconds > 6 ? 10 : 6;
+    const said = lines.map((l) => ({ kind: l.kind, who: l.who ? who(l.who) : null, say: speakable(l.say), tone: l.tone ?? null }));
+    // 选工具能出的最短档位，装得下分镜时长和台词（台词后留 0.5 秒）
+    const need = Math.max(c.seconds, talk + 0.5);
+    const seconds = durations.find((d) => d >= need) ?? durations[durations.length - 1];
+    if (need > durations[durations.length - 1]) warn.push(`${key} 需要约 ${need.toFixed(1)}s，${targetName} 最长 ${durations[durations.length - 1]}s：拆成两切`);
     const swap = (t) => (t ?? '').replace(new RegExp(names.join('|'), 'g'), zh);
     const place = W.scene.get(sc.scene);
     const sceneLabel = place?.name ?? '';
@@ -122,7 +130,7 @@ for (const seg of segmentsOf(W.storyboard, epNo)) {
     const action = swap(c.action).replace(/[。.]?$/, '。');
     const pace = /跑|奔|冲|追/.test(c.action) ? ' Real-time speed, NOT slow motion.' : '';
     const rig = [c.aim && `摄影机对准${swap(c.aim)}`, c.angle, c.lens].filter(Boolean).join('，');
-    // 画外的人只写方向，不写是谁：写了是谁，推近时 Grok 会把人画进来
+    // 画外的人只写方向，不写是谁：写了是谁，推近时模型会把人画进来
     const offEyeText = (e) => {
       const [first, ...rest] = e.split(/[，,]/);
       const side = (first.match(/画面[左右]侧/) ?? [''])[0];
@@ -145,7 +153,7 @@ for (const seg of segmentsOf(W.storyboard, epNo)) {
       if (/背对|背影|背朝/.test(clause) && !/没有|不见|无人/.test(clause)) state[cur].back = true; // 否定句不算
     }
     const speakers = new Set(spoken.map((l) => charName.get(l.who)));
-    // 手 / 道具的特写：写「只有某人」会让 Grok 把整个人画出来，甚至画出两个
+    // 手 / 道具的特写：写「只有某人」会让模型把整个人画出来，甚至画出两个
     const txt = `${c.action ?? ''}${c.frame ?? ''}`;
     const handOnly = ['close', 'extreme-close'].includes(c.size) && /手|拇指|指尖|手指/.test(txt) && !/脸|眼|嘴|眉|头发|面部|侧脸/.test(txt) && !speakers.size;
     if (handOnly) limits.push('画面里只有手、袖口和道具，手的主人在画外，始终看不到任何人的脸、头发和身体');
@@ -180,7 +188,7 @@ for (const seg of segmentsOf(W.storyboard, epNo)) {
       if (!c.move?.to && !c.move?.stop && c.camera !== 'Handheld') warn.push(`${key} ${c.camera} 没写终点（move.to / move.stop）：AI 会一直动，补上从哪到哪、在什么时候停`);
       if (spoken.length > 1) warn.push(`${key} 有多句台词又带运镜：表演和台词已经够满，先考虑固定镜头`);
     }
-    // 人物的异样特征（瞎眼、伤疤）Grok 会自动「修好」，入画就中英文各写一遍；背对镜头不写，免得招来回头
+    // 人物的异样特征（瞎眼、伤疤）模型会自动「修好」，入画就中英文各写一遍；背对镜头不写，免得招来回头
     const tr = chars.filter((id) => !state[charName.get(id)]?.back && charName.get(id) !== povOwner)
       .map((id) => W.char.get(id)?.trait).filter((t) => t?.zh);
     for (const t of tr) if (!(c.limits ?? []).some((x) => x.includes(t.zh))) limits.push(t.zh);
@@ -197,26 +205,20 @@ for (const seg of segmentsOf(W.storyboard, epNo)) {
       : povOwner ? `First-person view of ${en(povOwner)}: only their own hands and sleeves may appear at the bottom edge${others.length ? `; besides them, only ${others.join(' and ')} in the frame` : ''}; nobody else.`
       : cast.length ? `Only ${cast.join(' and ')} in the frame; nobody else.` : 'No people in the frame.';
     const quiet = lines.length ? '' : ' Nobody speaks.';
-    const body = [
-      `镜头 ${key}｜${seconds} 秒｜${SIZE[c.size] ?? c.size}${sceneLabel ? `｜${sceneLabel}` : ''}`,
-      rig && `机位：${rig}。`,
-      `动作：${action}${eye}${pace}`,
-      mv && `运镜：${mv.zh}`,
-      amb && `环境：${amb}`,
-      [mv ? mv.en : (CAM[c.camera] ?? ''), ...tr.map((t) => t.en), said].filter(Boolean).join(' '),
-      `关键限制：${limits.join('；')}。`,
-      people + quiet,
-    ].filter(Boolean);
-    out[key] = {
-      img: `frames/${seg.id}/f${ci + 1}.png`,
-      seconds,
-      prompt: [HEAD, ...body, TAIL].join(' '), // 不用换行：页面输入框里回车会直接提交
+    const shot = {
+      key, img: `frames/${seg.id}/f${ci + 1}.png`, seconds, need: Math.round(need * 10) / 10,
+      size: SIZE[c.size] ?? c.size, scene: sceneLabel, rig, action, eye, pace,
+      move: mv ? { zh: mv.zh, en: mv.en } : null, camera: mv ? null : (CAM[c.camera] ?? null),
+      ambient: amb ?? null, traits: tr.map((t) => t.en), lines: said, limits, people: people + quiet,
     };
+    shots[key] = shot;
+    out[key] = { img: shot.img, seconds, prompt: target.render(shot, W.project) };
     made++;
   });
 }
 mkdirSync(outDir, { recursive: true });
+writeJson(shotsFile, shots);
 writeJson(outFile, out);
-console.log(`✓ ${epTag(epNo)} 新写 ${made} 条 → ${outFile}（共 ${Object.keys(out).length} 条）`);
-if (![...W.char.values()].some((c) => c.alias?.en)) console.log('· 人物没写 alias：提示词里用的是中文人名，Grok 不认识人名，建议补上外貌短语');
+console.log(`✓ ${epTag(epNo)} 按 ${targetName} 新写 ${made} 条 → ${outFile}（共 ${Object.keys(out).length} 条；镜头描述 shots.json）`);
+if (![...W.char.values()].some((c) => c.alias?.en)) console.log('· 人物没写 alias：提示词里用的是中文人名，视频模型不认识人名，建议补上外貌短语');
 console.log(warn.length ? `预检 ${warn.length} 条：\n  ${warn.join('\n  ')}` : '预检通过');
