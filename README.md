@@ -16,6 +16,23 @@ dramazing 是一个 AI 助手用的 skill（[Agent Skills](https://agentskills.i
 
 这套流程是做完一部 6 集短剧之后整理出来的。每条规则都来自一次实际出片的问题，在 `references/` 里注明了出处。
 
+## 效果
+
+下面的画面都出自示例《渡口》的成片和中间产物：Codex 出图，Grok 出片。
+
+<p align="center"><img src="assets/showcase/push-in.webp" width="720" alt="第 6 集一条推近镜头：沈知微说完台词，镜头停在近景"></p>
+<p align="center"><sub>第 6 集 03-2：镜头从全身慢慢推到胸口以上，她说完「我收了十年」时停住。运镜、口型、台词都写在同一条提示词里。</sub></p>
+
+![成片截图](assets/showcase/stills.jpg)
+
+**同一个人物，从设定图到首帧再到成片。** 设定图锁住长相和服装，首帧锁住构图，视频工具只负责让画面动起来。老周的左眼浑浊发白，这个特征写在 `project.json` 里他的 `trait` 字段，他正脸入画的提示词都会自动带上，所以到成片里还在。
+
+![设定图、分镜首帧、成片画面对照](assets/showcase/sheet-frame-video.jpg)
+
+**首帧先过一遍再出片。** 出图工具常有这几种错：多出一个人、背景不合年代、前景冒出来历不明的东西。在首帧阶段改掉，比出完视频再返工便宜得多。
+
+![首帧改前改后对照](assets/showcase/before-after.jpg)
+
 ## 它怎么工作
 
 ```
