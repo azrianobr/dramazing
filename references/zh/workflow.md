@@ -141,6 +141,24 @@ node scripts/assemble.mjs --work $W --ep $EP --loudnorm --align
 
 用户确认后，删镜头原片和中间文件，只留成片、字幕和出片记录。然后按 `retro-template.md` 写复盘：只记和上一集不同的地方，以及原因。规则有变就改这几份 reference 文档。
 
+## 故事语言
+
+故事可以是中文、英文或韩文，在 `project.json` 写 `"language": "zh" | "en" | "ko"`。脚本按它决定：
+
+- 台词时长怎么算：中文、韩文按字（音节）数，英文按词数，除以语速再加 1 秒起音。
+- 语音识别用哪种语言（`cut.py` 测台词说完的时间，`assemble.mjs --align` 对齐字幕）。
+- 字幕的字体和换行：中文按字换行，英文、韩文按词换行。
+- 提示词里的固定句子（限制、出镜人数、视线等），以及台词的语言名。
+
+脚本打印的提示也有三种语言：默认跟着作品的故事语言，也可以用环境变量 `DRAMAZING_LANG=zh|en|ko` 指定。
+
+**语速要用试探镜头校准。** 中文 3 字/秒来自《渡口》6 集。英文、韩文的值来自各一条试探镜头，样本很少（见 `langs.json` 的 `calibrated`）。新作品第一条试探镜头出来后：
+
+1. 跑 `cut.py --work $W --ep 1 <试探镜头所在段号>`。这一段只有试探镜头也能跑：它只测台词、不拼段，打印台词起止秒数和「语速」（字数或词数 ÷ 开口到说完的秒数）。
+2. 这个语速和 `langs.json` 的 `rate` 差得多，就在 `project.json` 写 `speechRate`。语速里含句间停顿，正好是排时长要用的值。
+
+语速偏大，分镜给台词的时间就不够，剪辑会自动留长，整集会超出目标时长；偏小则反过来。
+
 ## 依赖
 
 | 工具 | 用在哪 |
@@ -150,5 +168,5 @@ node scripts/assemble.mjs --work $W --ep $EP --loudnorm --align
 | ffmpeg / ffprobe | 所有视频处理 |
 | [whisper.cpp](https://github.com/ggerganov/whisper.cpp)（`whisper-cli`）+ `ggml-large-v3-turbo` 和 `ggml-silero-v5.1.2` 模型 | 测台词时长、对齐字幕。模型目录默认 `~/models/whisper`，可用环境变量 `WHISPER_MODELS` 改 |
 | 一个出图工具 | 出设定图和分镜图，要能传参考图。实测：Codex CLI |
-| 一个「首帧 + 文字 → 视频」的工具 | 出片，要能说中文台词。实测：Grok 网页 |
-| 中文字体 | 字幕和预览，默认 macOS 的 STHeiti，可用环境变量 `SUB_FONT` 改 |
+| 一个「首帧 + 文字 → 视频」的工具 | 出片，要能说故事语言的台词。实测：Grok 网页 |
+| 字体 | 字幕和预览。默认用 macOS 自带的：中文 STHeiti，英文 Helvetica Neue，韩文 Apple SD Gothic Neo（见 `scripts/lang/langs.json`）。可用环境变量 `SUB_FONT` 改 |

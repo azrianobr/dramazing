@@ -8,16 +8,18 @@ export function speech(lines, language = 'Mandarin Chinese') {
     : `An off-screen inner-voice narration${l.who ? ` by ${l.who}` : ''}${l.tone ? ` (${l.tone})` : ''}, in ${language}: "${l.say}" It is a voiceover only: nobody on screen moves their lips or speaks.`)).join(' Then ');
 }
 
-/** 镜头描述的主体：中文写画面和限制，英文写运镜和台词 */
-export function body(s, language) {
+/** 镜头描述的主体：故事语言写画面和限制，英文写运镜和台词（故事是英文时只有一种语言）。
+ *  ctx = { phrases: lang/<语言>.mjs, language: 台词语言的英文名 } */
+export function body(s, { phrases: P, language }) {
+  const B = P.body;
   return [
-    `镜头 ${s.key}｜${s.seconds} 秒｜${s.size}${s.scene ? `｜${s.scene}` : ''}`,
-    s.rig && `机位：${s.rig}。`,
-    `动作：${s.action}${s.eye}${s.pace}`,
-    s.move && `运镜：${s.move.zh}`,
-    s.ambient && `环境：${s.ambient}`,
+    B.head(s),
+    s.rig && B.rig(s.rig),
+    `${B.action}${s.action}${s.eye}${s.pace}`,
+    s.move && `${B.move}${s.move.text}`,
+    s.ambient && `${B.ambient}${s.ambient}`,
     [s.move ? s.move.en : (s.camera ?? ''), ...s.traits, speech(s.lines, language)].filter(Boolean).join(' '),
-    `关键限制：${s.limits.join('；')}。`,
+    B.limits(s.limits),
     s.people,
   ].filter(Boolean);
 }

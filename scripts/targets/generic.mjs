@@ -5,9 +5,9 @@ import { body, FILM_HEAD } from './_common.mjs';
 
 export default {
   durations: [5, 10],
-  render(shot, project) {
+  render(shot, project, ctx) {
     const head = project.video?.head || FILM_HEAD;
     const tail = project.video?.tail ?? 'No subtitles, no on-screen text, no background music.';
-    return [head, ...body(shot, project.video?.language ?? 'Mandarin Chinese'), tail].join('\n');
+    return [head, ...body(shot, ctx), tail].join('\n');
   },
 };

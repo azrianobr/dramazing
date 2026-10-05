@@ -2,6 +2,7 @@
  "title": "作品名",
  "source": "story.txt",
  "episodes": 1,
+ "language": "zh",
  "targetSeconds": [
   120,
   150

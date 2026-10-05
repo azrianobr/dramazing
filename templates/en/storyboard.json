@@ -1,0 +1,39 @@
+{
+ "episodes": [
+  {
+   "ep": 1,
+   "segments": [
+    {
+     "id": "E01-01",
+     "scene": 1,
+     "blocking": "Where each person is at the start of this segment, their pose, who holds which prop",
+     "sound": "ambient sound",
+     "cuts": [
+      {
+       "beats": [
+        1,
+        2
+       ],
+       "seconds": 6,
+       "size": "medium",
+       "camera": "Static Shot",
+       "chars": [
+        "C01"
+       ],
+       "props": [
+        "P01"
+       ],
+       "frame": "First-frame description",
+       "action": "What happens in this cut",
+       "aim": "Character name",
+       "angle": "eye level",
+       "lens": "50mm standard, medium-shallow depth of field",
+       "eyeline": "frame right",
+       "focus": "locked on the character's face"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

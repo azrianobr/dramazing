@@ -1,0 +1,39 @@
+{
+ "title": "마지막 전차",
+ "source": "story.txt",
+ "episodes": 1,
+ "language": "ko",
+ "targetSeconds": [40, 60],
+ "style": "사실적인 영화 질감, 1970년대 한국 항구 도시, 밤, 전차 실내 조명, 은은한 필름 그레인",
+ "images": { "provider": "manual" },
+ "video": { "target": "grok" },
+ "characters": [
+  {
+   "id": "C01",
+   "name": "영자",
+   "alias": { "ko": "백발의 여자 차장", "en": "the grey-haired conductor woman" },
+   "sheet": "Character sheet on one 16:9 canvas: a Korean woman in her early sixties, tram conductor in a 1970s Korean port city, short permed grey hair, lined kind face, navy wool conductor's jacket with brass buttons and a matching cap held under her arm, a leather ticket pouch on a strap across her chest. Left: front bust portrait. Right: full-body front, side and back views on a plain light background. No text."
+  },
+  {
+   "id": "C02",
+   "name": "민호",
+   "alias": { "ko": "회색 비옷의 젊은 남자", "en": "the young man in the grey raincoat" },
+   "sheet": "Character sheet on one 16:9 canvas: a Korean adult man in his late twenties, thin, short black hair damp from rain, tired eyes, a grey belted raincoat over a dark sweater. Left: front bust portrait. Right: full-body front, side and back views on a plain light background. No text."
+  }
+ ],
+ "scenes": [
+  {
+   "id": "S01",
+   "name": "전차 안",
+   "sheet": "Location sheet on one 16:9 canvas: the inside of an old 1970s Korean city tram at night, two rows of worn wooden seats, brass hand poles, warm yellow ceiling lamps, rain streaking the windows, dark harbour water and distant city lights outside. Main wide view plus two small detail panels: the rear window seat and the conductor's stand. No people, no text.",
+   "ambient": { "*": "빗물이 창을 타고 흐르고, 천장 등이 살짝 깜빡이며, 손잡이 끈이 전차를 따라 흔들린다." }
+  }
+ ],
+ "props": [
+  {
+   "id": "P01",
+   "name": "개찰 가위",
+   "sheet": "Prop sheet on one 16:9 canvas: an old steel tram ticket punch with worn red grips, shown from three angles, plus a small paper tram ticket with a round hole punched in it. Plain light background, no text."
+  }
+ ]
+}

@@ -1,5 +1,6 @@
 // dramazing 的数据层：读工作目录里的三份 JSON（project / script / storyboard），给其他脚本用。
-// 格式说明见 references/data-format.md。
+// 格式说明见 references/<语言>/data-format.md。
+// 两种语言：故事语言（project.language，台词、提示词、字幕跟着它）和界面语言（脚本打印的提示，T() 选）。
 
 import { existsSync, readFileSync, writeFileSync, renameSync, mkdirSync, copyFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
@@ -27,12 +28,63 @@ export function writeJson(path, data, { backup = true } = {}) {
 
 export const epTag = (n) => `E${String(n).padStart(2, '0')}`;
 
-// 只数汉字、字母、数字，标点不算
+/* ---------------- 语言 ---------------- */
+
+// 每种故事语言的语速、语音识别代码、字幕字体等，见 lang/langs.json
+export const LANGS = JSON.parse(readFileSync(new URL('./lang/langs.json', import.meta.url), 'utf8'));
+let STORY = 'zh', RATE = null, LOADED = false;
+/** 故事语言：zh / en / ko，没写按 zh（向后兼容） */
+export const lang = () => STORY;
+/** 界面语言：环境变量 DRAMAZING_LANG > 作品的故事语言 > 系统 LANG > 英文 */
+export const ui = () => {
+  const env = process.env.DRAMAZING_LANG, sys = (process.env.LC_ALL || process.env.LANG || '').slice(0, 2);
+  return LANGS[env] ? env : LOADED ? STORY : LANGS[sys] ? sys : 'en';
+};
+/** 三语提示：T(中文, English, 한국어) */
+export const T = (zh, en, ko) => ({ zh, en, ko })[ui()] ?? en;
+/** 本作品故事语言的固定句子和匹配规则（lang/<语言>.mjs） */
+export const phrases = async () => (await import(`./lang/${STORY}.mjs`)).default;
+
+// 台词长度：中文、韩文数字（音节），英文数单词；标点不算
 export const countChars = (t) => [...String(t).replace(/[^\p{Script=Han}\p{L}\p{N}]/gu, '')].length;
-// 视频模型念中文约 3 字/秒，再加 1 秒起音（Grok 实测，换工具后按实际校准）
-export const speakSeconds = (t) => countChars(t) / 3 + 1;
-// 台词里的破折号会被念成「一」，统一换成逗号
-export const speakable = (t) => String(t).replace(/——|—|--/g, '，').replace(/，([。！？])/g, '$1');
+export const countUnits = (t, l = STORY) => (LANGS[l].unit === 'word'
+  ? String(t).split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length : countChars(t));
+// 台词秒数 = 字数 / 语速 + 1 秒起音。中文 3 字/秒是 Grok 实测；其他语言没校准前按 langs.json 的估计值，
+// 可以在 project.json 写 speechRate 覆盖（实测方法见 references/<语言>/workflow.md「故事语言」）
+export const speechRate = (l = STORY) => (l === STORY && RATE) || LANGS[l].rate;
+export const speakSeconds = (t, l = STORY) => countUnits(t, l) / speechRate(l) + 1;
+// 台词里的破折号：中文会被念成「一」，统一换成逗号；其他语言换成逗号停顿
+export const speakable = (t, l = STORY) => (l === 'zh'
+  ? String(t).replace(/——|—|--/g, '，').replace(/，([。！？])/g, '$1')
+  : String(t).replace(/\s*(——|—|--)\s*/g, ', ').replace(/,\s*([.!?])/g, '$1'));
+
+// 语音识别结果和台词比对的单位：中文、韩文按字，英文按词（小写）
+export const tokens = (t, l = STORY) => (LANGS[l].unit === 'word'
+  ? String(t).toLowerCase().split(/[^\p{L}\p{N}']+/u).filter(Boolean)
+  : [...String(t).replace(/[^\p{Script=Han}\p{L}\p{N}]/gu, '')]);
+
+/**
+ * 把识别片段按出现顺序单调地挂到台词上：片段的字 / 词落在哪句台词里最多就归哪句（只往后看两句，平分归后一句）。
+ * VAD 切出的片段会把前面的静音也并进来，起点按字数 / 词数从片段末尾倒推（每单位秒数见 langs.json 的 alignUnitSec）。
+ * lines: [{from, to, text}]，pieces: [{from, to, text}]（识别原文）。命中的台词改写 from / to，返回命中句数
+ */
+export function alignLines(lines, pieces, l = STORY) {
+  const unit = LANGS[l].alignUnitSec;
+  const ps = pieces.map((p) => ({ ...p, tk: tokens(p.text, l) })).filter((p) => p.tk.length);
+  const lt = lines.map((x) => new Set(tokens(x.text, l)));
+  const score = (p, k) => p.tk.filter((t) => lt[k].has(t)).length / p.tk.length;
+  let li = 0;
+  for (const p of ps) {
+    let best = -1, bs = 0.34;
+    for (let k = li; k < Math.min(li + 3, lines.length); k++) if (score(p, k) > bs || (k > li && score(p, k) === bs && bs > 0.34)) { bs = score(p, k); best = k; }
+    if (best < 0) continue;
+    li = best;
+    const x = lines[best];
+    if (!x.hit) { x.hit = true; x.from = Math.max(p.from, p.to - unit * p.tk.length - 0.2); }
+    x.to = p.to;
+  }
+  return lines.filter((x) => x.hit).length;
+}
 
 export const ACTION_SECONDS = 2.5;
 
@@ -40,6 +92,10 @@ export const ACTION_SECONDS = 2.5;
 export function loadWork(workArg) {
   const work = resolve(workArg);
   const project = readJson(join(work, 'project.json'));
+  STORY = project.language ?? 'zh';
+  if (!LANGS[STORY]) throw new Error(`project.json language「${STORY}」: ${Object.keys(LANGS).join(' / ')}`);
+  RATE = project.speechRate ?? null;
+  LOADED = true;
   const script = readOpt(join(work, 'script.json'), { episodes: [] });
   const storyboard = readOpt(join(work, 'storyboard.json'), { episodes: [] });
   const byId = (list) => new Map((list ?? []).map((x) => [x.id, x]));
@@ -50,11 +106,11 @@ export function loadWork(workArg) {
 /**
  * 一集的剧本场景，节拍按场景内顺序从 1 编号。
  * 节拍三种：{act}（动作）、{who, say, tone}（台词）、{who, say, tone, inner: true}（心声 / 画外音）
- * 每拍补上 n、kind（'act' | 'line' | 'inner'）、seconds（动作 2.5 秒，台词按字数）
+ * 每拍补上 n、kind（'act' | 'line' | 'inner'）、seconds（动作 2.5 秒，台词按字数 / 词数）
  */
 export function episodeScenes(script, ep) {
   const e = script.episodes.find((x) => x.ep === ep);
-  if (!e) throw new Error(`剧本里没有第 ${ep} 集`);
+  if (!e) throw new Error(T(`剧本里没有第 ${ep} 集`, `script.json has no episode ${ep}`, `script.json에 ${ep}화가 없습니다`));
   return e.scenes.map((sc, i) => ({
     ...sc,
     index: i + 1,

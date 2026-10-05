@@ -7,7 +7,7 @@
 | 条件 | 为什么 |
 |---|---|
 | 能用一张图做首帧 | 人物、服装、场景的一致性全靠首帧 |
-| 能说中文台词，口型对得上 | 短剧靠对白推进；只能出无声画面的工具要另配音 |
+| 能说故事语言的台词，口型对得上 | 短剧靠对白推进；只能出无声画面的工具要另配音 |
 | 能出 5 到 10 秒 | 一切一般 2 到 8 秒，留余量给剪辑 |
 | 能出 16:9、1080p 左右 | 和首帧、成片一致 |
 
@@ -36,8 +36,8 @@ node scripts/video-prompts.mjs --work $W --ep 1 --target generic
 import { body, FILM_HEAD } from './_common.mjs';
 export default {
   durations: [5, 10],             // 这个工具的时长档位，升序
-  render(shot, project) {         // shot 是 shots.json 里的一条
-    return [FILM_HEAD, ...body(shot, 'Mandarin Chinese'), '...'].join('\n');
+  render(shot, project, ctx) {    // shot 是 shots.json 里的一条；ctx 带故事语言的固定句子和语言名
+    return [FILM_HEAD, ...body(shot, ctx), '...'].join('\n');
   },
 };
 ```

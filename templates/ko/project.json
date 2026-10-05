@@ -1,0 +1,45 @@
+{
+ "title": "작품명",
+ "source": "story.txt",
+ "episodes": 1,
+ "language": "ko",
+ "targetSeconds": [
+  120,
+  150
+ ],
+ "style": "사실적인 영화 질감, 자연광, 은은한 필름 그레인",
+ "images": {
+  "provider": "manual"
+ },
+ "video": {
+  "target": "generic"
+ },
+ "characters": [
+  {
+   "id": "C01",
+   "name": "인물명",
+   "alias": {
+    "ko": "한눈에 이 인물을 알아볼 수 있는 외모 문구",
+    "en": "an appearance phrase in English"
+   },
+   "sheet": "인물 설정화 프롬프트: 얼굴, 머리 모양, 의상, 나이"
+  }
+ ],
+ "scenes": [
+  {
+   "id": "S01",
+   "name": "장소명",
+   "sheet": "장소 설정화 프롬프트",
+   "ambient": {
+    "*": "이 장소의 환경 움직임"
+   }
+  }
+ ],
+ "props": [
+  {
+   "id": "P01",
+   "name": "소품명",
+   "sheet": "소품 설정화 프롬프트"
+  }
+ ]
+}

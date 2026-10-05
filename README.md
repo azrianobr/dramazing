@@ -5,106 +5,123 @@
   </picture>
 </p>
 
-<p align="center"><b>把一篇故事，做成一部分集短剧。</b><br>
+<p align="center"><b>From one story to an episodic short drama.</b><br>
 <sub>Turn a short story into an episodic AI drama — script, storyboard, frames, video, subtitles.</sub></p>
+
+<p align="center"><a href="README.zh.md">中文</a> | <b>English</b> | <a href="README.ko.md">한국어</a></p>
 
 ---
 
-dramazing 是一个 AI 助手用的 skill（[Agent Skills](https://agentskills.io) 格式，Claude Code、Codex CLI 等都能读）。给它一篇中文短篇故事，它带着你一集一集做出有人物、有对白、带硬字幕的短剧成片，每集约 2 分钟。
+dramazing is a skill for AI assistants (in the [Agent Skills](https://agentskills.io) format, readable by Claude Code, Codex CLI and others). Give it a short story in Chinese, English or Korean, and it walks you through making a short drama episode by episode, with characters, dialogue and burned-in subtitles, about 2 minutes per episode.
 
-出图和出片工具都可以换。流程只规定每一步的输入和输出，工具通过适配器接入。
+Both the image tool and the video tool can be swapped. The workflow defines only the inputs and outputs of each step; tools plug in through adapters.
 
-这套流程是做完一部 6 集短剧之后整理出来的。每条规则都来自一次实际出片的问题，在 `references/` 里注明了出处。
+The workflow was written up after making a 6-episode short drama. Every rule comes from a real problem in video generation, and `references/` notes where each one came from.
 
-## 效果
+## Language
 
-下面的画面都出自示例《渡口》的成片和中间产物：Codex 出图，Grok 出片。
+| Story language | Testing status |
+|---|---|
+| Chinese | A complete 6-episode work (*Dukou (渡口)*); the speech rate of 3 characters/second is measured |
+| English | One 10-second trial shot (Grok): the line came out word for word, lips and picture stable; measured speech rate 2.2 words/second (1 sample) |
+| Korean | One 10-second trial shot (Grok): the line came out right, lips and picture stable; measured speech rate 4.5 syllables/second (1 sample) |
 
-<p align="center"><img src="assets/showcase/push-in.webp" width="720" alt="第 6 集一条推近镜头：沈知微说完台词，镜头停在近景"></p>
-<p align="center"><sub>第 6 集 03-2：镜头从全身慢慢推到胸口以上，她说完「我收了十年」时停住。运镜、口型、台词都写在同一条提示词里。</sub></p>
+The docs come in Chinese, English and Korean, with the same content: `references/zh/`, `references/en/`, `references/ko/`. The Chinese docs are the original; the English and Korean docs are AI translations, and the Korean ones still need review by a native speaker. Script messages also come in the three languages. They follow the story language by default; set the environment variable `DRAMAZING_LANG` to choose one.
 
-![成片截图](assets/showcase/stills.jpg)
+## What it looks like
 
-**同一个人物，从设定图到首帧再到成片。** 设定图锁住长相和服装，首帧锁住构图，视频工具只负责让画面动起来。老周的左眼浑浊发白，这个特征写在 `project.json` 里他的 `trait` 字段，他正脸入画的提示词都会自动带上，所以到成片里还在。
+All images below come from the final cuts and intermediate files of the *Dukou* example: images by Codex, video by Grok.
 
-![设定图、分镜首帧、成片画面对照](assets/showcase/sheet-frame-video.jpg)
+<p align="center"><img src="assets/showcase/push-in.webp" width="720" alt="A push-in shot from episode 6: 沈知微 finishes her line and the camera stops on a close shot"></p>
+<p align="center"><sub>Episode 6, 03-2: the camera slowly pushes in from a full shot to a chest-up close shot, and stops as she finishes the line 「我收了十年」 ("ten years I've gathered it"). The camera move, lip sync and dialogue are all written in the same prompt.</sub></p>
 
-**首帧先过一遍再出片。** 出图工具常有这几种错：多出一个人、背景不合年代、前景冒出来历不明的东西。在首帧阶段改掉，比出完视频再返工便宜得多。
+![Stills from the final cut](assets/showcase/stills.jpg)
 
-![首帧改前改后对照](assets/showcase/before-after.jpg)
+**The same character, from sheet to first frame to final cut.** The sheet locks the face and costume, the first frame locks the composition, and the video tool only has to make the picture move. 老周's left eye is clouded milky white. This feature is written in his `trait` field in `project.json`, and every prompt where he faces the camera includes it automatically, so it is still there in the final cut.
 
-## 它怎么工作
+![Sheet, storyboard first frame and final-cut frame side by side](assets/showcase/sheet-frame-video.jpg)
+
+**Check the first frames before generating video.** Image tools often make these mistakes: an extra person, a background from the wrong period, an unexplained object in the foreground. Fixing them at the first-frame stage is much cheaper than reworking after the video is made.
+
+![A first frame before and after the fix](assets/showcase/before-after.jpg)
+
+## How it works
 
 ```
-故事原文 ──AI 助手写──▶ 设定 / 剧本 / 分镜 ──出图工具──▶ 设定图 + 每切首帧
-                                                           │
-                              ┌─── 关口 1：叙事预览，确认故事看得懂 ◀┘
-                              ▼
-               逐条生成视频提示词 ──▶ 关口 2：试探镜头，确认画质和口型
-                                               │
-                                               ▼
-              视频工具按首帧出片 ──▶ 剪辑、对齐台词 ──▶ 审片版 ──▶ 硬字幕成片
+Source story ──AI assistant──▶ setting / script / storyboard ──image tool──▶ sheets + first frames
+                                                                                       │
+                         ┌─── Gate 1: narrative preview, is the story easy to follow? ◀┘
+                         ▼
+               video prompts, one per cut ──▶ Gate 2: trial shot, check image quality and lip sync
+                                                  │
+                                                  ▼
+video tool animates first frames ──▶ cut, align dialogue ──▶ review cut ──▶ final cut with burned-in subtitles
 ```
 
-| 环节 | 谁来做 | 实测过的工具 | 可以换成 |
+| Stage | Who does it | Tested tool | Can be replaced by |
 |---|---|---|---|
-| 分集、人物设定、剧本、分镜 | AI 助手，按 `references/writing.md` | Claude Code | 任何能读 skill 的助手，或人工写 |
-| 设定图、每切的首帧 | `scripts/frames.mjs` 出任务单 | Codex CLI | 手动用任何出图工具，或接你的命令行（[说明](references/adapters/image.md)） |
-| 视频提示词和预检 | `scripts/video-prompts.mjs` | Grok 写法 | 通用写法，或自己写一个 target（[说明](references/adapters/video-other.md)） |
-| 出片 | 你或 AI 助手，在视频工具里按正常界面操作 | Grok 网页 | 可灵、即梦、Veo、Runway 等，未实测 |
-| 剪辑、拼接、字幕、审片版 | `cut.py`、`assemble.mjs`、`review.py`、`burn-subs.py` | ffmpeg + whisper.cpp | — |
+| Episodes, characters, script, storyboard | The AI assistant, following `references/en/writing.md` | Claude Code | Any assistant that can read skills, or write them by hand |
+| Sheets, first frame of each cut | `scripts/frames.mjs` writes the task list | Codex CLI | Any image tool by hand, or your own command line ([details](references/en/adapters/image.md)) |
+| Video prompts and preflight | `scripts/video-prompts.mjs` | Grok format | The generic format, or write your own target ([details](references/en/adapters/video-other.md)) |
+| Video | You or the AI assistant, through the video tool's normal interface | Grok (web) | Kling, Jimeng, Veo, Runway, etc. (not tested) |
+| Cutting, assembly, subtitles, review cut | `cut.py`, `assemble.mjs`, `review.py`, `burn-subs.py` | ffmpeg + whisper.cpp | — |
 
-只有「Codex 出图 + Grok 出片」这一组完整做过一部作品。换别的工具，第一集先多出几条试探镜头。
+Only the "Codex for images + Grok for video" combination has made a complete work. With other tools, make a few extra trial shots in the first episode.
 
-## 安装
+## Installation
 
-把仓库克隆到你的 AI 助手读 skill 的目录。比如 Claude Code：
+Clone the repo into the directory where your AI assistant reads skills. For Claude Code:
 
 ```bash
 git clone https://github.com/azrianobr/dramazing ~/.claude/skills/dramazing
 ```
 
-然后说「把这篇故事做成短剧」，或者输入 `/dramazing`。其他助手放到它读 skill 的位置，或者直接让它读 `SKILL.md`。
+Then say "turn this story into a short drama", or type `/dramazing`. For other assistants, put it where they read skills, or just ask them to read `SKILL.md`.
 
-### 依赖
+### Dependencies
 
-- Node.js 18+、Python 3 + Pillow、ffmpeg
-- [whisper.cpp](https://github.com/ggerganov/whisper.cpp)（`whisper-cli`），模型 `ggml-large-v3-turbo` 和 `ggml-silero-v5.1.2`，放在 `~/models/whisper`（可用 `WHISPER_MODELS` 改）
-- 一个能传参考图的出图工具（实测：[Codex CLI](https://github.com/openai/codex)）
-- 一个「首帧 + 文字 → 视频」、能说中文台词的视频工具（实测：Grok 网页的 Imagine）
-- 目前在 macOS 上测试过。字幕字体默认 STHeiti（可用 `SUB_FONT` 改）
+- Node.js 18+, Python 3 + Pillow, ffmpeg
+- [whisper.cpp](https://github.com/ggerganov/whisper.cpp) (`whisper-cli`), with the `ggml-large-v3-turbo` and `ggml-silero-v5.1.2` models in `~/models/whisper` (change with `WHISPER_MODELS`)
+- An image tool that accepts reference images (tested: [Codex CLI](https://github.com/openai/codex))
+- A "first frame + text → video" tool that can speak dialogue in the story language (tested: Imagine on the Grok website)
+- Tested on macOS so far. Subtitles use the Chinese, English and Korean fonts built into macOS by default (change with `SUB_FONT`)
 
-## 目录
+## Layout
 
 ```
-SKILL.md              skill 入口
-references/           流程、写作规则、数据格式、提示词与运镜规则、复盘模板
-  adapters/           出图、Grok 出片、其他视频工具
-scripts/              校验、出图、提示词、预览、收片、剪辑、拼接、审片、字幕
-  targets/            视频提示词的工具写法：grok、generic
-assets/               logo（浅色 / 深色）和图标
-templates/            空的 project / script / storyboard
-examples/渡口/         完整示例：6 集的设定、剧本和分镜
+SKILL.md              skill entry (English; SKILL.zh.md and SKILL.ko.md are translations for people to read)
+references/zh|en|ko/  workflow, writing rules, data format, prompt and camera-move rules, retrospective template
+  adapters/           images, Grok video, other video tools
+scripts/              validation, images, prompts, preview, ingest, cutting, assembly, review, subtitles
+  targets/            video prompt formats per tool: grok, generic
+  lang/               settings and fixed prompt sentences for each story language
+assets/               logo (light / dark) and icon
+templates/zh|en|ko/   empty project / script / storyboard
+examples/渡口/         complete example (Chinese): setting, script and storyboard for 6 episodes
+examples/last-tram/   small single-episode example in English
+examples/majimak-jeoncha/  small single-episode example in Korean (the same story in Korean)
 ```
 
-## 示例
+## Examples
 
-`examples/渡口/` 是一个完整的 6 集示例。原作是烁皓为 [shuohao-skills](https://github.com/eternityspring/shuohao-skills) 写的样例故事《渡口》（Apache-2.0）。我们改编了剧本，写了全部分镜。来源和改动见 [`examples/渡口/NOTICE.md`](examples/渡口/NOTICE.md)。
+`examples/渡口/` is a complete 6-episode example. The original is *Dukou*, a sample story written by Shuohao (烁皓) for [shuohao-skills](https://github.com/eternityspring/shuohao-skills) (Apache-2.0). We adapted the script and wrote the whole storyboard. For the source and our changes, see [`examples/渡口/NOTICE.md`](examples/渡口/NOTICE.md).
+
+`examples/last-tram/` (English) and `examples/majimak-jeoncha/` (Korean) are short original stories written for this project to test English and Korean. Like the rest of the repo, they are released under Apache-2.0.
 
 ```bash
 node scripts/validate.mjs     --work examples/渡口 --ep 1
 node scripts/video-prompts.mjs --work examples/渡口 --ep 1 --target grok --out /tmp/dz-test
 ```
 
-## 关于出片
+## About video generation
 
-本 skill 不包含网页自动化脚本。出片请在视频工具的正常界面或公开 API 上操作，遵守工具的服务条款，不要用脚本绕过页面的限制、审核或计费。
+This skill includes no browser automation scripts. Generate video through the video tool's normal interface or public API, follow the tool's terms of service, and do not use scripts to get around the page's limits, moderation or billing.
 
-## 致谢
+## Acknowledgements
 
-- 运镜规则参考了 AdrianPunk 的《AI 视频运镜词典》[上篇](https://x.com/adrianpunk115/status/2104172387575222768)、[下篇](https://x.com/adrianpunk115/status/2104523576020017575)，按我们的实测结果重新整理。
-- 示例故事《渡口》来自烁皓的 [shuohao-skills](https://github.com/eternityspring/shuohao-skills)。
+- The camera-move rules draw on AdrianPunk's *AI Video Camera-Movement Dictionary* ([part 1](https://x.com/adrianpunk115/status/2104172387575222768), [part 2](https://x.com/adrianpunk115/status/2104523576020017575)), reorganized by our own test results.
+- The example story *Dukou* comes from Shuohao's [shuohao-skills](https://github.com/eternityspring/shuohao-skills).
 
-## 许可
+## License
 
-[Apache License 2.0](LICENSE)。示例目录的第三方版权声明见 [NOTICE](NOTICE)。
+[Apache License 2.0](LICENSE). Third-party copyright notices for the example directory are in [NOTICE](NOTICE).

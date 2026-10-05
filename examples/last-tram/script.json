@@ -1,0 +1,26 @@
+{
+ "episodes": [
+  {
+   "ep": 1,
+   "targetSeconds": [40, 60],
+   "scenes": [
+    {
+     "scene": "S01",
+     "light": "night, warm tram lamps, rain outside",
+     "cast": ["C01", "C02"],
+     "props": ["P01"],
+     "beats": [
+      { "act": "The last tram rattles through the rain. Mae walks down the empty aisle with the ticket punch in her hand." },
+      { "act": "Theo sits alone by the rear window, watching the dark water." },
+      { "who": "C01", "say": "Thirty-one years, and you are the only passenger I never charged. Tell me why you ride.", "tone": "tired but kind" },
+      { "who": "C02", "say": "My father drove this line. He said the last stop is where the city lets go of you.", "tone": "quiet, without looking at her" },
+      { "who": "C02", "say": "I never got to ride with him.", "tone": "almost a whisper" },
+      { "act": "Mae punches a ticket and presses it into his hand." },
+      { "who": "C01", "say": "Then this one's on him.", "tone": "gentle" },
+      { "act": "The tram turns the final corner. The harbour lights slide across the wet glass." }
+     ]
+    }
+   ]
+  }
+ ]
+}

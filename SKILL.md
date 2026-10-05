@@ -1,55 +1,69 @@
 ---
 name: dramazing
-description: 把一篇中文短篇故事做成分集的 AI 短剧成片：写设定、剧本和分镜，出设定图和每切首帧，按首帧出视频，再自动剪辑、对齐台词、烧硬字幕。出图和出片工具可替换（实测组合：Codex 出图 + Grok 出片）。用户想把小说、故事、剧本做成短剧 / 短片 / 分集视频，或者在做某一集的分镜、出图、出片、剪辑、审片、复盘时使用。
+description: Turns a short story in Chinese, English or Korean into an episodic AI short drama, covering setting, script, storyboard, character and location sheets, per-cut first frames, image-to-video generation, automatic cutting, dialogue alignment and burned-in subtitles. Image and video tools are pluggable; the tested combination is Codex for images and Grok for video. Use when the user wants to turn a novel, story or script into a short drama, short film or episodic video, or is working on an episode's storyboard, frames, video generation, editing, review or retrospective.
 ---
 
-# dramazing：从故事到短剧成片
+> 中文: [SKILL.zh.md](SKILL.zh.md) · 한국어: [SKILL.ko.md](SKILL.ko.md)
 
-把一篇故事做成每集 2 分钟左右、有人物、有对白的分集短剧。流程分四个环节，每个环节只规定输入和输出，工具可以换：
+# dramazing: from story to finished short drama
 
-| 环节 | 产出 | 实测过的工具 | 换工具看 |
+Turn a story written in Chinese, English or Korean into an episodic short drama, with characters and dialogue, about 2 minutes per episode. The workflow has four stages. Each stage defines only its inputs and outputs, so the tools can be swapped:
+
+| Stage | Output | Tested tool | To switch tools, see |
 |---|---|---|---|
-| 设定、剧本、分镜 | `project.json`、`script.json`、`storyboard.json` | 由你（AI 助手）写 | `references/writing.md` |
-| 设定图、首帧 | `sheets/*.png`、`frames/*/f*.png` | Codex CLI | `references/adapters/image.md` |
-| 出片 | `video/E01-03/s1.mp4` | Grok 网页 | `references/adapters/video-other.md` |
-| 剪辑、字幕 | 成片 | ffmpeg + whisper.cpp | 一般不用换 |
+| Setting, script, storyboard | `project.json`, `script.json`, `storyboard.json` | Written by you (the AI assistant) | `references/<language>/writing.md` |
+| Sheets, first frames | `sheets/*.png`, `frames/*/f*.png` | Codex CLI | `references/<language>/adapters/image.md` |
+| Video | `video/E01-03/s1.mp4` | Grok (web) | `references/<language>/adapters/video-other.md` |
+| Editing, subtitles | Final cut | ffmpeg + whisper.cpp | Usually no need to change |
 
-## 开始之前
+## Which language
 
-1. 问清原文在哪、做几集、画风（写实 / 动画 / 年代）。用户没说就给建议，等点头。
-2. 问清用什么出图、用什么出片。用户没有偏好，就说明实测过的是 Codex + Grok，其他工具要先出试探镜头。写进 `project.json` 的 `images.provider` 和 `video.target`。
-3. 建作品目录，把原文存为 `story.txt`，从 `templates/` 复制三份 JSON 进去。
-4. 检查依赖：`node`、`python3`（带 Pillow）、`ffmpeg`、`whisper-cli`，以及选定的出图工具。缺的告诉用户，不要替用户装。
+Two languages are involved here. Do not confuse them:
 
-## 每集怎么做
+- **The conversation language**: answer in the language the user speaks to you, and read the matching docs: `references/zh/` for Chinese, `references/en/` for English, `references/ko/` for Korean, and the English docs for any other language. The three versions have the same content; Chinese is the original.
+- **The story language**: the language of the dialogue, set in `language` in `project.json` (`zh` / `en` / `ko`). Dialogue length, speech recognition, subtitles and the fixed sentences in prompts all follow it. It can differ from the conversation language: for example, you can talk in Chinese and make an English short drama.
 
-按 `references/workflow.md` 的 12 步走。最重要的三条：
+## Before you start
 
-1. **两道关口必须等用户点头。** 叙事预览（确认故事看得懂）和试探镜头（确认画质、口型、声音），通过后才批量。
-2. **提示词逐条过。** `video-prompts.mjs` 生成的是草稿，对照首帧检查后再交。
-3. **出片按工具的正常界面或公开 API 操作。** 遵守工具的服务条款，不绕过审核或计费。
+1. Ask where the source text is, how many episodes to make, and what visual style (realistic / animated / period). If the user does not say, suggest something and wait for approval.
+2. Confirm the story language. Chinese, English and Korean are supported. A complete work has been made in Chinese; English and Korean have each had only one trial shot, and their speech rates are estimated from that single shot. In the first episode, make a trial shot to calibrate first (see `workflow.md`, "Story language").
+3. Ask which tool to use for images and which for video. If the user has no preference, explain that the tested combination is Codex + Grok, and that other tools need a trial shot first. Write the choice into `images.provider` and `video.target` in `project.json`.
+4. Create a work directory, save the source text as `story.txt`, and copy the three JSON files from `templates/<story language>/` into it.
+5. Check dependencies: `node`, `python3` (with Pillow), `ffmpeg`, `whisper-cli`, and the chosen image tool. Tell the user what is missing; do not install it for them.
 
-## 参考文档
+## How to make each episode
 
-按需读，不用一次全读：
+Follow the 12 steps in `references/<language>/workflow.md`. The three most important rules:
 
-| 文档 | 什么时候读 |
+1. **Two gates need the user's approval.** The narrative preview (confirm the story is easy to follow) and the trial shot (confirm image quality, lip sync and sound). Generate in batch only after both pass.
+2. **Review every prompt.** What `video-prompts.mjs` generates is a draft. Check each prompt against its first frame before submitting it.
+3. **Generate video through the tool's normal interface or public API.** Follow the tool's terms of service, and do not get around moderation or billing.
+
+## Reference docs
+
+Read them as needed, not all at once. `<language>` in the paths is `zh`, `en` or `ko`:
+
+| Doc | When to read it |
 |---|---|
-| `references/workflow.md` | 每集开工前。12 步流程和命令 |
-| `references/writing.md` | 写 `project.json`、剧本、分镜时 |
-| `references/data-format.md` | 三份 JSON 的字段说明 |
-| `references/prompt-rules.md` | 过提示词、设计运镜时 |
-| `references/adapters/image.md` | 选出图方式、换出图工具时 |
-| `references/adapters/video-grok.md` | 在 Grok 网页出片、记用量时 |
-| `references/adapters/video-other.md` | 用 Grok 以外的工具出片时 |
-| `references/retro-template.md` | 一集定稿后写复盘 |
+| `workflow.md` | Before each episode. The 12-step workflow and commands |
+| `writing.md` | When writing `project.json`, the script and the storyboard |
+| `data-format.md` | Field reference for the three JSON files |
+| `prompt-rules.md` | When reviewing prompts and designing camera moves |
+| `adapters/image.md` | When choosing how to make images or switching image tools |
+| `adapters/video-grok.md` | When generating video on the Grok website and recording usage |
+| `adapters/video-other.md` | When generating video with a tool other than Grok |
+| `retro-template.md` | When writing the retrospective after an episode's final cut |
 
-完整的例子在 `examples/渡口/`：6 集的项目设定、剧本和分镜。
+Examples:
 
-## 和用户协作的约定
+- `examples/渡口/`: Chinese, 6 episodes, with the complete project setting, script and storyboard.
+- `examples/last-tram/`: English, a small single-episode example.
+- `examples/majimak-jeoncha/`: Korean, the same story in Korean.
 
-- 审片按镜头编号沟通，比如 `06-2`。
-- 删除、覆盖文件前先确认。更新视频用新文件名，不覆盖用户可能正在看的文件。
-- 汇报时说清楚检查了什么、没检查什么。你听不到声音，口型和音色请用户确认。
-- 返工先看有没有备用的那一条，没有再重出。
-- 每集出片前后记用量，复盘时写进去。
+## Working with the user
+
+- Discuss review feedback by shot ID, such as `06-2`.
+- Confirm before deleting or overwriting files. Save updated videos under new file names; do not overwrite a file the user may be watching.
+- When you report, say clearly what you checked and what you did not. You cannot hear audio, so ask the user to confirm lip sync and voice.
+- For rework, first check whether there is a spare take; generate again only if there is none.
+- Record usage before and after generating each episode's video, and include it in the retrospective.

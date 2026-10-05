@@ -2,11 +2,13 @@
 """审片版：每个镜头左上角烧上编号「段-镜头」（如 02-4，按成片里的顺序数），先逐段烧、再拼接；
 音频和软字幕取 assemble 出的正片 E0N.mp4 / E0N.srt。输出 E0N.review.mp4 和 E0N.review.txt（编号 ↔ 时间 ↔ 源文件）
 用法：review.py --work <作品目录> --ep 1 [--dir video]"""
-import argparse, json, os, shutil, subprocess
+import argparse, json, os, shutil, subprocess, sys
 from PIL import Image, ImageDraw, ImageFont
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from dzlang import load, L, T
 ap = argparse.ArgumentParser(); ap.add_argument('--work', required=True); ap.add_argument('--ep', type=int, default=1)
 ap.add_argument('--dir', default='video'); a = ap.parse_args()
-W = os.path.join(os.path.abspath(a.work), a.dir); E = f'E{a.ep:02d}'
+load(os.path.abspath(a.work)); W = os.path.join(os.path.abspath(a.work), a.dir); E = f'E{a.ep:02d}'
 segs = [l.split("'")[1] for l in open(f'{W}/{E}.concat.txt') if l.startswith('file')]
 font = ImageFont.truetype('/System/Library/Fonts/Supplemental/Arial Bold.ttf', 56)
 tmp = f'{W}/.review'; os.makedirs(tmp, exist_ok=True)
@@ -36,9 +38,9 @@ open(f'{tmp}/list.txt', 'w').write(''.join(f"file '{p}'\n" for p in parts))
 # 不加 -shortest：它会把结尾截掉一截（实测会少几十帧）
 subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', f'{tmp}/list.txt',
                 '-i', f'{W}/{E}.mp4', '-i', f'{W}/{E}.srt', '-map', '0:v', '-map', '1:a', '-map', '2',
-                '-c', 'copy', '-c:s', 'mov_text', '-metadata:s:s:0', 'language=chi',
+                '-c', 'copy', '-c:s', 'mov_text', '-metadata:s:s:0', f"language={L()['iso3']}",
                 '-movflags', '+faststart', f'{W}/{E}.review.mp4'], check=True)
 shutil.rmtree(tmp)
 with open(f'{W}/{E}.review.txt', 'w') as o:
-    for label, s, src in table: o.write(f'{label}\t{s:6.2f}s 起\t{src}\n')
+    for label, s, src in table: o.write(f"{label}\t{s:6.2f}s {T('起', 'start', '시작')}\t{src}\n")
 print(open(f'{W}/{E}.review.txt').read())

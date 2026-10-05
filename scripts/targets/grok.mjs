@@ -5,9 +5,9 @@ import { body, FILM_HEAD } from './_common.mjs';
 
 export default {
   durations: [6, 10],
-  render(shot, project) {
+  render(shot, project, ctx) {
     const head = project.video?.head || FILM_HEAD; // 胶片质感防塑料脸；不点名「不要出现的东西」
     const tail = 'No subtitles, no text, no music.';
-    return [head, ...body(shot, project.video?.language ?? 'Mandarin Chinese'), tail].join(' '); // 不用换行：页面输入框里回车会直接提交
+    return [head, ...body(shot, ctx), tail].join(' '); // 不用换行：页面输入框里回车会直接提交
   },
 };

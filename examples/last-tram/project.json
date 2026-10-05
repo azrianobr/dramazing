@@ -1,0 +1,39 @@
+{
+ "title": "The Last Tram",
+ "source": "story.txt",
+ "episodes": 1,
+ "language": "en",
+ "targetSeconds": [40, 60],
+ "style": "Realistic cinematic look, a European harbour city in the 1970s, night, practical tram lights, gentle film grain",
+ "images": { "provider": "manual" },
+ "video": { "target": "grok" },
+ "characters": [
+  {
+   "id": "C01",
+   "name": "Mae",
+   "alias": { "en": "the grey-haired conductor woman" },
+   "sheet": "Character sheet on one 16:9 canvas: a woman in her early sixties, tram conductor, short grey hair, lined kind face, navy wool conductor's jacket with brass buttons, a leather ticket pouch on a strap across her chest. Left: front bust portrait. Right: full-body front, side and back views on a plain light background. No text."
+  },
+  {
+   "id": "C02",
+   "name": "Theo",
+   "alias": { "en": "the young man in the grey raincoat" },
+   "sheet": "Character sheet on one 16:9 canvas: an adult man in his late twenties, thin, dark tousled hair damp from rain, light stubble, tired eyes, a grey belted raincoat over a dark sweater. Left: front bust portrait. Right: full-body front, side and back views on a plain light background. No text."
+  }
+ ],
+ "scenes": [
+  {
+   "id": "S01",
+   "name": "Tram interior",
+   "sheet": "Location sheet on one 16:9 canvas: the inside of an old 1970s tram at night, two rows of worn wooden seats, brass hand poles, warm yellow ceiling lamps, rain streaking the windows, dark harbour water and distant city lights outside. Main wide view plus two small detail panels: the rear window seat and the conductor's stand. No people, no text.",
+   "ambient": { "*": "Rain runs down the windows, the ceiling lamps flicker slightly, the hand straps sway with the tram." }
+  }
+ ],
+ "props": [
+  {
+   "id": "P01",
+   "name": "ticket punch",
+   "sheet": "Prop sheet on one 16:9 canvas: an old steel tram ticket punch with worn red grips, shown from three angles, plus a small paper tram ticket with a round hole punched in it. Plain light background, no text."
+  }
+ ]
+}

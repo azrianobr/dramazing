@@ -1,0 +1,44 @@
+{
+ "title": "Title of the work",
+ "source": "story.txt",
+ "episodes": 1,
+ "language": "en",
+ "targetSeconds": [
+  120,
+  150
+ ],
+ "style": "Realistic cinematic look, natural light, gentle film grain",
+ "images": {
+  "provider": "manual"
+ },
+ "video": {
+  "target": "generic"
+ },
+ "characters": [
+  {
+   "id": "C01",
+   "name": "Character name",
+   "alias": {
+    "en": "an appearance phrase that identifies this character at a glance"
+   },
+   "sheet": "Character sheet prompt: face, hair, costume, age"
+  }
+ ],
+ "scenes": [
+  {
+   "id": "S01",
+   "name": "Scene name",
+   "sheet": "Location sheet prompt",
+   "ambient": {
+    "*": "The ambience of this scene"
+   }
+  }
+ ],
+ "props": [
+  {
+   "id": "P01",
+   "name": "Prop name",
+   "sheet": "Prop sheet prompt"
+  }
+ ]
+}

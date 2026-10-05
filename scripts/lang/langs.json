@@ -1,0 +1,62 @@
+{
+ "zh": {
+  "name": "Mandarin Chinese",
+  "whisper": "zh",
+  "iso3": "chi",
+  "unit": "char",
+  "rate": 3,
+  "calibrated": "Grok, 6 episodes of 渡口, 2026-10",
+  "alignUnitSec": 0.3,
+  "wrap": "char",
+  "font": "/System/Library/Fonts/STHeiti Medium.ttc",
+  "fontIndex": 0,
+  "preview": {
+   "inner": "（心声）",
+   "colon": "：",
+   "sep": "　",
+   "actOpen": "［",
+   "actClose": "］",
+   "actSep": "；"
+  }
+ },
+ "en": {
+  "name": "English",
+  "whisper": "en",
+  "iso3": "eng",
+  "unit": "word",
+  "rate": 2.2,
+  "calibrated": "Grok, 1 trial shot (16 words in 7.2 s = 2.23 words/s), 2026-10",
+  "alignUnitSec": 0.4,
+  "wrap": "word",
+  "font": "/System/Library/Fonts/HelveticaNeue.ttc",
+  "fontIndex": 10,
+  "preview": {
+   "inner": " (inner voice)",
+   "colon": ": ",
+   "sep": "   ",
+   "actOpen": "[",
+   "actClose": "]",
+   "actSep": "; "
+  }
+ },
+ "ko": {
+  "name": "Korean",
+  "whisper": "ko",
+  "iso3": "kor",
+  "unit": "char",
+  "rate": 4.5,
+  "calibrated": "Grok, 1 trial shot (27 syllables in 6.0 s = 4.5 syllables/s), 2026-10",
+  "alignUnitSec": 0.22,
+  "wrap": "word",
+  "font": "/System/Library/Fonts/AppleSDGothicNeo.ttc",
+  "fontIndex": 4,
+  "preview": {
+   "inner": " (속마음)",
+   "colon": ": ",
+   "sep": "   ",
+   "actOpen": "[",
+   "actClose": "]",
+   "actSep": "; "
+  }
+ }
+}

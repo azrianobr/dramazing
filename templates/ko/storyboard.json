@@ -1,0 +1,39 @@
+{
+ "episodes": [
+  {
+   "ep": 1,
+   "segments": [
+    {
+     "id": "E01-01",
+     "scene": 1,
+     "blocking": "이 세그먼트가 시작될 때 각 인물의 위치와 자세, 소품을 누가 들고 있는지",
+     "sound": "환경음",
+     "cuts": [
+      {
+       "beats": [
+        1,
+        2
+       ],
+       "seconds": 6,
+       "size": "medium",
+       "camera": "Static Shot",
+       "chars": [
+        "C01"
+       ],
+       "props": [
+        "P01"
+       ],
+       "frame": "첫 프레임 화면 묘사",
+       "action": "이 컷에서 일어나는 동작",
+       "aim": "인물명",
+       "angle": "눈높이",
+       "lens": "50mm 표준, 약간 얕은 심도",
+       "eyeline": "화면 오른쪽",
+       "focus": "인물 얼굴에 고정"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

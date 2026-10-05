@@ -19,7 +19,7 @@
 | `_logs/` | 出图用量、出片记录、视频工具用量 |
 | `_bak/` | 脚本改写 JSON 前自动备份的旧版本 |
 
-完整例子见 `examples/渡口/`。空模板见 `templates/`。
+完整例子见 `examples/渡口/`（中文，6 集）。英文、韩文各有一个单集小例子：`examples/last-tram/`、`examples/majimak-jeoncha/`。空模板见 `templates/<语言>/`。
 
 ## project.json
 
@@ -28,10 +28,11 @@
   "title": "作品名",
   "source": "story.txt",
   "episodes": 6,
+  "language": "zh",
   "targetSeconds": [130, 150],
   "style": "写实电影质感，1930 年代民国江南，自然光，轻微胶片颗粒",
   "images": { "provider": "manual", "cmd": "（provider 为 cmd 时）出图命令模板" },
-  "video": { "target": "grok", "durations": [6, 10], "head": "（可选）替换提示词开头的画质句", "language": "Mandarin Chinese" },
+  "video": { "target": "grok", "durations": [6, 10], "head": "（可选）替换提示词开头的画质句" },
   "characters": [
     {
       "id": "C01",
@@ -49,12 +50,14 @@
 }
 ```
 
+- `language`：故事语言，`zh`（中文）/ `en`（英文）/ `ko`（韩文），不写按 `zh`。台词时长、语音识别、字幕字体和换行、提示词里的固定句子都跟着它走。各语言的参数在 `scripts/lang/langs.json`。
+- `speechRate`（可选）：这部作品台词的语速，中文、韩文按字（音节）/秒，英文按词/秒。不写用 `langs.json` 的值：中文 3 字/秒是实测值，英文、韩文是试探镜头量出来的，见 `workflow.md`「故事语言」。
 - `style`：画风前缀。每张设定图和分镜图的提示词前面都加这一句。没写会报警告，整批画风会不统一。
 - `targetSeconds`：一集的目标时长，可以写一个数或一个区间。
 - `images.provider`：出图方式，`manual`（默认）/ `cmd` / `codex`，见 `adapters/image.md`。
 - `video.target`：视频提示词按哪个工具写，`grok` / `generic` / 你自己写的 `scripts/targets/<名>.mjs`。`durations` 不写就用 target 自带的时长档位。
-- `alias`：外貌短语。视频工具不认识人名，提示词里的人名会换成这个短语。`en` 用在英文句子里，`zh` 用在中文句子里。不写就用原名。
-- `trait`（可选）：人物的异样特征，比如瞎眼、伤疤、跛脚。人物正面入画时，提示词会中英文各写一遍「全程保持」。只靠首帧守不住，视频工具会把它「修好」（Grok 实测）。
+- `alias`：外貌短语。视频工具不认识人名，提示词里的人名会换成这个短语。`en` 用在英文句子里，故事语言那一项（`zh` / `ko`）用在故事语言的句子里；英文故事只写 `en`。不写就用原名。
+- `trait`（可选）：人物的异样特征，比如瞎眼、伤疤、跛脚。人物正面入画时，提示词会用英文和故事语言各写一遍「全程保持」，键和 `alias` 一样。只靠首帧守不住，视频工具会把它「修好」（Grok 实测）。
 - `ambient`：场景的环境动态。键是剧本里的光照（`light`），`*` 是默认值。
 - `sheet`：设定图的提示词。人物要写全脸、发型、服装、年龄。年轻女性要写明「成年」，否则可能被判成未成年人，见 `prompt-rules.md`。
 
@@ -89,12 +92,12 @@
 | 种类 | 写法 | 默认时长 |
 |---|---|---|
 | 动作 | `{ "act": "..." }` | 2.5 秒 |
-| 台词 | `{ "who", "say", "tone" }` | 字数 ÷ 3 + 1 秒 |
+| 台词 | `{ "who", "say", "tone" }` | 字数 ÷ 语速 + 1 秒（语速见 `speechRate`；英文按词数） |
 | 心声 / 画外音 | 台词再加 `"inner": true` | 同上 |
 
 - 节拍在场内从 1 开始编号，分镜用这个编号引用。
 - `tone` 只写语气，不写动作。「抹了把汗」这种动作写进 `tone`，视频工具会当台词念出来（Grok 实测）。动作单独写成一拍 `act`。
-- `say` 里不用破折号，用逗号。破折号会被念成「一」，`validate.mjs` 会报错。
+- `say` 里不用破折号，用逗号。中文的破折号会被念成「一」，`validate.mjs` 报错；英文、韩文只提醒，提示词里会自动换成逗号停顿。
 
 ## storyboard.json
 

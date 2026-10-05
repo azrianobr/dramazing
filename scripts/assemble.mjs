@@ -8,7 +8,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { cutStarts, episodeScenes, flag, loadWork, segmentsOf, speakable } from './lib.mjs';
+import { LANGS, T, alignLines, cutStarts, episodeScenes, flag, lang, loadWork, segmentsOf, speakable } from './lib.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -19,7 +19,7 @@ function ffprobe(file) {
   return { width: v.width, height: v.height, duration: Number(j.format.duration), audio: j.streams.some((s) => s.codec_type === 'audio') };
 }
 
-// 剧本台词里的破折号会被视频模型念成「一」（Grok 实测），提示词里已换成逗号；字幕跟着念法走（speakable）
+// 剧本台词里的破折号：中文会被视频模型念成「一」（Grok 实测），提示词里已换成逗号；字幕跟着念法走（speakable）
 
 // 每切在段内的起点：有 cut.py 的 <段>.shots.json 就用实际剪接时长（台词说完才切，常比分镜长），
 // 被 skip 的切起点并到下一个镜头；没有就用分镜时长
@@ -44,31 +44,13 @@ const srtTime = (t) => {
 
 // whisper.cpp + silero VAD：识别一段视频里每句话的实际起止，字幕文字仍用剧本原文
 const WHISPER_DIR = process.env.WHISPER_MODELS ?? join(process.env.HOME, 'models/whisper');
-const norm = (s) => s.replace(/[^\p{Script=Han}\p{L}\p{N}]/gu, '');
 function speechPieces(file) {
   const tmp = join(tmpdir(), `align-${process.pid}`);
   execFileSync('ffmpeg', ['-y', '-v', 'error', '-i', file, '-ar', '16000', '-ac', '1', `${tmp}.wav`]);
-  execFileSync('whisper-cli', ['-m', join(WHISPER_DIR, 'ggml-large-v3-turbo.bin'), '-l', 'zh', '-f', `${tmp}.wav`,
+  execFileSync('whisper-cli', ['-m', join(WHISPER_DIR, 'ggml-large-v3-turbo.bin'), '-l', LANGS[lang()].whisper, '-f', `${tmp}.wav`,
     '--vad', '-vm', join(WHISPER_DIR, 'ggml-silero-v5.1.2.bin'), '-oj', '-of', tmp], { stdio: 'ignore' });
   const j = JSON.parse(readFileSync(`${tmp}.json`, 'utf8'));
-  return j.transcription.map((s) => ({ from: s.offsets.from / 1000, to: s.offsets.to / 1000, text: norm(s.text) }))
-    .filter((p) => p.text);
-}
-// 识别片段按出现顺序单调地挂到台词上：片段字符落在哪句台词里最多就归哪句（只往后看两句，平分归后一句）。
-// VAD 切出的片段会把前面的静音也并进来，起点按字数从片段末尾倒推（约 0.3 秒/字）
-function alignLines(lines, pieces) {
-  const score = (p, l) => [...p.text].filter((ch) => norm(l.text).includes(ch)).length / p.text.length;
-  let li = 0;
-  for (const p of pieces) {
-    let best = -1, bs = 0.34;
-    for (let k = li; k < Math.min(li + 3, lines.length); k++) if (score(p, lines[k]) > bs || (k > li && score(p, lines[k]) === bs && bs > 0.34)) { bs = score(p, lines[k]); best = k; }
-    if (best < 0) continue;
-    li = best;
-    const l = lines[best];
-    if (!l.hit) { l.hit = true; l.from = Math.max(p.from, p.to - 0.3 * p.text.length - 0.2); }
-    l.to = p.to;
-  }
-  return lines.filter((l) => l.hit).length;
+  return j.transcription.map((s) => ({ from: s.offsets.from / 1000, to: s.offsets.to / 1000, text: s.text }));
 }
 
 function cmdAssemble(argv) {
@@ -85,7 +67,7 @@ function cmdAssemble(argv) {
   for (const seg of segmentsOf(W.storyboard, epNo)) {
     const f = join(dir, `${seg.id}.mp4`);
     if (!existsSync(f)) {
-      console.log(`✗ 缺 ${seg.id}.mp4，先跑 video`);
+      console.log(T(`✗ 缺 ${seg.id}.mp4，先跑 cut.py`, `✗ Missing ${seg.id}.mp4; run cut.py first`, `✗ ${seg.id}.mp4가 없습니다. 먼저 cut.py를 실행하세요`));
       process.exit(1);
     }
     const dur = ffprobe(f).duration;
@@ -109,7 +91,7 @@ function cmdAssemble(argv) {
         if (i > 0 && l.from < lines[i - 1].to) lines[i - 1].to = l.from;
         l.to = Math.min(Math.max(l.to + 0.3, l.from + 1), dur);
       });
-      console.log(`  ${seg.id} 对齐 ${hit}/${lines.length} 句${hit < lines.length ? '（未识别的按分镜节拍）' : ''}`);
+      console.log(T(`  ${seg.id} 对齐 ${hit}/${lines.length} 句${hit < lines.length ? '（未识别的按分镜节拍）' : ''}`, `  ${seg.id} aligned ${hit}/${lines.length} lines${hit < lines.length ? ' (the rest follow the storyboard beats)' : ''}`, `  ${seg.id} 정렬 ${hit}/${lines.length}줄${hit < lines.length ? ' (나머지는 콘티 비트 기준)' : ''}`));
     }
     for (const l of lines) subs.push({ from: offset + l.from, to: offset + l.to, text: l.text });
     parts.push(f);
@@ -127,10 +109,11 @@ function cmdAssemble(argv) {
   // 本机 ffmpeg 没编 libass，烧不了硬字幕：封一条 mov_text 软字幕轨（QuickTime / IINA 可开关），
   // 要硬字幕时换带 libass 的 ffmpeg 再用 subtitles 滤镜
   execFileSync('ffmpeg', ['-y', '-v', 'error', '-i', `${base}.mp4`, '-i', `${base}.srt`,
-    '-map', '0', '-map', '1', '-c', 'copy', '-c:s', 'mov_text', '-metadata:s:s:0', 'language=chi', '-movflags', '+faststart', `${base}.subbed.mp4`]);
+    '-map', '0', '-map', '1', '-c', 'copy', '-c:s', 'mov_text', '-metadata:s:s:0', `language=${LANGS[lang()].iso3}`, '-movflags', '+faststart', `${base}.subbed.mp4`]);
   const pr = ffprobe(`${base}.mp4`);
-  console.log(`✓ 第 ${epNo} 集 ${parts.length} 段 → ${base}.mp4（${pr.duration.toFixed(1)} 秒，目标 ${[].concat(W.script.episodes.find((e) => e.ep === epNo)?.targetSeconds ?? W.project.targetSeconds ?? '?').join('–')} 秒）`);
-  console.log(`  字幕 ${subs.length} 条 → ${base}.srt；带软字幕版 → ${base}.subbed.mp4`);
+  const tgt = [].concat(W.script.episodes.find((e) => e.ep === epNo)?.targetSeconds ?? W.project.targetSeconds ?? '?').join('–');
+  console.log(T(`✓ 第 ${epNo} 集 ${parts.length} 段 → ${base}.mp4（${pr.duration.toFixed(1)} 秒，目标 ${tgt} 秒）`, `✓ Episode ${epNo}, ${parts.length} segments -> ${base}.mp4 (${pr.duration.toFixed(1)} s, target ${tgt} s)`, `✓ ${epNo}화 ${parts.length}개 시퀀스 -> ${base}.mp4 (${pr.duration.toFixed(1)}초, 목표 ${tgt}초)`));
+  console.log(T(`  字幕 ${subs.length} 条 → ${base}.srt；带软字幕版 → ${base}.subbed.mp4`, `  ${subs.length} subtitles -> ${base}.srt; soft-subtitled copy -> ${base}.subbed.mp4`, `  자막 ${subs.length}개 -> ${base}.srt, 소프트 자막본 -> ${base}.subbed.mp4`));
   if (!argv.includes('--no-burn')) {
     execFileSync('python3', [join(HERE, 'burn-subs.py'), '--work', work, '--ep', String(epNo), '--dir', flag(argv, '--dir', 'video')], { stdio: 'inherit' });
   }
@@ -138,7 +121,7 @@ function cmdAssemble(argv) {
 
 const argv = process.argv.slice(2);
 if (!argv.includes('--work')) {
-  console.log('assemble.mjs --work <作品目录> --ep <集> [--dir video] [--loudnorm] [--align] [--no-burn]');
+  console.log(T('assemble.mjs --work <作品目录> --ep <集> [--dir video] [--loudnorm] [--align] [--no-burn]', 'assemble.mjs --work <work dir> --ep <episode> [--dir video] [--loudnorm] [--align] [--no-burn]', 'assemble.mjs --work <작품 폴더> --ep <화> [--dir video] [--loudnorm] [--align] [--no-burn]'));
   process.exit(0);
 }
 cmdAssemble(argv);

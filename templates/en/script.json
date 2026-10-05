@@ -1,0 +1,33 @@
+{
+ "episodes": [
+  {
+   "ep": 1,
+   "targetSeconds": [
+    120,
+    150
+   ],
+   "scenes": [
+    {
+     "scene": "S01",
+     "light": "early morning",
+     "cast": [
+      "C01"
+     ],
+     "props": [
+      "P01"
+     ],
+     "beats": [
+      {
+       "act": "An action."
+      },
+      {
+       "who": "C01",
+       "say": "A line of dialogue.",
+       "tone": "tone of voice"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

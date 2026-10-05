@@ -1,0 +1,221 @@
+{
+ "episodes": [
+  {
+   "ep": 1,
+   "segments": [
+    {
+     "id": "E01-01",
+     "scene": 1,
+     "blocking": "Mae walks down the aisle from the front of the tram, the ticket punch in her right hand; Theo sits alone on the rear seat by the right-hand window; the tram is otherwise empty.",
+     "sound": "rain on the roof, the rattle of the tram",
+     "cuts": [
+      {
+       "beats": [
+        1,
+        1
+       ],
+       "seconds": 5,
+       "size": "full",
+       "camera": "Tracking Shot",
+       "move": {
+        "dir": "behind",
+        "to": "the rear seats",
+        "stop": "she stops beside the rear seats",
+        "speed": "slowly and steadily"
+       },
+       "chars": [
+        "C01"
+       ],
+       "props": [
+        "P01"
+       ],
+       "frame": "Full shot from behind, Mae walks away from camera down the empty aisle of the tram at night, the steel ticket punch in her right hand, warm ceiling lamps, rain streaking the windows on both sides",
+       "action": "The grey-haired conductor walks down the empty aisle at normal speed and stops beside the rear seats",
+       "aim": "Mae",
+       "angle": "eye level, from behind",
+       "lens": "35mm, medium depth of field",
+       "eyeline": "none",
+       "focus": "locked on Mae's back"
+      },
+      {
+       "beats": [
+        2,
+        2
+       ],
+       "seconds": 5,
+       "size": "medium",
+       "camera": "Static Shot",
+       "chars": [
+        "C02"
+       ],
+       "props": [],
+       "frame": "Medium shot, Theo sits alone on the rear seat by the window, frame right, his face in three-quarter profile, looking out at the dark harbour water, rain running down the glass beside him, warm lamp light on his face",
+       "action": "The young man sits still and watches the dark water through the wet glass; he blinks once",
+       "aim": "Theo",
+       "angle": "eye level",
+       "lens": "50mm, shallow depth of field",
+       "eyeline": "frame right, out of the window",
+       "focus": "locked on Theo's face"
+      }
+     ]
+    },
+    {
+     "id": "E01-02",
+     "scene": 1,
+     "blocking": "Mae stands in the aisle beside Theo's seat, facing him; Theo stays seated by the window.",
+     "sound": "rain, the tram's hum",
+     "cuts": [
+      {
+       "beats": [
+        3,
+        3
+       ],
+       "seconds": 6,
+       "size": "medium-close",
+       "camera": "Static Shot",
+       "chars": [
+        "C01"
+       ],
+       "props": [
+        "P01"
+       ],
+       "frame": "Medium close-up, Mae stands in the aisle and looks down to frame right at a passenger who is off-screen, the ticket punch held at her chest, tired kind eyes, warm lamp light, rain-streaked windows behind her, nobody else in frame: no shoulder or body in the foreground, the seats behind her are empty",
+       "action": "The grey-haired conductor looks down at the passenger and speaks to him",
+       "aim": "Mae",
+       "angle": "slightly low angle",
+       "lens": "50mm, shallow depth of field",
+       "eyeline": "frame right, down",
+       "focus": "locked on Mae's face"
+      },
+      {
+       "beats": [
+        4,
+        4
+       ],
+       "seconds": 7,
+       "size": "medium",
+       "camera": "Push In",
+       "move": {
+        "from": "a medium shot from the waist up",
+        "to": "a close-up of his face",
+        "stop": "he finishes the line",
+        "speed": "slowly and steadily"
+       },
+       "chars": [
+        "C02"
+       ],
+       "props": [],
+       "frame": "Medium shot, Theo sits on the rear seat by the window, frame right, face in three-quarter profile, still looking out at the dark water, rain on the glass",
+       "action": "The young man answers without looking at her, his eyes on the water; the camera slowly moves closer",
+       "aim": "Theo",
+       "angle": "eye level",
+       "lens": "50mm, shallow depth of field",
+       "eyeline": "frame right, out of the window",
+       "focus": "locked on Theo's face"
+      },
+      {
+       "beats": [
+        5,
+        5
+       ],
+       "seconds": 4,
+       "size": "close",
+       "camera": "Static Shot",
+       "chars": [
+        "C02"
+       ],
+       "props": [],
+       "frame": "Close-up, Theo's face in three-quarter profile by the wet window, eyes lowered, reflections of the harbour lights in the glass",
+       "action": "The young man says it almost in a whisper, then falls silent",
+       "aim": "Theo",
+       "angle": "eye level",
+       "lens": "85mm, shallow depth of field",
+       "eyeline": "frame right, down",
+       "focus": "locked on Theo's eyes"
+      }
+     ]
+    },
+    {
+     "id": "E01-03",
+     "scene": 1,
+     "blocking": "Mae stands beside Theo's seat; Theo is seated; the paper ticket goes from Mae's punch into Theo's hand.",
+     "sound": "a single click of the punch, then rain",
+     "cuts": [
+      {
+       "beats": [
+        6,
+        6
+       ],
+       "seconds": 5,
+       "size": "extreme-close",
+       "camera": "Static Shot",
+       "chars": [],
+       "props": [
+        "P01"
+       ],
+       "frame": "Extreme close-up of hands only: an older woman's hands punch a round hole in a small paper tram ticket with a steel ticket punch, above a man's open palm",
+       "action": "The hands punch the ticket with one click and press it into the open palm; the fingers close around it",
+       "aim": "the ticket",
+       "angle": "high angle",
+       "lens": "100mm macro, very shallow depth of field",
+       "eyeline": "none",
+       "focus": "locked on the ticket"
+      },
+      {
+       "beats": [
+        7,
+        7
+       ],
+       "seconds": 4,
+       "size": "medium-close",
+       "camera": "Static Shot",
+       "chars": [
+        "C01"
+       ],
+       "props": [
+        "P01"
+       ],
+       "frame": "Medium close-up, Mae stands in the aisle looking down to frame right with a small gentle smile, the ticket punch lowered at her side, warm lamp light",
+       "action": "The grey-haired conductor speaks gently and smiles",
+       "aim": "Mae",
+       "angle": "slightly low angle",
+       "lens": "50mm, shallow depth of field",
+       "eyeline": "frame right, down",
+       "focus": "locked on Mae's face"
+      },
+      {
+       "beats": [
+        8,
+        8
+       ],
+       "seconds": 6,
+       "size": "medium",
+       "camera": "Pull Out",
+       "move": {
+        "from": "a medium two-shot of the conductor and the young man",
+        "to": "a wide shot of the whole empty tram interior",
+        "stop": "the harbour lights slide across the wet windows",
+        "speed": "slowly and steadily"
+       },
+       "chars": [
+        "C01",
+        "C02"
+       ],
+       "props": [],
+       "frame": "Medium two-shot from the front of the aisle, Mae stands beside the rear seat, Theo sits by the window holding the paper ticket, both quiet, warm lamps, rain on the glass",
+       "action": "Neither of them speaks; the tram turns a corner and the harbour lights slide across the wet windows while the camera pulls back",
+       "aim": "Mae and Theo",
+       "angle": "eye level",
+       "lens": "35mm, medium depth of field",
+       "eyeline": "Mae: frame right, down; Theo: the ticket in his hand",
+       "focus": "locked on the two of them",
+       "limits": [
+        "Mae stays standing and Theo stays seated."
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
