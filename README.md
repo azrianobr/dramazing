@@ -12,7 +12,7 @@
 
 ---
 
-dramazing is a skill for AI assistants (in the [Agent Skills](https://agentskills.io) format, readable by Claude Code, Codex CLI and others). Give it a short story in Chinese, English or Korean, and it walks you through making a short drama episode by episode, with characters, dialogue and burned-in subtitles, about 2 minutes per episode.
+dramazing is a skill for AI assistants (in the [Agent Skills](https://agentskills.io) format, readable by Claude Code, Codex CLI and others). Give it a short story in Chinese, English or Korean, and it walks you through making a short drama episode by episode, with characters, dialogue and burned-in subtitles, about 2 minutes per episode: what is often called an AI short drama or micro drama. Set the style to anime and it makes AI animated dramas too (only the realistic style has been tested so far).
 
 Both the image tool and the video tool can be swapped. The workflow defines only the inputs and outputs of each step; tools plug in through adapters.
 
@@ -78,6 +78,15 @@ git clone https://github.com/azrianobr/dramazing ~/.claude/skills/dramazing
 
 Then say "turn this story into a short drama", or type `/dramazing`. For other assistants, put it where they read skills, or just ask them to read `SKILL.md`.
 
+Or install it as a Claude Code plugin:
+
+```
+/plugin marketplace add azrianobr/dramazing
+/plugin install dramazing@dramazing
+```
+
+Installed this way, the command is `/dramazing:dramazing`.
+
 ### Dependencies
 
 - Node.js 18+, Python 3 + Pillow, ffmpeg
@@ -90,6 +99,7 @@ Then say "turn this story into a short drama", or type `/dramazing`. For other a
 
 ```
 SKILL.md              skill entry (English; SKILL.zh.md and SKILL.ko.md are translations for people to read)
+.claude-plugin/       Claude Code plugin and marketplace manifests
 references/zh|en|ko/  workflow, writing rules, data format, prompt and camera-move rules, retrospective template
   adapters/           images, Grok video, other video tools
 scripts/              validation, images, prompts, preview, ingest, cutting, assembly, review, subtitles

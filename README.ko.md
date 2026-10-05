@@ -12,7 +12,7 @@
 
 ---
 
-dramazing은 AI 어시스턴트용 skill입니다([Agent Skills](https://agentskills.io) 형식이라 Claude Code, Codex CLI 등이 읽을 수 있습니다). 중국어, 영어 또는 한국어로 된 단편 이야기를 주면, 인물과 대사가 있고 하드 자막이 들어간 숏드라마 완성본을 한 화씩 함께 만들어 갑니다. 한 화는 약 2분입니다.
+dramazing은 AI 어시스턴트용 skill입니다([Agent Skills](https://agentskills.io) 형식이라 Claude Code, Codex CLI 등이 읽을 수 있습니다). 중국어, 영어 또는 한국어로 된 단편 이야기를 주면, 인물과 대사가 있고 하드 자막이 들어간 숏드라마 완성본을 한 화씩 함께 만들어 갑니다. 한 화는 약 2분이며, 흔히 말하는 AI 숏드라마, 숏폼 드라마입니다. 화풍을 애니메이션으로 바꾸면 AI 애니메이션 드라마도 만들 수 있습니다(지금까지는 실사 화풍만 실측했습니다).
 
 이미지 도구와 영상 도구는 모두 바꿀 수 있습니다. 과정은 각 단계의 입력과 출력만 정하고, 도구는 어댑터로 연결합니다.
 
@@ -78,6 +78,15 @@ git clone https://github.com/azrianobr/dramazing ~/.claude/skills/dramazing
 
 그다음 「이 이야기를 숏드라마로 만들어 줘」라고 말하거나 `/dramazing`을 입력합니다. 다른 어시스턴트는 그 어시스턴트가 skill을 읽는 위치에 두거나, `SKILL.md`를 직접 읽게 하면 됩니다.
 
+Claude Code 플러그인으로 설치할 수도 있습니다.
+
+```
+/plugin marketplace add azrianobr/dramazing
+/plugin install dramazing@dramazing
+```
+
+플러그인으로 설치하면 명령은 `/dramazing:dramazing`입니다.
+
 ### 의존성
 
 - Node.js 18+, Python 3 + Pillow, ffmpeg
@@ -90,6 +99,7 @@ git clone https://github.com/azrianobr/dramazing ~/.claude/skills/dramazing
 
 ```
 SKILL.md              skill 진입점(영어. SKILL.zh.md, SKILL.ko.md는 사람이 읽는 번역본)
+.claude-plugin/       Claude Code 플러그인·마켓플레이스 매니페스트
 references/zh|en|ko/  과정, 작성 규칙, 데이터 형식, 프롬프트와 카메라 움직임 규칙, 회고 템플릿
   adapters/           이미지 생성, Grok 영상 생성, 그 밖의 영상 도구
 scripts/              검증, 이미지 생성, 프롬프트, 미리보기, 영상 수집, 편집, 이어 붙이기, 검수, 자막

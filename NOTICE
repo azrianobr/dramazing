@@ -35,8 +35,8 @@ See examples/渡口/NOTICE.md for what was taken and what was changed.
 
 No source code from shuohao-skills is included in this product.
 
-The images in assets/showcase/ are stills, frames and an excerpt from the
-example production of 《渡口》 (a derivative of the shuohao-skills sample story
+The images in assets/showcase/ and assets/social-preview.jpg are stills,
+frames and an excerpt from the example production of 《渡口》 (a derivative of the shuohao-skills sample story
 above). Frames were generated with Codex CLI and video with Grok Imagine;
 they are included to illustrate the workflow.
 

@@ -12,7 +12,7 @@
 
 ---
 
-dramazing 是一个 AI 助手用的 skill（[Agent Skills](https://agentskills.io) 格式，Claude Code、Codex CLI 等都能读）。给它一篇中文、英文或韩文的短篇故事，它带着你一集一集做出有人物、有对白、带硬字幕的短剧成片，每集约 2 分钟。
+dramazing 是一个 AI 助手用的 skill（[Agent Skills](https://agentskills.io) 格式，Claude Code、Codex CLI 等都能读）。给它一篇中文、英文或韩文的短篇故事，它带着你一集一集做出有人物、有对白、带硬字幕的短剧成片，每集约 2 分钟，也就是常说的 AI 短剧、AI 微短剧。画风改成动漫就能做 AI 漫剧（目前只实测过写实画风）。
 
 出图和出片工具都可以换。流程只规定每一步的输入和输出，工具通过适配器接入。
 
@@ -78,6 +78,15 @@ git clone https://github.com/azrianobr/dramazing ~/.claude/skills/dramazing
 
 然后说「把这篇故事做成短剧」，或者输入 `/dramazing`。其他助手放到它读 skill 的位置，或者直接让它读 `SKILL.md`。
 
+也可以作为 Claude Code 插件安装：
+
+```
+/plugin marketplace add azrianobr/dramazing
+/plugin install dramazing@dramazing
+```
+
+用插件方式安装时，命令是 `/dramazing:dramazing`。
+
 ### 依赖
 
 - Node.js 18+、Python 3 + Pillow、ffmpeg
@@ -90,6 +99,7 @@ git clone https://github.com/azrianobr/dramazing ~/.claude/skills/dramazing
 
 ```
 SKILL.md              skill 入口（英文；SKILL.zh.md、SKILL.ko.md 是给人读的译本）
+.claude-plugin/       Claude Code 插件和插件市场清单
 references/zh|en|ko/  流程、写作规则、数据格式、提示词与运镜规则、复盘模板
   adapters/           出图、Grok 出片、其他视频工具
 scripts/              校验、出图、提示词、预览、收片、剪辑、拼接、审片、字幕

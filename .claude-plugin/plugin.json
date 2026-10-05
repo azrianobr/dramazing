@@ -1,0 +1,13 @@
+{
+  "name": "dramazing",
+  "version": "0.1.0",
+  "description": "Turn a short story (Chinese, English or Korean) into an episodic AI drama: script, storyboard, first frames, video, subtitles. Image and video tools are pluggable.",
+  "author": {
+    "name": "azrianobr",
+    "url": "https://github.com/azrianobr"
+  },
+  "homepage": "https://github.com/azrianobr/dramazing",
+  "repository": "https://github.com/azrianobr/dramazing",
+  "license": "Apache-2.0",
+  "keywords": ["ai-video", "ai-drama", "short-drama", "text-to-video", "image-to-video", "storyboard", "screenwriting", "subtitles"]
+}

@@ -13,4 +13,4 @@ Copyright 2026 烁皓，以 [Apache License 2.0](https://www.apache.org/licenses
 
 以上改动由 dramazing 的作者在 2026 年 10 月完成。
 
-本目录只包含文字数据，不包含用这些数据生成的设定图、分镜图和视频。仓库首页 README 用到的几张展示图在 `assets/showcase/`，取自本示例的实际产出。
+本目录只包含文字数据，不包含用这些数据生成的设定图、分镜图和视频。仓库首页 README 用到的几张展示图在 `assets/showcase/`，社交预览图是 `assets/social-preview.jpg`，都取自本示例的实际产出。

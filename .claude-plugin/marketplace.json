@@ -1,0 +1,17 @@
+{
+  "name": "dramazing",
+  "description": "dramazing: a skill that turns a short story into an episodic AI drama.",
+  "owner": {
+    "name": "azrianobr",
+    "url": "https://github.com/azrianobr"
+  },
+  "plugins": [
+    {
+      "name": "dramazing",
+      "source": "./",
+      "description": "Turn a short story (Chinese, English or Korean) into an episodic AI drama: script, storyboard, first frames, video, subtitles.",
+      "version": "0.1.0",
+      "license": "Apache-2.0"
+    }
+  ]
+}

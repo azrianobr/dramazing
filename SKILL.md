@@ -1,6 +1,6 @@
 ---
 name: dramazing
-description: Turns a short story in Chinese, English or Korean into an episodic AI short drama, covering setting, script, storyboard, character and location sheets, per-cut first frames, image-to-video generation, automatic cutting, dialogue alignment and burned-in subtitles. Image and video tools are pluggable; the tested combination is Codex for images and Grok for video. Use when the user wants to turn a novel, story or script into a short drama, short film or episodic video, or is working on an episode's storyboard, frames, video generation, editing, review or retrospective.
+description: Turns a short story in Chinese, English or Korean into an episodic AI short drama, covering setting, script, storyboard, character and location sheets, per-cut first frames, image-to-video generation, automatic cutting, dialogue alignment and burned-in subtitles. Image and video tools are pluggable; the tested combination is Codex for images and Grok for video. Use when the user wants to turn a novel, story or script into a short drama, short film or episodic video, or is working on an episode's storyboard, frames, video generation, editing, review or retrospective. Also covers what is called a micro drama or AI animated drama (短剧, 微短剧, 漫剧, 숏드라마).
 ---
 
 > 中文: [SKILL.zh.md](SKILL.zh.md) · 한국어: [SKILL.ko.md](SKILL.ko.md)
