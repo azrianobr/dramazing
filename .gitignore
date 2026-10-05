@@ -1,0 +1,12 @@
+# 作品目录和生成物不进仓库
+works/
+**/sheets/
+**/frames/
+**/video/
+**/_logs/
+**/_bak/
+**/tasks.json
+*.mp4
+*.bak*
+__pycache__/
+.DS_Store

@@ -1,0 +1,151 @@
+# 数据格式
+
+一个作品就是一个目录（下文叫「作品目录」）。目录里有三份 JSON，脚本只读这三份：
+
+| 文件 | 写什么 | 谁写 |
+|---|---|---|
+| `project.json` | 作品信息、画风、人物 / 场景 / 道具 | Claude 读原文后写，见 `writing.md` |
+| `script.json` | 剧本：每集几场，每场一串节拍 | Claude 按集写 |
+| `storyboard.json` | 分镜：每集几段，每段几切 | Claude 按集写 |
+
+脚本生成的文件：
+
+| 位置 | 内容 |
+|---|---|
+| `tasks.json` | 出图任务单（`frames.mjs plan` 写） |
+| `sheets/<ID>.png` | 设定图：人物、场景、道具各一张 |
+| `frames/<段号>/f<N>.png` | 分镜图：每切一张，也是出片的首帧 |
+| `video/` | 提示词、镜头原片、剪好的段、整集、字幕（目录名可用 `--dir` 改） |
+| `_logs/` | 出图用量、出片记录、Grok 用量 |
+| `_bak/` | 脚本改写 JSON 前自动备份的旧版本 |
+
+完整例子见 `examples/渡口/`。空模板见 `templates/`。
+
+## project.json
+
+```json
+{
+  "title": "作品名",
+  "source": "story.txt",
+  "episodes": 6,
+  "targetSeconds": [130, 150],
+  "style": "写实电影质感，1930 年代民国江南，自然光，轻微胶片颗粒",
+  "video": { "head": "（可选）替换提示词开头的画质句" },
+  "characters": [
+    {
+      "id": "C01",
+      "name": "人物名",
+      "alias": { "zh": "梳双麻花辫的年轻女子", "en": "the young woman with long braids" },
+      "trait": { "zh": "左眼浑浊发白，右眼正常，全程保持", "en": "His left eye is clouded milky white ..." },
+      "sheet": "设定图提示词（英文或中文都可）"
+    }
+  ],
+  "scenes": [
+    { "id": "S01", "name": "场景名", "sheet": "设定图提示词",
+      "ambient": { "*": "船身随水轻微摇晃，舱外雾气缓慢流过。", "浓雾清晨": "按光照单独写的环境动态" } }
+  ],
+  "props": [ { "id": "P01", "name": "道具名", "sheet": "设定图提示词" } ]
+}
+```
+
+- `style`：画风前缀。每张设定图和分镜图的提示词前面都加这一句。没写会报警告，整批画风会不统一。
+- `targetSeconds`：一集的目标时长，可以写一个数或一个区间。
+- `alias`：外貌短语。Grok 不认识人名，提示词里的人名会换成这个短语。`en` 用在英文句子里，`zh` 用在中文句子里。不写就用原名。
+- `trait`（可选）：人物的异样特征，比如瞎眼、伤疤、跛脚。人物正面入画时，提示词会中英文各写一遍「全程保持」。只靠首帧守不住，Grok 会把它「修好」。
+- `ambient`：场景的环境动态。键是剧本里的光照（`light`），`*` 是默认值。
+- `sheet`：设定图的提示词。人物要写全脸、发型、服装、年龄。年轻女性要写明「成年」，否则可能被判成未成年人，见 `prompt-rules.md`。
+
+## script.json
+
+```json
+{
+  "episodes": [
+    {
+      "ep": 1,
+      "targetSeconds": 120,
+      "scenes": [
+        {
+          "scene": "S01",
+          "light": "浓雾清晨",
+          "cast": ["C01", "C03"],
+          "props": ["P01"],
+          "beats": [
+            { "act": "她抱着旧皮箱在雾里的河岸上跑。" },
+            { "who": "C03", "say": "上船喽，过河的抓紧。", "tone": "扯着嗓子，不急不躁" },
+            { "who": "C01", "say": "这一路，总算到了。", "tone": "很轻", "inner": true }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+节拍（beat）只有三种：
+
+| 种类 | 写法 | 默认时长 |
+|---|---|---|
+| 动作 | `{ "act": "..." }` | 2.5 秒 |
+| 台词 | `{ "who", "say", "tone" }` | 字数 ÷ 3 + 1 秒 |
+| 心声 / 画外音 | 台词再加 `"inner": true` | 同上 |
+
+- 节拍在场内从 1 开始编号，分镜用这个编号引用。
+- `tone` 只写语气，不写动作。「抹了把汗」这种动作写进 `tone`，Grok 会当台词念出来。动作单独写成一拍 `act`。
+- `say` 里不用破折号，用逗号。破折号会被念成「一」，`validate.mjs` 会报错。
+
+## storyboard.json
+
+```json
+{
+  "episodes": [
+    {
+      "ep": 1,
+      "segments": [
+        {
+          "id": "E01-01",
+          "scene": 1,
+          "blocking": "这一段开始时每个人在哪、什么姿势、道具在谁手里",
+          "sound": "环境声",
+          "cuts": [
+            {
+              "beats": [1, 2],
+              "seconds": 6,
+              "size": "medium",
+              "camera": "Push In",
+              "move": { "from": "全身中景", "to": "胸口以上的近景", "stop": "她说完那句", "speed": "缓慢平稳地" },
+              "chars": ["C01"],
+              "props": ["P01"],
+              "frame": "首帧画面描述：景别、谁在哪、姿势、朝向、道具状态、光线",
+              "action": "这一切里发生的动作，写给视频模型",
+              "aim": "摄影机对准谁",
+              "angle": "平视 / 微仰视 / 俯视",
+              "lens": "50mm 标准，中浅景深",
+              "eyeline": "人物看向哪里",
+              "focus": "焦点锁定在哪",
+              "limits": ["分镜推不出来、要手写的限制"]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+- 段（segment）：同一场景里连续的一段戏，编号 `E集-段`。`scene` 是这一段在本集剧本里是第几场，从 1 数。
+- 切（cut）：一个镜头，也就是一次出片。`beats` 是 `[起, 止]`，引用这一场的节拍编号。
+- `seconds`：分镜时长。出片按 6 秒或 10 秒交；台词比分镜长时，剪辑会按台词留够。
+- `size`：`extreme-wide` / `wide` / `full` / `medium` / `medium-close` / `close` / `extreme-close`。
+- `camera`：`Static Shot`、`Push In`、`Pull Out`、`Pan`、`Tilt`、`Rack Focus`、`Tracking Shot`、`Handheld`、`Crane`、`POV`。
+- `move`：运镜的细节，见 `prompt-rules.md` 的「运镜」一节。字段有 `from`、`to`、`stop`、`dir`、`speed`、`target`、`distance`、`level`、`who`、`height`、`then`。
+- `frame` 和 `action` 里可以直接写人名，生成提示词时会换成 `alias`。
+
+## 编号约定
+
+| 东西 | 编号 | 例子 |
+|---|---|---|
+| 人物 / 场景 / 道具 | `C` / `S` / `P` + 两位数 | `C03`、`S01`、`P02` |
+| 段 | `E集-段` | `E03-06` |
+| 镜头（切） | `段/s切` | `E03-06/s2` |
+| Grok 下载的文件 | `grok-段-s切.mp4` | `grok-E03-06-s2.mp4` |
+| 审片时说的编号 | `段-切` | `06-2` |

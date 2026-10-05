@@ -1,0 +1,38 @@
+{
+ "title": "作品名",
+ "source": "story.txt",
+ "episodes": 1,
+ "targetSeconds": [
+  120,
+  150
+ ],
+ "style": "写实电影质感，自然光，轻微胶片颗粒",
+ "characters": [
+  {
+   "id": "C01",
+   "name": "人物名",
+   "alias": {
+    "zh": "一眼能认出这个人的外貌短语",
+    "en": "an appearance phrase in English"
+   },
+   "sheet": "人物设定图提示词：脸、发型、服装、年龄"
+  }
+ ],
+ "scenes": [
+  {
+   "id": "S01",
+   "name": "场景名",
+   "sheet": "场景设定图提示词",
+   "ambient": {
+    "*": "这个场景的环境动态"
+   }
+  }
+ ],
+ "props": [
+  {
+   "id": "P01",
+   "name": "道具名",
+   "sheet": "道具设定图提示词"
+  }
+ ]
+}

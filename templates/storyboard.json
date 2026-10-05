@@ -1,0 +1,39 @@
+{
+ "episodes": [
+  {
+   "ep": 1,
+   "segments": [
+    {
+     "id": "E01-01",
+     "scene": 1,
+     "blocking": "这一段开始时每个人在哪、什么姿势、道具在谁手里",
+     "sound": "环境声",
+     "cuts": [
+      {
+       "beats": [
+        1,
+        2
+       ],
+       "seconds": 6,
+       "size": "medium",
+       "camera": "Static Shot",
+       "chars": [
+        "C01"
+       ],
+       "props": [
+        "P01"
+       ],
+       "frame": "首帧画面描述",
+       "action": "这一切里发生的动作",
+       "aim": "人物名",
+       "angle": "平视",
+       "lens": "50mm 标准，中浅景深",
+       "eyeline": "画面右侧",
+       "focus": "锁定人物面部"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

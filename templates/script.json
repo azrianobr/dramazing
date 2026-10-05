@@ -1,0 +1,33 @@
+{
+ "episodes": [
+  {
+   "ep": 1,
+   "targetSeconds": [
+    120,
+    150
+   ],
+   "scenes": [
+    {
+     "scene": "S01",
+     "light": "清晨",
+     "cast": [
+      "C01"
+     ],
+     "props": [
+      "P01"
+     ],
+     "beats": [
+      {
+       "act": "一个动作"
+      },
+      {
+       "who": "C01",
+       "say": "一句台词。",
+       "tone": "语气"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
