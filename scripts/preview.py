@@ -48,4 +48,4 @@ out = os.path.join(OUT, f'{E}.preview.mp4')
 subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', lst, '-vf', 'fps=24,format=yuv420p',
                 '-c:v', 'libx264', '-crf', '23', '-movflags', '+faststart', out], check=True)
 shutil.rmtree(tmp)
-print(T(f'✓ 叙事预览 {len(items)} 切，约 {total:.0f} 秒 → {out}', f'✓ story preview: {len(items)} cuts, about {total:.0f}s → {out}', f'✓ 스토리 미리보기 {len(items)}컷, 약 {total:.0f}초 → {out}'))
+print(T(f'✓ 叙事预览 {len(items)} 切，约 {total:.0f} 秒 → {out}', f'✓ story preview: {len(items)} cuts, about {total:.0f}s → {out}', f'✓ 서사 미리보기 {len(items)}컷, 약 {total:.0f}초 → {out}'))
