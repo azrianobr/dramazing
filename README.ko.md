@@ -30,7 +30,7 @@ dramazing은 AI 어시스턴트용 skill입니다([Agent Skills](https://agentsk
 
 ## 결과물
 
-아래 화면은 모두 예시 《渡口》의 완성본과 중간 산출물에서 가져왔습니다. 이미지는 Codex, 영상은 Grok으로 생성했습니다.
+아래 화면은 모두 예시 《渡口》의 완성본과 중간 산출물에서 가져왔습니다. 이미지는 Codex, 영상은 Grok으로 생성했습니다. 《渡口》는 중국어 이야기라서 하드 자막도 중국어입니다.
 
 <p align="center"><img src="assets/showcase/push-in.webp" width="720" alt="6화의 푸시 인 컷: 沈知微(심지미)가 대사를 마치자 카메라가 클로즈업에서 멈춘다"></p>
 <p align="center"><sub>6화 03-2: 카메라가 전신에서 가슴 위까지 천천히 다가가다가, 그녀가 「我收了十年」(10년 동안 모아 왔어요)이라고 말을 마칠 때 멈춥니다. 카메라 움직임, 입 모양, 대사가 모두 한 프롬프트에 들어 있습니다.</sub></p>
@@ -39,11 +39,11 @@ dramazing은 AI 어시스턴트용 skill입니다([Agent Skills](https://agentsk
 
 **같은 인물이 설정화에서 첫 프레임, 완성본까지.** 설정화가 생김새와 의상을 고정하고, 첫 프레임이 구도를 고정하며, 영상 도구는 화면을 움직이게만 합니다. 老周(노주)의 왼쪽 눈은 뿌옇게 흐려져 있습니다. 이 특징은 `project.json`에서 그의 `trait` 필드에 적혀 있어, 그가 정면으로 나오는 프롬프트에 자동으로 들어갑니다. 그래서 완성본에서도 유지됩니다.
 
-![설정화, 콘티 첫 프레임, 완성본 화면 비교](assets/showcase/sheet-frame-video.jpg)
+![설정화, 콘티 첫 프레임, 완성본 화면 비교](assets/showcase/sheet-frame-video.ko.jpg)
 
 **영상을 생성하기 전에 첫 프레임부터 검토합니다.** 이미지 도구는 흔히 이런 실수를 합니다: 사람이 한 명 더 생기거나, 배경이 시대와 맞지 않거나, 전경에 정체 모를 물건이 나타납니다. 첫 프레임 단계에서 고치는 편이 영상을 생성한 뒤 재작업하는 것보다 훨씬 쌉니다.
 
-![첫 프레임 수정 전후 비교](assets/showcase/before-after.jpg)
+![첫 프레임 수정 전후 비교](assets/showcase/before-after.ko.jpg)
 
 ## 작동 방식
 
@@ -105,7 +105,7 @@ references/zh|en|ko/  과정, 작성 규칙, 데이터 형식, 프롬프트와 �
 scripts/              검증, 이미지 생성, 프롬프트, 미리보기, 영상 수집, 편집, 이어 붙이기, 검수, 자막
   targets/            영상 프롬프트의 도구별 작성법: grok, generic
   lang/               이야기 언어별 매개변수와 프롬프트 고정 문장
-assets/               로고(밝은 / 어두운)와 아이콘
+assets/               로고(밝은 / 어두운 테마), 아이콘, README 예시 이미지, 소셜 미리보기
 templates/zh|en|ko/   빈 project / script / storyboard
 examples/渡口/         전체 예시(중국어): 6화 분량의 설정, 대본, 콘티
 examples/last-tram/   영어 한 화짜리 작은 예시

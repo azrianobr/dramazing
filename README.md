@@ -30,7 +30,7 @@ The docs come in Chinese, English and Korean, with the same content: `references
 
 ## What it looks like
 
-All images below come from the final cuts and intermediate files of the *Dukou* example: images by Codex, video by Grok.
+All images below come from the final cuts and intermediate files of the *Dukou* example: images by Codex, video by Grok. *Dukou* is a Chinese story, so the burned-in subtitles are in Chinese.
 
 <p align="center"><img src="assets/showcase/push-in.webp" width="720" alt="A push-in shot from episode 6: 沈知微 finishes her line and the camera stops on a close shot"></p>
 <p align="center"><sub>Episode 6, 03-2: the camera slowly pushes in from a full shot to a chest-up close shot, and stops as she finishes the line 「我收了十年」 ("ten years I've gathered it"). The camera move, lip sync and dialogue are all written in the same prompt.</sub></p>
@@ -39,11 +39,11 @@ All images below come from the final cuts and intermediate files of the *Dukou* 
 
 **The same character, from sheet to first frame to final cut.** The sheet locks the face and costume, the first frame locks the composition, and the video tool only has to make the picture move. 老周's left eye is clouded milky white. This feature is written in his `trait` field in `project.json`, and every prompt where he faces the camera includes it automatically, so it is still there in the final cut.
 
-![Sheet, storyboard first frame and final-cut frame side by side](assets/showcase/sheet-frame-video.jpg)
+![Sheet, storyboard first frame and final-cut frame side by side](assets/showcase/sheet-frame-video.en.jpg)
 
 **Check the first frames before generating video.** Image tools often make these mistakes: an extra person, a background from the wrong period, an unexplained object in the foreground. Fixing them at the first-frame stage is much cheaper than reworking after the video is made.
 
-![A first frame before and after the fix](assets/showcase/before-after.jpg)
+![A first frame before and after the fix](assets/showcase/before-after.en.jpg)
 
 ## How it works
 
@@ -105,7 +105,7 @@ references/zh|en|ko/  workflow, writing rules, data format, prompt and camera-mo
 scripts/              validation, images, prompts, preview, ingest, cutting, assembly, review, subtitles
   targets/            video prompt formats per tool: grok, generic
   lang/               settings and fixed prompt sentences for each story language
-assets/               logo (light / dark) and icon
+assets/               logo (light / dark), icon, README showcase images, social preview
 templates/zh|en|ko/   empty project / script / storyboard
 examples/渡口/         complete example (Chinese): setting, script and storyboard for 6 episodes
 examples/last-tram/   small single-episode example in English

@@ -105,7 +105,7 @@ references/zh|en|ko/  流程、写作规则、数据格式、提示词与运镜�
 scripts/              校验、出图、提示词、预览、收片、剪辑、拼接、审片、字幕
   targets/            视频提示词的工具写法：grok、generic
   lang/               各故事语言的参数和提示词固定句子
-assets/               logo（浅色 / 深色）和图标
+assets/               logo（浅色 / 深色）、图标、README 展示图、社交预览图
 templates/zh|en|ko/   空的 project / script / storyboard
 examples/渡口/         完整示例（中文）：6 集的设定、剧本和分镜
 examples/last-tram/   英文单集小例子
