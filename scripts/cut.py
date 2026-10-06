@@ -3,13 +3,14 @@
 多出来的时间从无台词镜头里扣（每个镜头最少 2 秒）。镜头原片在 <dir>/E02-03/s1.mp4（ingest.sh 收进来的）。
 手工修正写在 <dir>/fix.json：{"E01-06": {"skip": [2], "fix": {"1": 4.0}, "in": {"3": 1.25}, "extra": {"5": 4.5}}}
   skip=不用的镜头号，fix=强制时长（秒），in=从原片第几秒开始取（默认 0，动作来得晚时用），extra=分镜外追加的镜头（号: 时长，接在段尾）
+project.json 写了 cutTail（秒）时，有台词的镜头按「台词说完 + cutTail」切，不再至少留到分镜时长（台词后人物干站着会显得拖）。
 画布按 project.json 的 aspect（不写是 16:9，长边 1920）。插入镜头（cut.insert）直接取作品目录里的素材，按分镜时长、insert.fit 放进画布；
 贴屏（cut.screen 写了 file 和 corners）把素材按四个角贴到镜头里的屏幕上。素材没有声音时垫静音
 用法：cut.py --work <作品目录> --ep 1 [--dir video] [E01-02 E01-03 ...]（不写段号 = 整集）"""
 import argparse, json, math, os, re, subprocess, sys, tempfile
 from PIL import Image, ImageDraw
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from dzlang import load, L, T, units, canvas, insert_of, title_of, title_image, ffmpeg_fit, IMAGE_EXT
+from dzlang import load, L, T, units, canvas, cut_tail, insert_of, title_of, title_image, ffmpeg_fit, IMAGE_EXT
 ap = argparse.ArgumentParser(); ap.add_argument('--work', required=True); ap.add_argument('--ep', type=int, default=1)
 ap.add_argument('--dir', default='video'); ap.add_argument('segs', nargs='*'); a = ap.parse_args()
 WORK = os.path.abspath(a.work); W = os.path.join(WORK, a.dir); load(WORK); CW, CH = canvas()
@@ -100,7 +101,8 @@ for seg in a.segs or list(plan):
         d = p
         if has:
             st, e, txt = speech_end(f, IN[-1])
-            d = max(p, min(length - 0.05, e + 0.35)) if e else p
+            if e and cut_tail() is not None: d = max(2.0, min(length - 0.05, e + cut_tail()))  # 台词说完留 cutTail 秒就切，不等分镜时长
+            else: d = max(p, min(length - 0.05, e + 0.35)) if e else p
             print(T(f'  {seg}/s{n} 台词到 {e:.1f}s「{txt.strip()}」', f'  {seg}/s{n} speech ends at {e:.1f}s "{txt.strip()}"', f'  {seg}/s{n} 대사 끝 {e:.1f}초 「{txt.strip()}」') + rate_note(f'{seg}/s{n}', st, e))
         D.append(min(d, length - 0.05)); talk.append(has)
     if missing:

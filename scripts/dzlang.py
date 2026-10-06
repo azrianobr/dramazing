@@ -4,14 +4,15 @@ import json, os, re
 from PIL import Image, ImageFilter, ImageFont, ImageOps
 
 LANGS = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'lang', 'langs.json'), encoding='utf-8'))
-_story, _rate, _loaded, _aspect = 'zh', None, False, '16:9'
+_story, _rate, _loaded, _aspect, _tail = 'zh', None, False, '16:9', None
 
 
 def load(work):
     """读作品的 project.json，定下故事语言；返回 project"""
-    global _story, _rate, _loaded, _aspect
+    global _story, _rate, _loaded, _aspect, _tail
     p = json.load(open(os.path.join(work, 'project.json'), encoding='utf-8'))
     _story, _rate, _loaded, _aspect = p.get('language', 'zh'), p.get('speechRate'), True, p.get('aspect', '16:9')
+    _tail = p.get('cutTail')
     if _story not in LANGS: raise SystemExit(f'project.json language "{_story}": {" / ".join(LANGS)}')
     canvas()  # aspect 写错就在这里停
     return p
@@ -58,6 +59,10 @@ def wrap(draw, text, fnt, width):
         else: cur = t
     return lines + [cur] if cur else lines
 
+
+def cut_tail():
+    """project.cutTail：有台词的镜头在台词说完后再留几秒就切（不写 = 至少留到分镜时长）"""
+    return _tail
 
 def canvas():
     """成片画布（宽, 高），和 lib.mjs 的 parseAspect 同一算法：project.aspect 写成 宽:高，长边 1920，短边取偶数"""
