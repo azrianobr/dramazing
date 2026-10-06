@@ -127,6 +127,11 @@ for (const k of ['intro', 'outro']) {
   if (f && !/\.(mp4|mov|m4v)$/i.test(f)) err.push(T(`分镜的 ${k} 要是视频文件：${f}`, `storyboard ${k} must be a video file: ${f}`, `콘티의 ${k}는 동영상 파일이어야 합니다: ${f}`));
   else if (f && !existsSync(join(W.work, f))) warn.push(T(`分镜的 ${k} 素材 ${f} 还没放进作品目录，拼整集会停`, `storyboard ${k} file ${f} is not in the work dir yet; assemble will stop`, `콘티의 ${k} 소재 ${f}이(가) 아직 작품 폴더에 없습니다. 합치기가 멈춥니다`));
 }
+for (const a of W.storyboard.episodes?.find((e) => e.ep === ep)?.audio ?? []) {
+  if (!a.file) err.push(T('分镜的 audio 每条都要写 file', 'every storyboard audio entry needs a file', '콘티의 audio 항목마다 file이 필요합니다'));
+  else if (!existsSync(join(W.work, a.file))) warn.push(T(`分镜的 audio 素材 ${a.file} 还没放进作品目录，拼整集会停`, `storyboard audio file ${a.file} is not in the work dir yet; assemble will stop`, `콘티의 audio 소재 ${a.file}이(가) 아직 작품 폴더에 없습니다. 합치기가 멈춥니다`));
+  if (a.duck != null && a.duck > 0) err.push(T(`分镜的 audio ${a.file} 的 duck 要写负数（压低多少 dB）`, `storyboard audio ${a.file}: duck must be negative (dB to lower)`, `콘티의 audio ${a.file}: duck은 음수(dB)여야 합니다`));
+}
 if (subFont && !existsSync(join(W.work, subFont))) err.push(T(`project.json 的 subFont 指向的字体文件不存在：${subFont}`, `project.json subFont points to a missing font file: ${subFont}`, `project.json의 subFont 글꼴 파일이 없습니다: ${subFont}`));
 if (!existsSync(join(W.work, 'story.txt'))) warn.push(T('作品目录里没有 story.txt（原文），复盘和改编时没法对照', 'no story.txt (the source text) in the work dir; reviews and adaptation have nothing to check against', '작품 폴더에 story.txt(원문)가 없습니다. 회고와 각색 때 대조할 수 없습니다'));
 

@@ -4,7 +4,7 @@
 // 用法：assemble.mjs --work <作品目录> --ep 1 [--dir video] [--loudnorm] [--align] [--no-burn]
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -53,6 +53,43 @@ function speechPieces(file) {
   return j.transcription.map((s) => ({ from: s.offsets.from / 1000, to: s.offsets.to / 1000, text: s.text }));
 }
 
+// 配乐与音效（分镜里这一集的 audio）：每条按集时间轴 at 秒放进去，from/dur 取素材的一段，
+// gain 调音量（dB），fadeIn/fadeOut 淡入淡出；duck 给负 dB，有字幕（台词）的时段自动压低，前后各留一点缓坡
+function mixAudio(work, base, entries, subs, loudnorm) {
+  const inputs = [];
+  const chains = [];
+  entries.forEach((e, i) => {
+    const f = resolve(work, e.file);
+    inputs.push('-i', f);
+    const from = e.from ?? 0;
+    const dur = e.dur ?? Math.max(0.1, ffprobe(f).duration - from);
+    const at = e.at ?? 0;
+    const fi = e.fadeIn ?? 0;
+    const fo = e.fadeOut ?? 0;
+    let c = `[${i + 1}:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=start=${from}:duration=${dur},asetpts=PTS-STARTPTS`;
+    if (fi) c += `,afade=t=in:st=0:d=${fi}`;
+    if (fo) c += `,afade=t=out:st=${Math.max(0, dur - fo)}:d=${fo}`;
+    if (e.gain) c += `,volume=${e.gain}dB`;
+    c += `,adelay=${Math.round(at * 1000)}:all=1`;
+    if (e.duck) {
+      const lo = 10 ** (e.duck / 20);
+      const win = subs.filter((s) => s.to > at && s.from < at + dur);
+      if (win.length) {
+        const r = win.map((s) => `clip(min((t-${(s.from - 0.15).toFixed(3)})/0.15\\,(${(s.to + 0.3).toFixed(3)}-t)/0.3)\\,0\\,1)`);
+        const d = r.reduce((a, b) => `max(${a}\\,${b})`);
+        c += `,volume='1-${(1 - lo).toFixed(4)}*${d}':eval=frame`;
+      }
+    }
+    chains.push(`${c}[m${i}]`);
+  });
+  const mix = `[0:a]aformat=sample_rates=48000:channel_layouts=stereo[p];[p]${entries.map((_, i) => `[m${i}]`).join('')}amix=inputs=${entries.length + 1}:duration=first:normalize=0${loudnorm ? ',loudnorm=I=-16:TP=-1.5:LRA=11' : ''}[a]`;
+  const tmp = `${base}.mixing.mp4`;
+  execFileSync('ffmpeg', ['-y', '-v', 'error', '-i', `${base}.mp4`, ...inputs, '-filter_complex', [...chains, mix].join(';'),
+    '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', tmp]);
+  renameSync(tmp, `${base}.mp4`);
+  console.log(T(`  配乐/音效 ${entries.length} 条已混入`, `  ${entries.length} music/sound entries mixed in`, `  배경음/효과음 ${entries.length}개 믹스 완료`));
+}
+
 function cmdAssemble(argv) {
   const W = loadWork(flag(argv, '--work'));
   const work = W.work;
@@ -77,6 +114,12 @@ function cmdAssemble(argv) {
   };
   const intro = bumper('intro');
   const outro = bumper('outro');
+  for (const a of epSb.audio ?? []) {
+    if (!existsSync(resolve(work, a.file ?? ''))) {
+      console.log(T(`✗ 分镜里的 audio 素材 ${a.file} 不存在`, `✗ audio file ${a.file} from the storyboard is missing`, `✗ 콘티의 audio 소재 ${a.file}이(가) 없습니다`));
+      process.exit(1);
+    }
+  }
   if (intro) { parts.push(intro); offset += ffprobe(intro).duration; }
   for (const seg of segmentsOf(W.storyboard, epNo)) {
     const f = join(dir, `${seg.id}.mp4`);
@@ -123,7 +166,8 @@ function cmdAssemble(argv) {
   execFileSync('ffmpeg', ['-y', '-v', 'error', '-f', 'concat', '-safe', '0', '-i', list,
     '-c:v', 'libx264', '-crf', '18', '-preset', 'medium', '-pix_fmt', 'yuv420p',
     // loudnorm 会把采样率升到 192k，AAC 只能退到 96k，部分播放器会卡画面；固定 48k，并把索引放到文件头
-    ...(loudnorm ? ['-af', 'loudnorm=I=-16:TP=-1.5:LRA=11'] : []), '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', `${base}.mp4`]);
+    ...(loudnorm && !epSb.audio?.length ? ['-af', 'loudnorm=I=-16:TP=-1.5:LRA=11'] : []), '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', `${base}.mp4`]);
+  if (epSb.audio?.length) mixAudio(work, base, epSb.audio, subs, loudnorm);
   // 本机 ffmpeg 没编 libass，烧不了硬字幕：封一条 mov_text 软字幕轨（QuickTime / IINA 可开关），
   // 要硬字幕时换带 libass 的 ffmpeg 再用 subtitles 滤镜
   execFileSync('ffmpeg', ['-y', '-v', 'error', '-i', `${base}.mp4`, '-i', `${base}.srt`,
