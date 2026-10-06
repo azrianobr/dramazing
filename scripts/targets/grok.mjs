@@ -7,7 +7,8 @@ export default {
   durations: [6, 10],
   render(shot, project, ctx) {
     const head = project.video?.head || FILM_HEAD; // 胶片质感防塑料脸；不点名「不要出现的东西」
-    const tail = 'No subtitles, no text, no music.';
+    // 弱写法「No subtitles, no text」实测会被无视：台词多的镜头 Grok 自己烧中文字幕、在衣服上加字（智汇分账通 E03，2026-10）
+    const tail = project.video?.tail || 'No subtitles, no captions, no text or lettering anywhere in the frame, nothing printed on clothing, no music.';
     return [head, ...body(shot, ctx), tail].join(' '); // 不用换行：页面输入框里回车会直接提交
   },
 };
