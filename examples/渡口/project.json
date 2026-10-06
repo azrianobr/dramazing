@@ -84,6 +84,17 @@
    "ambient": {
     "*": "芦苇在风里轻轻起伏，雾气贴着水面缓慢移动。"
    }
+  },
+  {
+   "id": "S04",
+   "name": "渡船外观",
+   "sheets": [
+    "S01"
+   ],
+   "sheet": "Environment reference sheet on ONE 16:9 landscape canvas, panels separated by thin hairline rules. This is the OUTSIDE of the very same ferry whose passenger cabin is shown in the reference image: same canopy, same iron posts, same dark worn benches, same weathered wood. MAIN ZONE, top-left, about 72% of the canvas width and 70% of its height: the master establishing view: eye-level broadside exterior of the old wooden passenger ferry lying crosswise at the end of a wet wooden pier — a long wooden hull, roughly fourteen metres long and wide enough for two rows of benches with an aisle between them, one continuous patched canvas canopy on iron posts covering almost its whole length, rows of worn dark wooden benches visible under the canopy through the open sides, a short open foredeck at the bow in front of the canopy with a coiled mooring rope and a long bamboo punting pole leaning on the gunwale, a narrow wet wooden gangplank laid from the pier onto the foredeck, dense white morning fog behind; the ferry spans most of the frame width — the canonical look of this location. RIGHT COLUMN, full height along the right edge, stacked small panels: close-up detail studies of the open foredeck where the gangplank lands beside the coiled rope, and the canopy edge seen from outside with its rope ties and patches. BOTTOM ROW, spanning beneath the main zone: close-up detail studies of the weathered hull planks with the dark waterline stain, the mooring rope looped round a pier post, the wet cleated surface of the gangplank. Every detail panel is a close-up crop of the SAME boat shown in the master view — same geometry, same materials, same wear marks; nothing invented that is not present in the master view. Absolutely no people anywhere on the sheet. Weathered, lived-in materials: chipped paint, water stains, patina on metal, worn wood grain, dust in corners and light shafts; fabric and paper props show creases and age; nothing looks factory-new. Atmospheric depth with haze or volumetric light where the space allows",
+   "ambient": {
+    "*": "船身随水轻微起伏，帆布长篷的边角在风里微微晃动，雾贴着水面缓慢流过。"
+   }
   }
  ],
  "props": [
@@ -96,6 +107,11 @@
    "id": "P02",
    "name": "县衙旧砚",
    "sheet": "Prop reference sheet on ONE 16:9 landscape canvas on a pure white background, panels separated by thin hairline rules. MAIN ZONE, top-left, about 72% of the canvas width and 70% of its height: the ink stone face up in three-quarter hero view at handheld scale — the canonical look of this prop. RIGHT COLUMN, stacked small panels: close-up detail studies of the chipped corner with its darker fracture face and the moon-shaped wear ring around the ink pool. BOTTOM ROW beneath the main zone: the inkstone flipped to show the carved official seal characters on the underside under raking light, a straight-on side profile showing its thickness, and a macro close-up of dried ink caught in the carved strokes. Every panel shows the SAME ink stone — same chip, same wear, same proportions. Absolutely no people and no hands anywhere. Pure white background in every panel for clean cut-out. Weathered, lived-in materials: chipped paint, water stains, patina on metal, worn wood grain, dust in corners and light shafts; fabric and paper props show creases and age; nothing looks factory-new. Atmospheric depth with haze or volumetric light where the space allows"
+  },
+  {
+   "id": "P03",
+   "name": "旱烟杆",
+   "sheet": "Prop reference sheet on ONE 16:9 landscape canvas on a pure white background, panels separated by thin hairline rules. MAIN ZONE, top-left, about 72% of the canvas width and 70% of its height: an old Chinese long-stemmed dry-tobacco pipe lying diagonally in three-quarter hero view, about 40 cm long overall, longer than an adult forearm — a dark-brown bamboo stem with visible nodes, polished smooth by decades of handling; a small cup-shaped brass bowl at the far end, dented, blackened inside with tobacco tar; a pale green jade mouthpiece at the near end with a hairline crack; a small faded indigo cloth tobacco pouch tied to the middle of the stem with a frayed cord — the canonical look of this prop. RIGHT COLUMN, stacked small panels: close-up of the brass bowl with tar and dents; close-up of the cracked jade mouthpiece; close-up of the cloth pouch and its cord. BOTTOM ROW beneath the main zone: a straight-on side profile of the whole pipe at the same scale showing its full length, and the cloth pouch open showing dry shredded tobacco. Every panel shows the SAME pipe — same length, same wear, same proportions. Absolutely no people and no hands anywhere. Pure white background in every panel for clean cut-out. Weathered, lived-in materials: chipped paint, water stains, patina on metal, worn wood grain, dust in corners and light shafts; fabric and paper props show creases and age; nothing looks factory-new. Atmospheric depth with haze or volumetric light where the space allows"
   }
  ]
 }
