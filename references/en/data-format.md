@@ -146,6 +146,9 @@ There are only three kinds of beat:
 - `size`: `extreme-wide` / `wide` / `full` / `medium` / `medium-close` / `close` / `extreme-close`.
 - `camera`: `Static Shot`, `Push In`, `Pull Out`, `Pan`, `Tilt`, `Rack Focus`, `Tracking Shot`, `Handheld`, `Crane`, `POV`.
 - `move`: details of the camera move; see the "Camera moves" section of `prompt-rules.md`. Fields: `from`, `to`, `stop`, `dir`, `speed`, `target`, `distance`, `level`, `who`, `height`, `then`.
+- `sheets` (optional): extra sheet ids to attach for this cut. Only the scene's own location sheet is attached automatically; when the shot shows something from another sheet, list it here, e.g. `["S04"]` for the ferry seen from the pier. The first letter of the id tells character, location or prop; these go after the automatic references. Character, location and prop entries in `project.json` can carry `sheets` too; they are attached when that sheet is drawn, e.g. so the ferry's exterior matches its cabin.
+- `place` (optional): use it when this cut is filmed somewhere other than the scene's location, `{ "name": "muddy riverside path", "ambient": "the dry reeds on both sides sway…" }`. The scene name and ambient motion in the prompt are replaced by these; leave out `ambient` for none. With `place`, the scene sheet of the scene is no longer attached automatically when drawing; list the sheets you need in `sheets`.
+- `only` (optional): for close-ups of a body part other than hands (feet, a pocket, a coat hem), say exactly what is in the frame, `{ "zh": "坐着的人的大衣口袋、大衣下摆和腿", "en": "the coat pocket, coat hem and thigh of the seated man" }`, keyed by the story language and `en`. Without it the generator writes "only hands, sleeves and props in the frame", and a pocket shot then brings the hand out.
 - You can use character names directly in `frame` and `action`; they are replaced with `alias` when the prompts are generated.
 
 ## ID conventions

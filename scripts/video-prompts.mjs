@@ -74,9 +74,9 @@ const MOVES_EN = {
     : P.isBehind(m.dir) ? 'Smooth stabilized follow shot from behind at constant distance.' : 'Smooth stabilized tracking shot at constant distance.'),
   // 手持是质感，仍要写强度、方向和距离
   'Handheld': (m) => (level(m) === P.levels.intense ? 'Intense handheld camera with noticeable shake; the subject stays recognizable.' : 'Restrained handheld camera: subtle breathing drift and footstep bob only.'),
-  // 摇臂：沿弧线升降，同时改变高度和前后距离。未实测，首次使用先出试探镜头
+  // 摇臂：沿弧线升降，同时改变高度和前后距离。Grok 上实测通过（渡口第 1 集重制）
   'Crane': (m) => `Slow crane shot ${P.isDown(m.dir) ? 'descending' : 'rising'} along a gentle arc; steady and weighty, not a drone.`,
-  // 主观镜头：观众借用角色的眼睛，只能看到这人的手和袖口。未实测，首次使用先出试探镜头
+  // 主观镜头：观众借用角色的眼睛，只能看到这人的手和袖口。Grok 上实测通过（渡口第 1 集重制）
   'POV': (m) => `First-person POV through the eyes of ${m.who ? en(m.who) : 'the character'} at eye height; only their hands and sleeves may enter the bottom of the frame.`,
 };
 const move = (cam, m) => {
@@ -118,8 +118,10 @@ for (const seg of segmentsOf(W.storyboard, epNo)) {
     if (need > maxD) warn.push(T(`${key} 需要约 ${need.toFixed(1)}s，${targetName} 最长 ${maxD}s：拆成两切`, `${key} needs about ${need.toFixed(1)}s but ${targetName} tops out at ${maxD}s: split it into two cuts`, `${key} 약 ${need.toFixed(1)}초 필요, ${targetName} 최대 ${maxD}초: 두 컷으로 나누세요`));
     const swap = (t) => (t ?? '').replace(new RegExp(names.join('|'), 'g'), loc);
     const place = W.scene.get(sc.scene);
-    const sceneLabel = place?.name ?? '';
-    const amb = place?.ambient?.[sc.light] ?? place?.ambient?.['*']; // 同一场景光线会变：先按光照找
+    // 这一切拍的不是本场场景（比如栈桥那场里，人还在岸边土路上跑）：用 cut.place 换掉场景名和环境动态
+    const sceneLabel = c.place?.name ?? place?.name ?? '';
+    const amb = c.place ? (c.place.ambient || null) // place 里不写 ambient = 这一切不带环境动态
+      : place?.ambient?.[sc.light] ?? place?.ambient?.['*']; // 同一场景光线会变：先按光照找
     const action = P.sentence(swap(c.action));
     const pace = P.run.test(c.action ?? '') ? ' Real-time speed, NOT slow motion.' : '';
     const rig = [c.aim && P.aim(swap(c.aim)), c.angle, c.lens].filter(Boolean).join(P.join);
@@ -148,12 +150,15 @@ for (const seg of segmentsOf(W.storyboard, epNo)) {
     const speakers = new Set(spoken.map((l) => charName.get(l.who)));
     // 手 / 道具的特写：写「只有某人」会让模型把整个人画出来，甚至画出两个
     const txt = `${c.action ?? ''}${native ? '' : ' '}${c.frame ?? ''}`;
-    const handOnly = ['close', 'extreme-close'].includes(c.size) && P.hand.test(txt) && !P.face.test(txt) && !speakers.size;
+    // 拍的是脚、口袋这类别的局部：cut.only 写明画面里只露什么，代替上面这条（写「只有手」会让手伸出口袋）
+    const only = c.only?.[L] ? c.only : null;
+    const handOnly = !only && ['close', 'extreme-close'].includes(c.size) && P.hand.test(txt) && !P.face.test(txt) && !speakers.size;
     if (handOnly) limits.push(P.limit.hands);
+    if (only) limits.push(P.limit.only(only[L]));
     const povOwner = c.camera === 'POV' ? c.move?.who : null; // 主观镜头的主人只露手，不写他的姿态和口型
     if (c.camera === 'POV' && !povOwner) warn.push(T(`${key} POV 没写是谁的眼睛（move.who）`, `${key} POV does not say whose eyes (move.who)`, `${key} POV가 누구의 시선인지 없습니다(move.who)`));
     if (povOwner && speakers.has(povOwner)) warn.push(T(`${key} POV 的主人${povOwner}在说台词：观众看不到他的嘴，按心声处理或换镜头`, `${key} the POV owner ${povOwner} has a spoken line: the audience cannot see their mouth; make it an inner voice or change the shot`, `${key} POV의 주인 ${povOwner}에게 대사가 있습니다: 입이 보이지 않으니 속마음으로 처리하거나 숏을 바꾸세요`));
-    for (const id of handOnly ? [] : chars.filter((x) => charName.get(x) !== povOwner)) {
+    for (const id of handOnly || only ? [] : chars.filter((x) => charName.get(x) !== povOwner)) {
       const n = charName.get(id), st = state[n] ?? {}, w = loc(n);
       if (st.sit && !P.rise.test(c.action ?? '')) limits.push(P.limit.sits(w));
       if (st.back && !P.turn.test(c.action ?? '')) limits.push(P.limit.back(w));
@@ -175,9 +180,8 @@ for (const seg of segmentsOf(W.storyboard, epNo)) {
       limits.push(...mv.limits);
       if (c.camera === 'Handheld' && !c.move?.level) warn.push(T(`${key} 手持没写强度（move.level：${Object.values(P.levels).join(' / ')}），默认按${P.levels.calm}写`, `${key} handheld has no intensity (move.level: ${Object.values(P.levels).join(' / ')}); defaulting to ${P.levels.calm}`, `${key} 핸드헬드 강도가 없습니다(move.level: ${Object.values(P.levels).join(' / ')}). 기본값 ${P.levels.calm}`));
       if (c.camera === 'Tracking Shot' && !c.move?.dir) warn.push(T(`${key} 跟拍没写方向（move.dir：${P.dirHint}）`, `${key} tracking shot has no direction (move.dir: ${P.dirHint})`, `${key} 트래킹 숏에 방향이 없습니다(move.dir: ${P.dirHint})`));
-      // 实测通过后删掉这条预检
-      const what = th ? T('两阶段运镜', 'two-phase move', '2단계 카메라 움직임') : c.camera;
-      if (['Crane', 'POV'].includes(c.camera) || th) warn.push(T(`${key} ${what} 还没实测过：先拿这一镜出试探镜头`, `${key} ${what} has not been tested yet: make a trial shot of this one first`, `${key} ${what}은(는) 아직 실측 전입니다: 이 숏으로 먼저 시험 컷을 만드세요`));
+      // 两阶段运镜还没实测，实测通过后删掉这条预检
+      if (th) warn.push(T(`${key} 两阶段运镜还没实测过：先拿这一镜出试探镜头`, `${key} two-phase move has not been tested yet: make a trial shot of this one first`, `${key} 2단계 카메라 움직임은 아직 실측 전입니다: 이 숏으로 먼저 시험 컷을 만드세요`));
       if (!c.move?.to && !c.move?.stop && c.camera !== 'Handheld') warn.push(T(`${key} ${c.camera} 没写终点（move.to / move.stop）：AI 会一直动，补上从哪到哪、在什么时候停`, `${key} ${c.camera} has no end point (move.to / move.stop): the AI keeps moving; say from where to where and when it stops`, `${key} ${c.camera}에 끝점이 없습니다(move.to / move.stop): 계속 움직이니 어디서 어디까지, 언제 멈추는지 쓰세요`));
       if (spoken.length > 1) warn.push(T(`${key} 有多句台词又带运镜：表演和台词已经够满，先考虑固定镜头`, `${key} several lines plus a camera move: the shot is already full; consider a static camera first`, `${key} 대사 여러 줄에 카메라 움직임까지: 이미 꽉 찼으니 고정 숏을 먼저 고려하세요`));
     }
@@ -196,7 +200,8 @@ for (const seg of segmentsOf(W.storyboard, epNo)) {
           : T(`${key} ${owner}的心声，但画面里还有别人：看着像在对人说话，建议首帧改成只拍${owner}的脸、嘴闭着`, `${key} inner voice of ${owner}, but others are in the frame: it reads as talking to someone; make the first frame ${owner}'s face only, mouth closed`, `${key} ${owner}의 속마음인데 다른 인물도 화면에 있습니다: 누군가에게 말하는 것처럼 보이니, 첫 프레임을 ${owner}의 얼굴만, 입을 다문 모습으로`));
     }
     const others = cast.filter((x) => x !== en(povOwner));
-    const people = handOnly ? 'Only the hands, sleeves and props in the frame; no face, no head, no person appears at any time.'
+    const people = only ? `Only ${only.en ?? only[L]} in the frame; no face and no head at any time.`
+      : handOnly ? 'Only the hands, sleeves and props in the frame; no face, no head, no person appears at any time.'
       : povOwner ? `First-person view of ${en(povOwner)}: only their own hands and sleeves may appear at the bottom edge${others.length ? `; besides them, only ${others.join(' and ')} in the frame` : ''}; nobody else.`
       : cast.length ? `Only ${cast.join(' and ')} in the frame; nobody else.` : 'No people in the frame.';
     const quiet = lines.length ? '' : ' Nobody speaks.';

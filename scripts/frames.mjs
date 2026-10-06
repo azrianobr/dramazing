@@ -80,8 +80,18 @@ async function cmdPlan(argv) {
     if (!item?.sheet) { problems.push(T(`${label} ${id} 没有设定图提示词（sheet），跳过`, `${label} ${id} has no sheet prompt (sheet); skipped`, `${label} ${id}에 설정화 프롬프트(sheet)가 없어 건너뜀`)); sheets.set(key, null); return null; }
     const t = { id: key, kind, ref: id, name: item.name, target: `sheets/${id}.png`, prompt: withStyle(item.sheet), refs: [], status: 'pending' };
     sheets.set(key, t);
+    // 设定图也能挂别的设定图，比如渡船外观要和船舱对得上
+    t.refs = extra(item.sheets);
+    if (t.refs.length) t.prompt = withStyle(`${t.refs.map((r, i) => IMG.ref(i + 1, r.role)).join('\n')}\n\n${item.sheet}`);
     return t;
   };
+  // 额外挂的设定图（字段 sheets），按编号头一个字母认人物、场景、道具
+  const extra = (ids, light) => (ids ?? []).flatMap((id) => {
+    const kind = { C: 'char', S: 'scene', P: 'prop' }[String(id)[0]];
+    if (!kind) { problems.push(T(`设定图编号 ${id} 认不出种类，要以 C / S / P 开头`, `sheet id ${id}: cannot tell its kind; it must start with C / S / P`, `설정화 번호 ${id}: 종류를 알 수 없습니다. C / S / P로 시작해야 합니다`)); return []; }
+    const t = sheet(kind, id);
+    return t ? [{ path: t.target, role: kind === 'scene' ? IMG.scene(t.name, light) : IMG[kind](t.name) }] : [];
+  });
   const eps = parseEps(flag(argv, '--eps') ?? die(T('缺 --eps', 'missing --eps', '--eps가 없습니다')));
   for (const ep of eps) {
     const scenes = episodeScenes(W.script, ep);
@@ -90,11 +100,12 @@ async function cmdPlan(argv) {
       if (!sc) { problems.push(T(`${seg.id} 的 scene ${seg.scene} 在剧本里找不到`, `${seg.id}: scene ${seg.scene} is not in the script`, `${seg.id}의 scene ${seg.scene}이 대본에 없습니다`)); continue; }
       const place = sheet('scene', sc.scene);
       seg.cuts.forEach((c, ci) => {
-        // 挂图顺序：场景 → 人物 → 道具；非首切再挂本段第一张分镜图，锁住光线和站位
+        // 挂图顺序：场景 → 人物 → 道具 → 本切额外的设定图；非首切再挂本段第一张分镜图，锁住光线和站位
         const refs = [];
-        if (place) refs.push({ path: place.target, role: IMG.scene(place.name, sc.light) });
+        if (place && !c.place) refs.push({ path: place.target, role: IMG.scene(place.name, sc.light) }); // 写了 cut.place 就不挂本场场景图，要挂别的用 sheets
         for (const t of (c.chars ?? []).map((x) => sheet('char', x)).filter(Boolean)) refs.push({ path: t.target, role: IMG.char(t.name) });
         for (const t of (c.props ?? []).map((x) => sheet('prop', x)).filter(Boolean)) refs.push({ path: t.target, role: IMG.prop(t.name) });
+        for (const r of extra(c.sheets, sc.light)) if (!refs.some((x) => x.path === r.path)) refs.push(r);
         if (ci > 0) refs.push({ path: `frames/${seg.id}/f1.png`, role: IMG.first });
         const head = refs.map((r, i) => IMG.ref(i + 1, r.role)).join('\n');
         frames.push({ id: `frame:${seg.id}/f${ci + 1}`, kind: 'frame', target: `frames/${seg.id}/f${ci + 1}.png`,

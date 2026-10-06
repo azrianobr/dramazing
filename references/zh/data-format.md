@@ -144,6 +144,9 @@
 - `size`：`extreme-wide` / `wide` / `full` / `medium` / `medium-close` / `close` / `extreme-close`。
 - `camera`：`Static Shot`、`Push In`、`Pull Out`、`Pan`、`Tilt`、`Rack Focus`、`Tracking Shot`、`Handheld`、`Crane`、`POV`。
 - `move`：运镜的细节，见 `prompt-rules.md` 的「运镜」一节。字段有 `from`、`to`、`stop`、`dir`、`speed`、`target`、`distance`、`level`、`who`、`height`、`then`。
+- `sheets`（可选）：这一切额外要挂的设定图编号。场景图只挂本场的，镜头里拍到别处的东西就写在这里，比如在栈桥上拍到渡船写 `["S04"]`。按编号头一个字母认人物、场景、道具，挂在自动挂的图后面。`project.json` 的人物、场景、道具条目上也能写 `sheets`，画那张设定图时挂上，比如让渡船外观和船舱对得上。
+- `place`（可选）：这一切实际拍的地方和本场场景不一样时写，`{ "name": "河岸土路", "ambient": "两旁的枯芦苇轻轻晃动……" }`。提示词里的场景名和环境动态换成这里的；不写 `ambient` 就不带环境动态。写了 `place`，出图时不再自动挂本场的场景图，需要的设定图写进 `sheets`。
+- `only`（可选）：手以外的局部特写（脚、口袋、衣角），写明画面里只露出什么，`{ "zh": "坐着的人的大衣口袋、大衣下摆和腿", "en": "the coat pocket, coat hem and thigh of the seated man" }`，键是故事语言和 `en`。不写时，生成器按「画面里只有手、袖口和道具」处理，拍口袋会让手伸出来。
 - `frame` 和 `action` 里可以直接写人名，生成提示词时会换成 `alias`。
 
 ## 编号约定

@@ -40,6 +40,7 @@ export default {
   aim: (t) => `camera aimed at ${t}`,
   limit: {
     hands: 'only hands, sleeves and props in the frame; the owner of the hands stays off-screen, no face, hair or body is ever visible',
+    only: (t) => `only ${t} in the frame; no face or head is ever visible`,
     sits: (x) => `${x} stays seated and never stands up`,
     back: (x) => `${x} keeps their back to the camera the whole time, never turns around or looks back`,
     mute: (x) => `${x} does not speak; their mouth stays still`,

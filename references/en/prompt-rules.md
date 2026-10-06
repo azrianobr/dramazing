@@ -58,8 +58,8 @@ For shots with dialogue or clear acting, default to a static shot (`Static Shot`
 | Reveal something off-screen | `Pan`, `Tilt`, `Rack Focus` |
 | Walk along with a character | `Tracking Shot` |
 | Conflict, panic, staying close to a character | `Handheld` |
-| Rise to a wide view at the opening, rise and pull away at the end | `Crane` (not tested) |
-| See through a character's eyes | `POV` (not tested) |
+| Rise to a wide view at the opening, rise and pull away at the end | `Crane` |
+| See through a character's eyes | `POV` |
 
 Do not move the camera just to look sophisticated.
 
@@ -93,7 +93,7 @@ When a character walks toward the camera, state whether the camera waits in plac
 - **Point of view (POV).** Set `move.who` to whose eyes these are. Only that person's hands and sleeves may appear in the frame, and they cannot speak, because the audience cannot see their mouth.
 - **Two phases.** `move.then = { camera, trigger, ... }` is written as "Phase one: …. When [trigger], phase two: …". Use it only for 10-second shots. The second move must have a trigger.
 
-**Untested camera moves** (crane, POV, two phases): the first time you use one, make a trial shot of that shot, and generate the batch only after it passes. The generator's preflight reminds you.
+**Untested camera moves** (two phases): the first time you use one, make a trial shot of that shot, and generate the batch only after it passes. The generator's preflight reminds you. Crane and POV have passed on Grok.
 
 ### Moves we do not use
 

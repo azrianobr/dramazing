@@ -146,6 +146,9 @@
 - `size`: `extreme-wide` / `wide` / `full` / `medium` / `medium-close` / `close` / `extreme-close`.
 - `camera`: `Static Shot`, `Push In`, `Pull Out`, `Pan`, `Tilt`, `Rack Focus`, `Tracking Shot`, `Handheld`, `Crane`, `POV`.
 - `move`: 카메라 움직임의 세부 사항. `prompt-rules.md`의 「카메라 움직임」 절을 보세요. 필드는 `from`, `to`, `stop`, `dir`, `speed`, `target`, `distance`, `level`, `who`, `height`, `then`입니다.
+- `sheets`(선택): 이 컷에 추가로 붙일 설정화 번호. 장소 설정화는 이 장의 것만 자동으로 붙으니, 다른 설정화의 것이 화면에 나오면 여기에 씁니다. 예: 부두에서 나룻배가 보이면 `["S04"]`. 번호의 첫 글자로 인물, 장소, 소품을 구분하고, 자동으로 붙는 이미지 뒤에 붙습니다. `project.json`의 인물, 장소, 소품 항목에도 `sheets`를 쓸 수 있으며, 그 설정화를 그릴 때 붙습니다. 예: 나룻배 외관이 선실과 맞도록.
+- `place`(선택): 이 컷을 찍는 곳이 이 장의 장소와 다를 때 씁니다. `{ "name": "강가 흙길", "ambient": "양옆의 마른 갈대가 흔들리고……" }`. 프롬프트의 장소 이름과 환경 움직임이 이것으로 바뀌며, `ambient`를 빼면 환경 움직임을 넣지 않습니다. `place`를 쓰면 그림을 그릴 때 이 장의 장소 설정화를 자동으로 붙이지 않으니, 필요한 설정화는 `sheets`에 적습니다.
+- `only`(선택): 손이 아닌 신체 일부(발, 주머니, 옷자락)의 클로즈업에서 화면에 무엇만 보이는지 적습니다. `{ "ko": "앉은 사람의 외투 주머니, 외투 자락과 허벅지", "en": "the coat pocket, coat hem and thigh of the seated man" }`처럼 이야기 언어 키와 `en`을 씁니다. 없으면 생성기가 「화면에는 손, 소맷부리, 소품만」으로 쓰고, 주머니를 찍으면 손이 밖으로 나옵니다.
 - `frame`과 `action`에는 인물 이름을 그대로 써도 됩니다. 프롬프트를 만들 때 `alias`로 바뀝니다.
 
 ## 번호 규칙

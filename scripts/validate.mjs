@@ -46,6 +46,9 @@ for (const seg of segmentsOf(W.storyboard, ep)) {
     if (c.camera && !CAMERAS.includes(c.camera)) err.push(T(`${k}：camera「${c.camera}」不认识，可选 ${CAMERAS.join(' / ')}`, `${k}: unknown camera "${c.camera}"; choose ${CAMERAS.join(' / ')}`, `${k}: 알 수 없는 camera "${c.camera}". 선택: ${CAMERAS.join(' / ')}`));
     for (const id of c.chars ?? []) if (!W.char.has(id)) err.push(T(`${k}：人物 ${id} 不在 project.json 里`, `${k}: character ${id} is not in project.json`, `${k}: 인물 ${id}이(가) project.json에 없습니다`));
     for (const id of c.props ?? []) if (!W.prop.has(id)) err.push(T(`${k}：道具 ${id} 不在 project.json 里`, `${k}: prop ${id} is not in project.json`, `${k}: 소품 ${id}이(가) project.json에 없습니다`));
+    if (c.place !== undefined && typeof c.place?.name !== 'string') err.push(T(`${k}：place 要写成 { "name": "…", "ambient": "…" }`, `${k}: place must be { "name": "…", "ambient": "…" }`, `${k}: place는 { "name": "…", "ambient": "…" } 형식이어야 합니다`));
+    if (c.only !== undefined && (!c.only?.[lang()] || !c.only?.en)) warn.push(T(`${k}：only 要同时写故事语言（${lang()}）和 en 两个键`, `${k}: only needs both the story-language key (${lang()}) and en`, `${k}: only에는 이야기 언어(${lang()})와 en 키가 모두 필요합니다`));
+    for (const id of c.sheets ?? []) if (!{ C: W.char, S: W.scene, P: W.prop }[String(id)[0]]?.has(id)) err.push(T(`${k}：sheets 里的 ${id} 不在 project.json 里`, `${k}: ${id} in sheets is not in project.json`, `${k}: sheets의 ${id}이(가) project.json에 없습니다`));
     if (c.seconds < 2 || c.seconds > 10) err.push(T(`${k}：${c.seconds} 秒，单切要在 2–10 秒之间`, `${k}: ${c.seconds} s; a cut must be 2–10 s`, `${k}: ${c.seconds}초. 컷은 2–10초여야 합니다`));
     const talk = cutBeats(sc, c).filter((b) => b.say).reduce((s, b) => s + speakSeconds(b.say), 0);
     if (talk > 10) err.push(T(`${k}：台词约 ${talk.toFixed(1)} 秒，一条视频最长 10 秒装不下，拆成两切`, `${k}: dialogue runs about ${talk.toFixed(1)} s; one clip holds at most 10 s, split it into two cuts`, `${k}: 대사 약 ${talk.toFixed(1)}초. 클립 하나는 최대 10초이니 두 컷으로 나누세요`));
@@ -60,7 +63,8 @@ for (const sc of scenes) {
   const spans = covered.get(sc.index);
   let next = 1;
   for (const [a, b, k] of spans) {
-    if (a !== next) err.push(T(`第 ${sc.index} 场：${k} 从第 ${a} 拍开始，前面应接第 ${next} 拍（${a > next ? '漏了' : '重了'}）`, `scene ${sc.index}: ${k} starts at beat ${a} but should start at beat ${next} (${a > next ? 'gap' : 'overlap'})`, `${sc.index}장: ${k}이(가) ${a}번째 비트에서 시작하지만 ${next}번째에서 시작해야 합니다(${a > next ? '누락' : '중복'})`));
+    const cont = a === next - 1 && a >= 1 && !sc.beats.find((x) => x.n === a)?.say; // 同一拍动作可以拆成相邻几切，台词拍不行
+    if (a !== next && !cont) err.push(T(`第 ${sc.index} 场：${k} 从第 ${a} 拍开始，前面应接第 ${next} 拍（${a > next ? '漏了' : '重了'}）`, `scene ${sc.index}: ${k} starts at beat ${a} but should start at beat ${next} (${a > next ? 'gap' : 'overlap'})`, `${sc.index}장: ${k}이(가) ${a}번째 비트에서 시작하지만 ${next}번째에서 시작해야 합니다(${a > next ? '누락' : '중복'})`));
     next = b + 1;
   }
   if (spans.length && next - 1 !== sc.beats.length) err.push(T(`第 ${sc.index} 场：分镜只覆盖到第 ${next - 1} 拍，剧本有 ${sc.beats.length} 拍`, `scene ${sc.index}: the storyboard covers up to beat ${next - 1}, the script has ${sc.beats.length}`, `${sc.index}장: 콘티는 ${next - 1}번째 비트까지, 대본은 ${sc.beats.length}비트입니다`));
