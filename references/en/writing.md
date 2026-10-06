@@ -42,6 +42,7 @@ Follow the rules below when you write. Each one comes from a real problem in vid
 
 - **One cut is one video generation.** 6 or 10 seconds. When the dialogue runs longer than the storyboard allows, editing keeps enough time for the dialogue.
 - **No wide shots for cuts with dialogue or a face that must be recognized.** The face is too small, and the video model will redraw it.
+- **When a face must be recognized while the character runs or walks, frame no wider than the waist.** In a full-body running shot the face is a few dozen pixels high; the model redraws it every frame and after a few steps it is someone else (tested in 渡口 episode 1, shot 01-1). To show the whole body in motion, add a separate wide cut from behind.
 - **Write `frame` as the first frame looks.** State the shot size, who is where in the frame, their pose, which way they face, the physical state of the props, and the light. Anything the source text calls "faint" or "glimpsed" must also be blurry in the first frame.
 - **When the camera moves, `frame` describes where the move starts.** For a pull-out, draw the close shot; for a pan, keep the target out of frame. See the "Camera moves" section of `prompt-rules.md`.
 - **When someone speaks to a person off-screen, `eyeline` gives only the direction.** "Off-screen, frame right"; do not say who that person is.

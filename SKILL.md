@@ -35,7 +35,7 @@ Two languages are involved here. Do not confuse them:
 
 Follow the 12 steps in `references/<language>/workflow.md`. The three most important rules:
 
-1. **Two gates need the user's approval.** The narrative preview (confirm the story is easy to follow) and the trial shot (confirm image quality, lip sync and sound). Generate in batch only after both pass.
+1. **Two gates need the user's approval.** The narrative preview (confirm the story is easy to follow) and the trial shot (confirm image quality, lip sync and sound). Generate in batch only after both pass. If the user says still frames do not help them judge, skip the preview and review with trial shots.
 2. **Review every prompt.** What `video-prompts.mjs` generates is a draft. Check each prompt against its first frame before submitting it.
 3. **Generate video through the tool's normal interface or public API.** Follow the tool's terms of service, and do not get around moderation or billing.
 

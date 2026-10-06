@@ -23,7 +23,7 @@ W=works/my-drama; EP=1
 
 The workflow has two points where you must stop and wait for the user to watch and approve before you go on:
 
-1. **Narrative preview** (step 4): a rough cut built from the storyboard frames, to confirm the story is easy to follow. Checking image quality is not enough: it has really happened that every picture looked fine and nobody understood the story.
+1. **Narrative preview** (step 4): a rough cut built from the storyboard frames, to confirm the story is easy to follow. Checking image quality is not enough: it has really happened that every picture looked fine and nobody understood the story. Some users cannot say what is wrong from still frames (this happened in the remake of 渡口 episode 1); then ask, skip the preview, and review with trial shots and cut segments instead.
 2. **Trial shot** (step 7): generate one shot with a face and dialogue first, to confirm image quality, lip sync and sound. Do this for every episode.
 
 ## Steps
@@ -70,6 +70,8 @@ python3 scripts/preview.py --work $W --ep $EP
 
 This writes `video/E0N.preview.mp4`: each cut's storyboard frame stays on screen for the cut's length, with the dialogue overlaid at the bottom and the shot ID in the top-left corner. Show it to the user and confirm the story is easy to follow.
 
+If the user says still frames do not help them judge, stop making previews: make one or two extra trial shots, and check blocking and location problems in moving footage.
+
 ### 5. Generate prompts
 
 ```bash
@@ -111,6 +113,7 @@ Record usage (quota percentage, credits or cost) three times: before generating,
 
 ```bash
 bash scripts/ingest.sh $W            # reads ~/Downloads by default; pass another directory as the second argument
+bash scripts/ingest.sh $W --file ~/Downloads/<downloaded file>.mp4 E01-03-s2   # when the file name has no shot ID (e.g. the page's download button names it by conversation ID), name the shot yourself
 ```
 
 It moves each video whose file name contains `E01-03-s1` to `video/E01-03/s1.mp4`. If that shot already exists, the old file is renamed `s1.old.mp4` and one rework is logged.
@@ -126,7 +129,7 @@ python3 scripts/review.py --work $W --ep $EP                              # revi
 ```
 
 - `cut.py` uses whisper to find when the dialogue ends, and always keeps at least that much.
-- Write manual cut points in `video/fix.json`: `{"E01-06": {"fix": {"1": 4.0}, "skip": [2]}}`. Shots in `fix` are not shortened.
+- Write manual cut points in `video/fix.json`: `{"E01-06": {"fix": {"1": 4.0}, "skip": [2], "in": {"3": 1.25}}}`. Shots in `fix` are not shortened. `in` is the second of the raw clip to start from: if an action comes later than the prompt asked (a lamp that goes out a second late), take the later part instead of generating again.
 - When you check sampled frames, always look at the full frame. Do not crop to the faces.
 - The user gives feedback by shot ID (such as `06-2`). For rework, first check for a spare second take; generate again only if there is none. Then go back to step 9.
 - Cutting off a flaw at the end is cheaper than generating again: if the flaw appears late, after the dialogue is over, shorten the cut in `fix.json`.

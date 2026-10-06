@@ -79,9 +79,20 @@ export function alignLines(lines, pieces, l = STORY) {
     for (let k = li; k < Math.min(li + 3, lines.length); k++) if (score(p, k) > bs || (k > li && score(p, k) === bs && bs > 0.34)) { bs = score(p, k); best = k; }
     if (best < 0) continue;
     li = best;
+    p.used = true;
     const x = lines[best];
     if (!x.hit) { x.hit = true; x.from = Math.max(p.from, p.to - unit * p.tk.length - 0.2); }
     x.to = p.to;
+  }
+  // 两三个字的短句常被听成别的字（坐稳 → 作文），一个字都对不上：
+  // 前后已对齐的两句之间，没对上的句子和没被认领的语音条数一样多时，按顺序一一配上
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].hit) continue;
+    let j = i; while (j < lines.length && !lines[j].hit) j++;
+    const lo = i > 0 ? lines[i - 1].to : 0, hi = j < lines.length ? lines[j].from : Infinity;
+    const free = ps.filter((p) => !p.used && p.from >= lo - 0.1 && p.to <= hi + 0.1);
+    if (free.length === j - i) free.forEach((p, k) => { p.used = true; Object.assign(lines[i + k], { hit: true, from: p.from, to: p.to }); });
+    i = j;
   }
   return lines.filter((x) => x.hit).length;
 }
