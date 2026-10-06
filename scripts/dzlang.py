@@ -94,3 +94,45 @@ def ffmpeg_fit(w, h, mode, src, dst):
         return f'[{src}]scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2,setsar=1[{dst}]'
     return (f'[{src}]split[{dst}b0][{dst}f0];[{dst}b0]scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},gblur=sigma=40[{dst}b1];'
             f'[{dst}f0]scale={w}:{h}:force_original_aspect_ratio=decrease[{dst}f1];[{dst}b1][{dst}f1]overlay=(W-w)/2:(H-h)/2,setsar=1[{dst}]')
+
+
+def title_of(cut):
+    """花字（见 lib.mjs 的 titleOf）：{text, sub, at, seconds, pos, y}，没写返回 None"""
+    v = cut.get('title')
+    if v is None: return None
+    return {'at': 0.3, 'seconds': 2.5, 'pos': 'left', 'y': 0.62, **({'text': v} if isinstance(v, str) else v)}
+
+
+def title_image(t, w, h):
+    """把花字画成 w×h 的透明图：上面是描边金字的名字，下面是红底白字的小标签；按 pos 靠左 / 居中 / 靠右，按 y 定中线高度。
+    字体：环境变量 TITLE_FONT 优先，否则用字幕字体"""
+    from PIL import ImageDraw
+    path = os.environ.get('TITLE_FONT')
+    face = lambda s: ImageFont.truetype(path, s) if path else ImageFont.truetype(L()['font'], s, index=L().get('fontIndex', 0))
+    probe = ImageDraw.Draw(Image.new('RGBA', (1, 1)))
+    base, room = min(w, h), round(w * 0.86)
+    ns = round(base * 0.12)
+    while ns > 24 and probe.textlength(t['text'], font=face(ns)) > room: ns -= 4  # 一行放不下就缩字号
+    nf, stroke = face(ns), max(4, ns // 14)
+    nb = probe.textbbox((0, 0), t['text'], font=nf, stroke_width=stroke)
+    nw, nh = nb[2] - nb[0], nb[3] - nb[1]
+    sub = (t.get('sub') or '').strip()
+    sf = face(round(ns * 0.34)); pad = round(ns * 0.16)
+    sb = probe.textbbox((0, 0), sub, font=sf) if sub else (0, 0, 0, 0)
+    bw, bh = (sb[2] - sb[0] + pad * 2, sb[3] - sb[1] + pad * 2) if sub else (0, 0)
+    gap = round(ns * 0.12) if sub else 0
+    top = round(h * t['y'] - (nh + gap + bh) / 2)
+    margin = round(w * 0.07)
+    xs = lambda bw_: {'left': margin, 'right': w - margin - bw_, 'center': (w - bw_) // 2}[t['pos']]
+    nx, bx = xs(nw), xs(bw)
+    im = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+    shadow = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+    ImageDraw.Draw(shadow).text((nx - nb[0] + stroke, top - nb[1] + stroke * 2), t['text'], font=nf, fill=(0, 0, 0, 170), stroke_width=stroke, stroke_fill=(0, 0, 0, 170))
+    im.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(stroke)))
+    d = ImageDraw.Draw(im)
+    d.text((nx - nb[0], top - nb[1]), t['text'], font=nf, fill=(255, 214, 72, 255), stroke_width=stroke, stroke_fill=(74, 24, 0, 255))
+    if sub:
+        by = top + nh + gap
+        d.rounded_rectangle((bx, by, bx + bw, by + bh), radius=round(bh * 0.18), fill=(198, 30, 42, 235))
+        d.text((bx + pad - sb[0], by + pad - sb[1]), sub, font=sf, fill=(255, 255, 255, 255))
+    return im

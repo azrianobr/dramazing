@@ -7,7 +7,7 @@
 import argparse, json, os, shutil, subprocess, sys, tempfile
 from PIL import Image, ImageDraw
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from dzlang import load as load_project, L, T, font, wrap, speak_seconds, canvas, insert_of, fit_image, IMAGE_EXT
+from dzlang import load as load_project, L, T, font, wrap, speak_seconds, canvas, insert_of, title_of, title_image, fit_image, IMAGE_EXT
 ap = argparse.ArgumentParser(); ap.add_argument('--work', required=True); ap.add_argument('--ep', type=int, default=1)
 ap.add_argument('--dir', default='video'); a = ap.parse_args()
 WORK = os.path.abspath(a.work); OUT = os.path.join(WORK, a.dir); os.makedirs(OUT, exist_ok=True)
@@ -51,6 +51,10 @@ for seg in segs:
         ins = insert_of(c)
         src = os.path.join(WORK, ins['file']) if ins else os.path.join(WORK, 'frames', seg['id'], f'f{i + 1}.png')
         im = fit_image(still(src, c['seconds'] / 2), CW, CH, ins['fit'] if ins else 'crop') if os.path.exists(src) else None
+        tt = title_of(c)
+        if tt:  # 花字照剪辑的样子画上去，预览里就能看到名字卡的位置
+            im = (im if im is not None else Image.new('RGB', (CW, CH), (20, 20, 20))).convert('RGBA')
+            im.alpha_composite(title_image(tt, CW, CH)); im = im.convert('RGB')
         card(p, im, label, text)
         items.append((p, round(sec, 2))); total += sec
 lst = f'{tmp}/list.txt'

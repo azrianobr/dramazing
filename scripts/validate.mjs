@@ -4,7 +4,7 @@
 
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { INSERT_FITS, T, cutBeats, episodeScenes, epTag, flag, insertOf, lang, loadWork, phrases, segmentsOf, speakSeconds } from './lib.mjs';
+import { INSERT_FITS, TITLE_POS, T, cutBeats, episodeScenes, epTag, flag, insertOf, lang, loadWork, titleOf, phrases, segmentsOf, speakSeconds } from './lib.mjs';
 
 const argv = process.argv.slice(2);
 if (!flag(argv, '--work')) { console.log(T('validate.mjs --work <作品目录> --ep <集>', 'validate.mjs --work <work dir> --ep <episode>', 'validate.mjs --work <작품 폴더> --ep <화>')); process.exit(0); }
@@ -50,6 +50,16 @@ for (const seg of segmentsOf(W.storyboard, ep)) {
     total += c.seconds;
     if (!Array.isArray(c.beats) || c.beats.length !== 2 || c.beats[0] > c.beats[1]) { err.push(T(`${k}：beats 要写成 [起, 止]`, `${k}: beats must be [from, to]`, `${k}: beats는 [시작, 끝]으로 쓰세요`)); return; }
     covered.get(sc.index).push([...c.beats, k]);
+    const tt = titleOf(c);
+    if (tt) {
+      // 花字：剪辑时画成透明图层叠在这一切上，叙事预览也画出来
+      if (typeof tt.text !== 'string' || !tt.text.trim()) err.push(T(`${k}：title 没写 text`, `${k}: title has no text`, `${k}: title에 text가 없습니다`));
+      else if ([...tt.text].length > (CW < CH ? 6 : 10)) warn.push(T(`${k}：花字「${tt.text}」偏长，${CW < CH ? '竖屏' : '横屏'}一行放不下就会缩小字号`, `${k}: title "${tt.text}" is long; it shrinks to fit one line`, `${k}: 화면 글자 "${tt.text}"이(가) 깁니다. 한 줄에 맞게 글자가 작아집니다`));
+      if (tt.sub !== undefined && typeof tt.sub !== 'string') err.push(T(`${k}：title.sub 要写成文字`, `${k}: title.sub must be text`, `${k}: title.sub는 글자여야 합니다`));
+      if (!TITLE_POS.includes(tt.pos)) err.push(T(`${k}：title.pos「${tt.pos}」不认识，可选 ${TITLE_POS.join(' / ')}`, `${k}: unknown title.pos "${tt.pos}"; choose ${TITLE_POS.join(' / ')}`, `${k}: 알 수 없는 title.pos "${tt.pos}". 선택: ${TITLE_POS.join(' / ')}`));
+      if (!(tt.y >= 0.05 && tt.y <= 0.9)) err.push(T(`${k}：title.y ${tt.y} 要在 0.05–0.9 之间（画面高度的比例，花字中线的位置）`, `${k}: title.y ${tt.y} must be 0.05–0.9 (fraction of the frame height, centre line of the title)`, `${k}: title.y ${tt.y}는 0.05–0.9 사이여야 합니다(화면 높이 비율)`));
+      if (!(tt.at >= 0 && tt.seconds >= 0.8 && tt.at + tt.seconds <= c.seconds + 1e-6)) err.push(T(`${k}：花字从第 ${tt.at} 秒起停 ${tt.seconds} 秒，要至少 0.8 秒并在这一切的 ${c.seconds} 秒里结束`, `${k}: title starts at ${tt.at} s for ${tt.seconds} s; it needs at least 0.8 s and must end within the cut's ${c.seconds} s`, `${k}: 화면 글자가 ${tt.at}초부터 ${tt.seconds}초. 0.8초 이상이고 컷의 ${c.seconds}초 안에 끝나야 합니다`));
+    }
     const ins = insertOf(c);
     if (ins) {
       // 插入镜头：不出图不出片，只查素材、时长和台词

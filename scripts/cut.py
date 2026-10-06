@@ -9,7 +9,7 @@
 import argparse, json, math, os, re, subprocess, sys, tempfile
 from PIL import Image, ImageDraw
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from dzlang import load, L, T, units, canvas, insert_of, ffmpeg_fit, IMAGE_EXT
+from dzlang import load, L, T, units, canvas, insert_of, title_of, title_image, ffmpeg_fit, IMAGE_EXT
 ap = argparse.ArgumentParser(); ap.add_argument('--work', required=True); ap.add_argument('--ep', type=int, default=1)
 ap.add_argument('--dir', default='video'); ap.add_argument('segs', nargs='*'); a = ap.parse_args()
 WORK = os.path.abspath(a.work); W = os.path.join(WORK, a.dir); load(WORK); CW, CH = canvas()
@@ -135,7 +135,17 @@ for seg in a.segs or list(plan):
                    f'[{y + 1}:v]format=gray[m{i}];[s{i}][m{i}]alphamerge[sm{i}];[p{i}][sm{i}]overlay=0:0:shortest=1[q{i}];')
         else:
             fc += f'[p{i}]null[q{i}];'
-        fc += f'[q{i}]format=yuv420p[v{i}];'
+        tt = title_of(cut)
+        if tt and tt['at'] < D[i] - 0.3:
+            # 花字：画成透明 PNG，淡入淡出叠在这一切上；剪辑把这一切剪短了就跟着提前收
+            t0, t1 = tt['at'], min(tt['at'] + tt['seconds'], D[i])
+            tp = f'{tmp}/title{i}.png'; title_image(tt, CW, CH).save(tp)
+            y = len([v for v in ins if v == '-i']); ins += ['-loop', '1', '-framerate', '24', '-t', f'{D[i]:.3f}', '-i', tp]
+            fc += (f'[{y}:v]format=rgba,fade=t=in:st={t0}:d=0.15:alpha=1,fade=t=out:st={max(t0, t1 - 0.2):.3f}:d=0.2:alpha=1[tt{i}];'
+                   f"[q{i}][tt{i}]overlay=0:0:shortest=1:enable='between(t,{t0},{t1:.3f})'[r{i}];")
+        else:
+            fc += f'[q{i}]null[r{i}];'
+        fc += f'[r{i}]format=yuv420p[v{i}];'
         if has_audio(f):
             fc += f'[{x}:a]atrim={a0}:{a1},asetpts=PTS-STARTPTS,aresample=48000,afade=t=out:st={fo}:d=0.08[a{i}];'
         else:  # 录屏、截图没有声音：垫一段同样长的静音，concat 才拼得上

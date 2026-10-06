@@ -118,6 +118,10 @@ export function parseAspect(a = '16:9') {
  * blur（默认，原样居中，空白处垫一层放大虚化的同一画面）/ crop（放大裁满）/ pad（原样居中，空白处黑边）
  */
 export const INSERT_FITS = ['blur', 'crop', 'pad'];
+/** 花字（cut.title）：短剧里人物出场的名字卡这类画面文字。写成字符串或 { text, sub, at, seconds, pos, y }，不是花字返回 null */
+export const TITLE_POS = ['left', 'center', 'right'];
+export const titleOf = (c) => (c?.title == null ? null
+  : { at: 0.3, seconds: 2.5, pos: 'left', y: 0.62, ...(typeof c.title === 'string' ? { text: c.title } : c.title) });
 export const insertOf = (c) => (c?.insert == null ? null
   : typeof c.insert === 'string' ? { file: c.insert, fit: 'blur' } : { fit: 'blur', ...c.insert });
 
