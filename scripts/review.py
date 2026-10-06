@@ -24,7 +24,12 @@ def badge(label, p):
 
 table, total, parts = [], 0.0, []
 for f in segs:
-    seg = os.path.basename(f)[:-4]; shots = json.load(open(f'{W}/{seg}.shots.json'))
+    seg = os.path.basename(f)[:-4]
+    if not os.path.exists(f'{W}/{seg}.shots.json'):  # 片头片尾（分镜的 intro / outro）：没有镜头号，原样放
+        out = f'{tmp}/_bumper{len(parts)}.mp4'; parts.append(out); table.append((seg, total, os.path.relpath(f, W))); total += vdur(f)
+        subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', f, '-an', '-c:v', 'libx264', '-crf', '18', '-preset', 'medium', out], check=True)
+        continue
+    shots = json.load(open(f'{W}/{seg}.shots.json'))
     ins, fc, last, t = ['-i', f], '', '0:v', 0.0
     for k, s in enumerate(shots):
         label = f'{seg[-2:]}-{k + 1}'; p = f'{tmp}/{label}.png'; badge(label, p); ins += ['-i', p]

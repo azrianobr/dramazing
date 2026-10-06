@@ -64,6 +64,20 @@ function cmdAssemble(argv) {
   const parts = [];
   const subs = [];
   let offset = 0;
+  // 片头片尾（分镜里这一集的 intro / outro）：作品目录里现成的视频，原样接在正片首尾，字幕时间跟着顺延
+  const epSb = W.storyboard.episodes?.find((e) => e.ep === epNo) ?? {};
+  const bumper = (k) => {
+    if (!epSb[k]) return null;
+    const f = resolve(work, epSb[k]);
+    if (!existsSync(f)) {
+      console.log(T(`✗ 分镜里的 ${k} 素材 ${epSb[k]} 不存在`, `✗ ${k} file ${epSb[k]} from the storyboard is missing`, `✗ 콘티의 ${k} 소재 ${epSb[k]}이(가) 없습니다`));
+      process.exit(1);
+    }
+    return f;
+  };
+  const intro = bumper('intro');
+  const outro = bumper('outro');
+  if (intro) { parts.push(intro); offset += ffprobe(intro).duration; }
   for (const seg of segmentsOf(W.storyboard, epNo)) {
     const f = join(dir, `${seg.id}.mp4`);
     if (!existsSync(f)) {
@@ -97,6 +111,7 @@ function cmdAssemble(argv) {
     parts.push(f);
     offset += dur;
   }
+  if (outro) parts.push(outro);
   const list = join(dir, `E${String(epNo).padStart(2, '0')}.concat.txt`);
   writeFileSync(list, parts.map((p) => `file '${p.replace(/'/g, "'\\''")}'`).join('\n'));
   const base = join(dir, `E${String(epNo).padStart(2, '0')}`);

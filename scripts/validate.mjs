@@ -122,6 +122,11 @@ if (missing.length) warn.push(T(`人物 ${missing.join(J)} 没写 alias.en：视
 const noTrait = W.project.characters.filter((c) => c.trait && (!c.trait[lang()] || !c.trait.en)).map((c) => c.id);
 if (noTrait.length) warn.push(T(`人物 ${noTrait.join(J)} 的 trait 缺 ${lang()} 或 en：缺的那项不会写进视频提示词`, `characters ${noTrait.join(J)}: trait lacks ${lang()} or en; the missing one never reaches the video prompt`, `인물 ${noTrait.join(J)}: trait에 ${lang()} 또는 en이 없습니다. 빠진 쪽은 영상 프롬프트에 들어가지 않습니다`));
 const subFont = W.project.subFont;
+for (const k of ['intro', 'outro']) {
+  const f = W.storyboard.episodes?.find((e) => e.ep === ep)?.[k];
+  if (f && !/\.(mp4|mov|m4v)$/i.test(f)) err.push(T(`分镜的 ${k} 要是视频文件：${f}`, `storyboard ${k} must be a video file: ${f}`, `콘티의 ${k}는 동영상 파일이어야 합니다: ${f}`));
+  else if (f && !existsSync(join(W.work, f))) warn.push(T(`分镜的 ${k} 素材 ${f} 还没放进作品目录，拼整集会停`, `storyboard ${k} file ${f} is not in the work dir yet; assemble will stop`, `콘티의 ${k} 소재 ${f}이(가) 아직 작품 폴더에 없습니다. 합치기가 멈춥니다`));
+}
 if (subFont && !existsSync(join(W.work, subFont))) err.push(T(`project.json 的 subFont 指向的字体文件不存在：${subFont}`, `project.json subFont points to a missing font file: ${subFont}`, `project.json의 subFont 글꼴 파일이 없습니다: ${subFont}`));
 if (!existsSync(join(W.work, 'story.txt'))) warn.push(T('作品目录里没有 story.txt（原文），复盘和改编时没法对照', 'no story.txt (the source text) in the work dir; reviews and adaptation have nothing to check against', '작품 폴더에 story.txt(원문)가 없습니다. 회고와 각색 때 대조할 수 없습니다'));
 
