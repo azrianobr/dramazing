@@ -174,4 +174,4 @@ If the rate is too high, the storyboard gives the dialogue too little time; edit
 | [whisper.cpp](https://github.com/ggerganov/whisper.cpp) (`whisper-cli`) + the `ggml-large-v3-turbo` and `ggml-silero-v5.1.2` models | Measuring dialogue length and aligning subtitles. The model directory defaults to `~/models/whisper`; change it with the environment variable `WHISPER_MODELS` |
 | An image tool | Makes the sheets and storyboard frames; must accept reference images. Tested: Codex CLI |
 | A "first frame + text → video" tool | Generates the video; must speak dialogue in the story language. Tested: Grok (web) |
-| Fonts | Subtitles and preview. Defaults to fonts built into macOS: STHeiti for Chinese, Helvetica Neue for English, Apple SD Gothic Neo for Korean (see `scripts/lang/langs.json`). Change them with the environment variable `SUB_FONT` |
+| Fonts | Subtitles and preview. Defaults to fonts built into macOS: STHeiti for Chinese, Helvetica Neue for English, Apple SD Gothic Neo for Korean (see `scripts/lang/langs.json`). Change them with `subFont` in `project.json` or the environment variable `SUB_FONT`; the system fonts are not cleared for commercial use |

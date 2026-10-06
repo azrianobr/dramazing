@@ -121,6 +121,8 @@ if (missing.length) warn.push(T(`人物 ${missing.join(J)} 没写 alias.en：视
 // trait 要有故事语言和英文两项，缺故事语言那项时视频提示词会把它整条跳过
 const noTrait = W.project.characters.filter((c) => c.trait && (!c.trait[lang()] || !c.trait.en)).map((c) => c.id);
 if (noTrait.length) warn.push(T(`人物 ${noTrait.join(J)} 的 trait 缺 ${lang()} 或 en：缺的那项不会写进视频提示词`, `characters ${noTrait.join(J)}: trait lacks ${lang()} or en; the missing one never reaches the video prompt`, `인물 ${noTrait.join(J)}: trait에 ${lang()} 또는 en이 없습니다. 빠진 쪽은 영상 프롬프트에 들어가지 않습니다`));
+const subFont = W.project.subFont;
+if (subFont && !existsSync(join(W.work, subFont))) err.push(T(`project.json 的 subFont 指向的字体文件不存在：${subFont}`, `project.json subFont points to a missing font file: ${subFont}`, `project.json의 subFont 글꼴 파일이 없습니다: ${subFont}`));
 if (!existsSync(join(W.work, 'story.txt'))) warn.push(T('作品目录里没有 story.txt（原文），复盘和改编时没法对照', 'no story.txt (the source text) in the work dir; reviews and adaptation have nothing to check against', '작품 폴더에 story.txt(원문)가 없습니다. 회고와 각색 때 대조할 수 없습니다'));
 
 const nSeg = segmentsOf(W.storyboard, ep).length, nCut = segmentsOf(W.storyboard, ep).reduce((s, g) => s + g.cuts.length, 0);

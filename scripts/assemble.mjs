@@ -100,7 +100,10 @@ function cmdAssemble(argv) {
   const list = join(dir, `E${String(epNo).padStart(2, '0')}.concat.txt`);
   writeFileSync(list, parts.map((p) => `file '${p.replace(/'/g, "'\\''")}'`).join('\n'));
   const base = join(dir, `E${String(epNo).padStart(2, '0')}`);
-  writeFileSync(`${base}.srt`, subs.map((s, i) => `${i + 1}\n${srtTime(s.from)} --> ${srtTime(s.to)}\n${s.text}\n`).join('\n'));
+  // 字幕末尾的句号去掉（短剧字幕的习惯；哪些标点算句号见 langs.json 的 stripEnd），问号、感叹号、省略号保留
+  const stripEnd = LANGS[lang()].stripEnd;
+  const tidy = (t) => (stripEnd ? t.replace(new RegExp(`[${stripEnd}]+$`), '') : t);
+  writeFileSync(`${base}.srt`, subs.map((s, i) => `${i + 1}\n${srtTime(s.from)} --> ${srtTime(s.to)}\n${tidy(s.text)}\n`).join('\n'));
   // 各段编码参数可能不完全一致，统一重编码再拼，避免 concat 花屏
   execFileSync('ffmpeg', ['-y', '-v', 'error', '-f', 'concat', '-safe', '0', '-i', list,
     '-c:v', 'libx264', '-crf', '18', '-preset', 'medium', '-pix_fmt', 'yuv420p',

@@ -172,4 +172,4 @@ node scripts/assemble.mjs --work $W --ep $EP --loudnorm --align
 | [whisper.cpp](https://github.com/ggerganov/whisper.cpp)（`whisper-cli`）+ `ggml-large-v3-turbo` 和 `ggml-silero-v5.1.2` 模型 | 测台词时长、对齐字幕。模型目录默认 `~/models/whisper`，可用环境变量 `WHISPER_MODELS` 改 |
 | 一个出图工具 | 出设定图和分镜图，要能传参考图。实测：Codex CLI |
 | 一个「首帧 + 文字 → 视频」的工具 | 出片，要能说故事语言的台词。实测：Grok 网页 |
-| 字体 | 字幕和预览。默认用 macOS 自带的：中文 STHeiti，英文 Helvetica Neue，韩文 Apple SD Gothic Neo（见 `scripts/lang/langs.json`）。可用环境变量 `SUB_FONT` 改 |
+| 字体 | 字幕和预览。默认用 macOS 自带的：中文 STHeiti，英文 Helvetica Neue，韩文 Apple SD Gothic Neo（见 `scripts/lang/langs.json`）。可在 `project.json` 写 `subFont` 或用环境变量 `SUB_FONT` 改；系统字体不能商用，成片商用要换 |

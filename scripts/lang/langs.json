@@ -8,6 +8,7 @@
   "calibrated": "Grok, 6 episodes of 渡口, 2026-10",
   "alignUnitSec": 0.3,
   "wrap": "char",
+  "stripEnd": "。",
   "font": "/System/Library/Fonts/STHeiti Medium.ttc",
   "fontIndex": 0,
   "preview": {

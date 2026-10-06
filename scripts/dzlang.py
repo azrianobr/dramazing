@@ -4,15 +4,16 @@ import json, os, re
 from PIL import Image, ImageFilter, ImageFont, ImageOps
 
 LANGS = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'lang', 'langs.json'), encoding='utf-8'))
-_story, _rate, _loaded, _aspect, _tail = 'zh', None, False, '16:9', None
+_story, _rate, _loaded, _aspect, _tail, _subfont = 'zh', None, False, '16:9', None, None
 
 
 def load(work):
     """读作品的 project.json，定下故事语言；返回 project"""
-    global _story, _rate, _loaded, _aspect, _tail
+    global _story, _rate, _loaded, _aspect, _tail, _subfont
     p = json.load(open(os.path.join(work, 'project.json'), encoding='utf-8'))
     _story, _rate, _loaded, _aspect = p.get('language', 'zh'), p.get('speechRate'), True, p.get('aspect', '16:9')
     _tail = p.get('cutTail')
+    _subfont = p.get('subFont') and os.path.join(work, p['subFont'])  # 相对 project.json 所在目录；绝对路径原样用
     if _story not in LANGS: raise SystemExit(f'project.json language "{_story}": {" / ".join(LANGS)}')
     canvas()  # aspect 写错就在这里停
     return p
@@ -38,9 +39,14 @@ def units(t):
 def speak_seconds(t): return units(t) / (_rate or L()['rate']) + 1
 
 
+def sub_font_path():
+    """字幕字体文件：环境变量 SUB_FONT > project.json 的 subFont > 故事语言的默认字体（返回 None）"""
+    return os.environ.get('SUB_FONT') or _subfont
+
+
 def font(size):
-    """字幕字体：环境变量 SUB_FONT 优先，否则按故事语言"""
-    path = os.environ.get('SUB_FONT')
+    """字幕字体：见 sub_font_path；都没写按故事语言"""
+    path = sub_font_path()
     return ImageFont.truetype(path, size) if path else ImageFont.truetype(L()['font'], size, index=L().get('fontIndex', 0))
 
 
@@ -112,7 +118,7 @@ def title_image(t, w, h):
     """把花字画成 w×h 的透明图：上面是描边金字的名字，下面是红底白字的小标签；按 pos 靠左 / 居中 / 靠右，按 y 定中线高度。
     字体：环境变量 TITLE_FONT 优先，否则用字幕字体"""
     from PIL import ImageDraw
-    path = os.environ.get('TITLE_FONT')
+    path = os.environ.get('TITLE_FONT') or sub_font_path()
     face = lambda s: ImageFont.truetype(path, s) if path else ImageFont.truetype(L()['font'], s, index=L().get('fontIndex', 0))
     probe = ImageDraw.Draw(Image.new('RGBA', (1, 1)))
     base, room = min(w, h), round(w * 0.86)

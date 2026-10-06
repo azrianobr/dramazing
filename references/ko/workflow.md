@@ -174,4 +174,4 @@ node scripts/assemble.mjs --work $W --ep $EP --loudnorm --align
 | [whisper.cpp](https://github.com/ggerganov/whisper.cpp)(`whisper-cli`) + `ggml-large-v3-turbo`와 `ggml-silero-v5.1.2` 모델 | 대사 길이 측정, 자막 정렬. 모델 폴더 기본값은 `~/models/whisper`이며, 환경 변수 `WHISPER_MODELS`로 바꿀 수 있음 |
 | 이미지 도구 하나 | 설정화와 콘티 그림 생성. 참고 이미지를 넣을 수 있어야 함. 실측: Codex CLI |
 | 「첫 프레임 + 텍스트 → 영상」 도구 하나 | 영상 생성. 이야기 언어로 대사를 말할 수 있어야 함. 실측: Grok 웹 |
-| 글꼴 | 자막과 미리보기. 기본으로 macOS에 들어 있는 글꼴을 씀: 중국어 STHeiti, 영어 Helvetica Neue, 한국어 Apple SD Gothic Neo(`scripts/lang/langs.json` 참고). 환경 변수 `SUB_FONT`로 바꿀 수 있음 |
+| 글꼴 | 자막과 미리보기. 기본으로 macOS에 들어 있는 글꼴을 씀: 중국어 STHeiti, 영어 Helvetica Neue, 한국어 Apple SD Gothic Neo(`scripts/lang/langs.json` 참고). `project.json`의 `subFont`나 환경 변수 `SUB_FONT`로 바꿀 수 있음. 시스템 글꼴은 상업 사용 불가 |
