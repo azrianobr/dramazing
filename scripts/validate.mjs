@@ -55,6 +55,10 @@ for (const seg of segmentsOf(W.storyboard, ep)) {
     else if (talk > c.seconds + 0.5) warn.push(T(`${k}：台词约 ${talk.toFixed(1)} 秒，分镜给 ${c.seconds} 秒，剪辑会按台词留长`, `${k}: dialogue runs about ${talk.toFixed(1)} s but the cut is ${c.seconds} s; the edit will keep it longer`, `${k}: 대사 약 ${talk.toFixed(1)}초, 컷은 ${c.seconds}초. 편집에서 대사 길이만큼 남깁니다`));
     if (c.camera && !['Static Shot', 'Handheld'].includes(c.camera) && !c.move?.to && !c.move?.stop) warn.push(T(`${k}：${c.camera} 没写 move.to / move.stop，AI 会一直动`, `${k}: ${c.camera} has no move.to / move.stop; the AI will keep moving`, `${k}: ${c.camera}에 move.to / move.stop이 없습니다. AI가 계속 움직입니다`));
     if (['Pull Out', 'Pan', 'Rack Focus', 'Crane'].includes(c.camera)) warn.push(T(`${k}：${c.camera} 的首帧要画成运镜「起点」的构图，画成终点模型就没东西可动`, `${k}: draw the ${c.camera} first frame at the START of the move; if it shows the end, the model has nothing to move`, `${k}: ${c.camera}의 첫 프레임은 움직임의 "시작" 구도로 그리세요. 끝 구도면 모델이 움직일 게 없습니다`));
+    // 景别和内容对不上：定义见 data-format.md 的景别表
+    const spoken = cutBeats(sc, c).some((b) => b.say && !b.inner);
+    if (c.size === 'extreme-close' && spoken) warn.push(T(`${k}：大特写里有人说话，嘴在不在画面里都对不上口型，改特写或中近景`, `${k}: someone speaks in an extreme close-up; lip sync fails whether the mouth is in frame or not; use a close-up or medium close-up`, `${k}: 익스트림 클로즈업에서 대사가 있습니다. 입이 화면에 있든 없든 립싱크가 맞지 않습니다. 클로즈업이나 미디엄 클로즈업으로 바꾸세요`));
+    if (c.size === 'full' && spoken && c.camera !== 'Push In') warn.push(T(`${k}：全景里有人说话，脸偏小，口型和长相容易走样；改中景，或用推镜推到近处`, `${k}: someone speaks in a full shot; the face is small and lips and looks drift; use a medium shot or push in`, `${k}: 풀숏에서 대사가 있습니다. 얼굴이 작아 입 모양과 얼굴이 흔들립니다. 미디엄 숏으로 바꾸거나 푸시 인으로 다가가세요`));
     if (P.young.test(c.frame ?? '') && !P.adult.test(c.frame ?? '') && ['close', 'extreme-close', 'medium-close'].includes(c.size))
       warn.push(T(`${k}：近景里的年轻人物没写「成年」，可能被判成未成年人而不出片`, `${k}: a young character in a close shot is not described as an adult; the tool may flag them as a minor and refuse`, `${k}: 근접 숏의 젊은 인물에 "성인"이 없습니다. 미성년자로 판정되어 생성이 거부될 수 있습니다`));
   });

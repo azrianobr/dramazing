@@ -143,7 +143,17 @@ There are only three kinds of beat:
 - Segment: a continuous stretch of action in one scene, with ID `E<episode>-<segment>`. `scene` is which scene of this episode's script the segment belongs to, counting from 1.
 - Cut: one shot, which is one video generation. `beats` is `[from, to]` and refers to beat numbers in this scene.
 - `seconds`: the storyboard length. Videos are generated at 6 or 10 seconds; when the dialogue runs longer than the storyboard allows, editing keeps enough time for the dialogue.
-- `size`: `extreme-wide` / `wide` / `full` / `medium` / `medium-close` / `close` / `extreme-close`.
+- `size`: the shot size, one of the seven values below.
+
+  | Value | Where the frame cuts | What must stay in frame | Use it for |
+  |---|---|---|---|
+  | `extreme-wide` | The whole place; people are specks or absent | The place is recognisable | Openings, scene changes, time passing |
+  | `wide` | A person with a large part of the surroundings | Where the person is, how far from whom | Positions and distances |
+  | `full` | Head to feet, with room ahead in the direction of movement | One complete movement, start to end | Running, walking, boarding; no face to recognise, no lines |
+  | `medium` | Waist up | Both hands and what they hold; two people looking at each other | Dialogue, handing things over, exchanges |
+  | `medium-close` | Chest up; hands enter only when raised to the chest | The face and where the eyes point | Speaking, the listener's reaction |
+  | `close` | One face, forehead to chin, or one prop filling the frame | The one detail that carries the feeling: eyes, mouth, a tight grip | The strongest emotional beat |
+  | `extreme-close` | One eye, one finger, one clasp | That single detail; both things being compared are readable | Clues, evidence, small gestures; no lines |
 - `camera`: `Static Shot`, `Push In`, `Pull Out`, `Pan`, `Tilt`, `Rack Focus`, `Tracking Shot`, `Handheld`, `Crane`, `POV`.
 - `move`: details of the camera move; see the "Camera moves" section of `prompt-rules.md`. Fields: `from`, `to`, `stop`, `dir`, `speed`, `target`, `distance`, `level`, `who`, `height`, `then`.
 - `sheets` (optional): extra sheet ids to attach for this cut. Only the scene's own location sheet is attached automatically; when the shot shows something from another sheet, list it here, e.g. `["S04"]` for the ferry seen from the pier. The first letter of the id tells character, location or prop; these go after the automatic references. Character, location and prop entries in `project.json` can carry `sheets` too; they are attached when that sheet is drawn, e.g. so the ferry's exterior matches its cabin.
