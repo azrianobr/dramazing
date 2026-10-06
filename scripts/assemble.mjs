@@ -80,16 +80,16 @@ function cmdAssemble(argv) {
       for (const b of scene.beats.filter((x) => x.n >= c.beats[0] && x.n <= c.beats[1])) {
         // 实际片长可能比分镜短（远程整段生成），字幕不越过本段结尾
         const end = Math.min(t + b.seconds, starts[ci + 1] ?? dur, dur);
-        if (b.say && t < dur) lines.push({ from: t, to: end, text: speakable(b.say) });
+        if (b.say && t < dur) lines.push({ from: t, to: end, text: speakable(b.say), win: [starts[ci], Math.min(starts[ci + 1] ?? dur, dur)] });
         t += b.seconds;
       }
     });
     if (align && lines.length) {
       const hit = alignLines(lines, speechPieces(f));
-      // 前后两句不重叠，每句至少显示 1 秒
+      // 前后两句不重叠，每句至少显示 1 秒，不越过这句所在切的结尾（字幕不压到下一切）
       lines.forEach((l, i) => {
         if (i > 0 && l.from < lines[i - 1].to) lines[i - 1].to = l.from;
-        l.to = Math.min(Math.max(l.to + 0.3, l.from + 1), dur);
+        l.to = Math.min(Math.max(l.to + 0.3, l.from + 1), dur, Math.max(l.win[1], l.from + 1));
       });
       console.log(T(`  ${seg.id} 对齐 ${hit}/${lines.length} 句${hit < lines.length ? '（未识别的按分镜节拍）' : ''}`, `  ${seg.id} aligned ${hit}/${lines.length} lines${hit < lines.length ? ' (the rest follow the storyboard beats)' : ''}`, `  ${seg.id} 정렬 ${hit}/${lines.length}줄${hit < lines.length ? ' (나머지는 콘티 비트 기준)' : ''}`));
     }

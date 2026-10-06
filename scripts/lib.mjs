@@ -66,7 +66,7 @@ export const tokens = (t, l = STORY) => (LANGS[l].unit === 'word'
 /**
  * 把识别片段按出现顺序单调地挂到台词上：片段的字 / 词落在哪句台词里最多就归哪句（只往后看两句，平分归后一句）。
  * VAD 切出的片段会把前面的静音也并进来，起点按字数 / 词数从片段末尾倒推（每单位秒数见 langs.json 的 alignUnitSec）。
- * lines: [{from, to, text}]，pieces: [{from, to, text}]（识别原文）。命中的台词改写 from / to，返回命中句数
+ * lines: [{from, to, text, win?}]（win 是这句所在切的起止秒数），pieces: [{from, to, text}]（识别原文）。命中的台词改写 from / to，返回命中句数
  */
 export function alignLines(lines, pieces, l = STORY) {
   const unit = LANGS[l].alignUnitSec;
@@ -82,7 +82,11 @@ export function alignLines(lines, pieces, l = STORY) {
     li = best;
     p.used = true;
     const x = lines[best];
-    if (!x.hit) { x.hit = true; x.from = Math.max(p.from, p.to - unit * p.tk.length - 0.2); }
+    if (!x.hit) {
+      x.hit = true; x.from = Math.max(p.from, p.to - unit * p.tk.length - 0.2);
+      // 片段把后面的静音并进来时，倒推出的起点会落到别的切里；这时信片段起点，并收在这句所在的切内
+      if (x.win && (x.from < x.win[0] - 0.3 || x.from >= x.win[1])) x.from = Math.min(Math.max(p.from, x.win[0]), x.win[1] - 0.5);
+    }
     x.to = p.to;
   }
   // 两三个字的短句常被听成别的字（坐稳 → 作文），一个字都对不上：
