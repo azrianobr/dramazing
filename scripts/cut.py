@@ -3,16 +3,20 @@
 多出来的时间从无台词镜头里扣（每个镜头最少 2 秒）。镜头原片在 <dir>/E02-03/s1.mp4（ingest.sh 收进来的）。
 手工修正写在 <dir>/fix.json：{"E01-06": {"skip": [2], "fix": {"1": 4.0}, "in": {"3": 1.25}, "extra": {"5": 4.5}}}
   skip=不用的镜头号，fix=强制时长（秒），in=从原片第几秒开始取（默认 0，动作来得晚时用），extra=分镜外追加的镜头（号: 时长，接在段尾）
+画布按 project.json 的 aspect（不写是 16:9，长边 1920）。插入镜头（cut.insert）直接取作品目录里的素材，按分镜时长、insert.fit 放进画布；
+贴屏（cut.screen 写了 file 和 corners）把素材按四个角贴到镜头里的屏幕上。素材没有声音时垫静音
 用法：cut.py --work <作品目录> --ep 1 [--dir video] [E01-02 E01-03 ...]（不写段号 = 整集）"""
-import argparse, json, os, re, subprocess, sys, tempfile
+import argparse, json, math, os, re, subprocess, sys, tempfile
+from PIL import Image, ImageDraw
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from dzlang import load, L, T, units
+from dzlang import load, L, T, units, canvas, insert_of, ffmpeg_fit, IMAGE_EXT
 ap = argparse.ArgumentParser(); ap.add_argument('--work', required=True); ap.add_argument('--ep', type=int, default=1)
 ap.add_argument('--dir', default='video'); ap.add_argument('segs', nargs='*'); a = ap.parse_args()
-WORK = os.path.abspath(a.work); W = os.path.join(WORK, a.dir); load(WORK)
+WORK = os.path.abspath(a.work); W = os.path.join(WORK, a.dir); load(WORK); CW, CH = canvas()
 WD = os.path.expanduser(os.environ.get('WHISPER_MODELS', '~/models/whisper'))
 ep = next(e for e in json.load(open(f'{WORK}/storyboard.json'))['episodes'] if e['ep'] == a.ep)
 plan = {s['id']: [c['seconds'] for c in s['cuts']] for s in ep['segments']}
+CUTS = {s['id']: s['cuts'] for s in ep['segments']}
 P = json.load(open(f'{W}/prompts.json'))
 FIX = json.load(open(f'{W}/fix.json')) if os.path.exists(f'{W}/fix.json') else {}
 # 哪个镜头有台词：优先看 video-prompts 写的 shots.json；旧作品没有它，就在提示词里找带引号的台词
@@ -43,7 +47,30 @@ def rate_note(key, start, end):
     return T(f'，语速 {r:.2f}', f', rate {r:.2f}', f', 말 속도 {r:.2f}')
 
 def dur(f):
+    if f.lower().endswith(IMAGE_EXT): return math.inf  # 图片素材多长都行
     return float(subprocess.check_output(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f]))
+
+def has_audio(f):
+    if f.lower().endswith(IMAGE_EXT): return False
+    return bool(subprocess.check_output(['ffprobe', '-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=index', '-of', 'csv=p=0', f]).strip())
+
+def src_of(seg, n):
+    """镜头 n 的素材：插入镜头取 cut.insert.file，其余取视频工具出的 <dir>/<段>/s<n>.mp4"""
+    cuts = CUTS[seg]; ins = insert_of(cuts[n - 1]) if n <= len(cuts) else None
+    return os.path.join(WORK, ins['file']) if ins else f'{W}/{seg}/s{n}.mp4'
+
+def screen_of(seg, n):
+    """贴屏设置：{file, corners}；没写 screen 返回 None"""
+    cuts = CUTS[seg]
+    return cuts[n - 1].get('screen') if n <= len(cuts) else None
+
+def media_in(f, seconds):
+    """ffmpeg 输入参数：图片循环成 seconds 秒的视频"""
+    return ['-loop', '1', '-framerate', '24', '-t', f'{seconds:.3f}', '-i', f] if f.lower().endswith(IMAGE_EXT) else ['-i', f]
+
+def screen_mask(corners, p):
+    """贴屏的遮罩：屏幕四边形内白、外黑"""
+    im = Image.new('L', (CW, CH), 0); ImageDraw.Draw(im).polygon([tuple(x) for x in corners], fill=255); im.save(p)
 
 for seg in a.segs or list(plan):
     fx = FIX.get(seg, {}); fixd = {int(k): v for k, v in fx.get('fix', {}).items()}
@@ -51,19 +78,24 @@ for seg in a.segs or list(plan):
     inp = {int(k): v for k, v in fx.get('in', {}).items()}
     shots, D, talk, nums, IN = [], [], [], [], []
     # 只出了试探镜头、或者还没出齐时：有的镜头照样测台词（给语速校准用），这一段先不拼
-    missing = [i + 1 for i in range(len(plan[seg])) if i + 1 not in fx.get('skip', []) and not os.path.exists(f'{W}/{seg}/s{i + 1}.mp4')]
+    missing = [i + 1 for i in range(len(plan[seg])) if i + 1 not in fx.get('skip', []) and not os.path.exists(src_of(seg, i + 1))]
+    # 贴屏要素材和四个角都齐，否则成片里会留一块灰屏
+    noscreen = [i + 1 for i in range(len(plan[seg])) if i + 1 not in fx.get('skip', []) and screen_of(seg, i + 1) is not None
+                and not (screen_of(seg, i + 1).get('corners') and os.path.exists(os.path.join(WORK, screen_of(seg, i + 1).get('file', ''))))]
     for i, p in enumerate(plan[seg]):
         if missing:
             n = i + 1
-            if n not in missing and has_lines(f'{seg}/s{n}'):
+            if n not in missing and not insert_of(CUTS[seg][i]) and has_lines(f'{seg}/s{n}'):
                 st, e, txt = speech_end(f'{W}/{seg}/s{n}.mp4', inp.get(n, 0))
                 print(T(f'  {seg}/s{n} 台词 {st:.1f}–{e:.1f}s「{txt.strip()}」', f'  {seg}/s{n} speech {st:.1f}–{e:.1f}s "{txt.strip()}"', f'  {seg}/s{n} 대사 {st:.1f}–{e:.1f}초 「{txt.strip()}」') + rate_note(f'{seg}/s{n}', st, e))
             continue
         n = i + 1
         if n in fx.get('skip', []): continue
-        f = f'{W}/{seg}/s{n}.mp4'; shots.append(f); nums.append(n); IN.append(inp.get(n, 0)); length = dur(f) - IN[-1]
+        f = src_of(seg, n); shots.append(f); nums.append(n); IN.append(inp.get(n, 0)); length = dur(f) - IN[-1]
         if n in fixd:
             D.append(fixd[n]); talk.append(True); continue
+        if insert_of(CUTS[seg][i]):  # 插入镜头按分镜时长，不参与扣时间
+            D.append(min(p, length)); talk.append(True); continue
         has = has_lines(f'{seg}/s{n}')
         d = p
         if has:
@@ -74,6 +106,9 @@ for seg in a.segs or list(plan):
     if missing:
         print(T(f'  {seg} 缺镜头 {missing}：这一段先不拼', f'  {seg} missing shots {missing}: segment not assembled yet', f'  {seg} 빠진 숏 {missing}: 이 구간은 아직 잇지 않습니다'))
         continue
+    if noscreen:
+        print(T(f'  {seg} 镜头 {noscreen} 的贴屏缺素材或四个角（screen.file / screen.corners）：这一段先不拼', f'  {seg} shots {noscreen} lack the screen file or corners (screen.file / screen.corners): segment not assembled yet', f'  {seg} 숏 {noscreen}의 화면 합성 소재나 모서리(screen.file / screen.corners)가 없습니다: 이 구간은 아직 잇지 않습니다'))
+        continue
     for n, v in extra.items():
         shots.append(f'{W}/{seg}/s{n}.mp4'); nums.append(n); IN.append(inp.get(n, 0)); D.append(v); talk.append(True)
     over = sum(D) - sum(plan[seg]) - sum(extra.values())
@@ -82,16 +117,34 @@ for seg in a.segs or list(plan):
         if talk[i]: continue
         c = min(over, max(0, D[i] - 2.0)); D[i] -= c; over -= c
     D = [round(x, 2) for x in D]
-    fc, ins = '', []
+    fc, ins, tmp = '', [], tempfile.mkdtemp()
     for i, f in enumerate(shots):
-        ins += ['-i', f]; fo = max(0, D[i] - 0.08)
+        x = len([v for v in ins if v == '-i']); ins += media_in(f, IN[i] + D[i]); fo = max(0, D[i] - 0.08)
         a0, a1 = IN[i], round(IN[i] + D[i], 3)
-        fc += (f'[{i}:v]trim={a0}:{a1},setpts=PTS-STARTPTS,scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,fps=24,format=yuv420p[v{i}];'
-               f'[{i}:a]atrim={a0}:{a1},asetpts=PTS-STARTPTS,aresample=48000,afade=t=out:st={fo}:d=0.08[a{i}];')
+        cut = CUTS[seg][nums[i] - 1] if nums[i] <= len(CUTS[seg]) else {}
+        ins_c = insert_of(cut)
+        fc += f'[{x}:v]trim={a0}:{a1},setpts=PTS-STARTPTS,fps=24[t{i}];' + ffmpeg_fit(CW, CH, ins_c['fit'] if ins_c else 'crop', f't{i}', f'p{i}') + ';'
+        sc = cut.get('screen')
+        if sc and not ins_c:
+            # 贴屏：素材拉成画布大小，透视变换到四个角（ffmpeg 的顺序是左上、右上、左下、右下），四边形外用遮罩挖掉
+            (x0, y0), (x1, y1), (x2, y2), (x3, y3) = sc['corners']
+            sf = os.path.join(WORK, sc['file']); m = f'{tmp}/mask{i}.png'; screen_mask(sc['corners'], m)
+            y = len([v for v in ins if v == '-i']); ins += media_in(sf, D[i]) + ['-loop', '1', '-framerate', '24', '-t', f'{D[i]:.3f}', '-i', m]
+            fc += (f'[{y}:v]trim=0:{D[i]},setpts=PTS-STARTPTS,fps=24,tpad=stop_mode=clone:stop_duration={D[i]},trim=0:{D[i]},'
+                   f'scale={CW}:{CH},setsar=1,format=rgba,perspective={x0}:{y0}:{x1}:{y1}:{x3}:{y3}:{x2}:{y2}:sense=destination[s{i}];'
+                   f'[{y + 1}:v]format=gray[m{i}];[s{i}][m{i}]alphamerge[sm{i}];[p{i}][sm{i}]overlay=0:0:shortest=1[q{i}];')
+        else:
+            fc += f'[p{i}]null[q{i}];'
+        fc += f'[q{i}]format=yuv420p[v{i}];'
+        if has_audio(f):
+            fc += f'[{x}:a]atrim={a0}:{a1},asetpts=PTS-STARTPTS,aresample=48000,afade=t=out:st={fo}:d=0.08[a{i}];'
+        else:  # 录屏、截图没有声音：垫一段同样长的静音，concat 才拼得上
+            fc += f'anullsrc=channel_layout=stereo:sample_rate=48000,atrim=0:{D[i]},asetpts=PTS-STARTPTS[a{i}];'
     k = len(shots)
     fc += ''.join(f'[v{i}][a{i}]' for i in range(k)) + f'concat=n={k}:v=1:a=1[v][a];[a]loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000[ao]'
     out = f'{W}/{seg}.mp4'
     subprocess.run(['ffmpeg', '-v', 'error', '-y', *ins, '-filter_complex', fc, '-map', '[v]', '-map', '[ao]', '-c:v', 'libx264',
                     '-crf', '16', '-preset', os.environ.get('X264_PRESET', 'slow'), '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', out], check=True)
-    json.dump([{'shot': n, 'dur': d, **({'in': i} if i else {})} for n, d, i in zip(nums, D, IN)], open(f'{W}/{seg}.shots.json', 'w'))
+    json.dump([{'shot': n, 'dur': d, **({'in': i} if i else {}), **({'src': os.path.relpath(f, WORK)} if n <= len(CUTS[seg]) and insert_of(CUTS[seg][n - 1]) else {})}
+               for n, d, i, f in zip(nums, D, IN, shots)], open(f'{W}/{seg}.shots.json', 'w'))
     print(T(f'✓ {seg} 镜头 {D} → {dur(out):.1f}s（分镜 {sum(plan[seg])}s）', f'✓ {seg} shots {D} → {dur(out):.1f}s (storyboard {sum(plan[seg])}s)', f'✓ {seg} 숏 {D} → {dur(out):.1f}초 (콘티 {sum(plan[seg])}초)'))

@@ -11,7 +11,7 @@
 | Can use one image as the first frame | Consistency of characters, costumes and sets depends entirely on the first frame |
 | Can speak dialogue in the story language, with matching lip sync | A short drama moves forward through dialogue; a tool that makes only silent video needs separate voice-over |
 | Can generate 5 to 10 seconds | A cut is usually 2 to 8 seconds; leave room for editing |
-| Can output 16:9, around 1080p | Matches the first frame and the final cut |
+| Can output the work's aspect ratio (16:9 or 9:16), around 1080p | Matches the first frame and the final cut |
 
 Tools such as Kling, Jimeng, Veo, Runway and Hailuo meet most of the first three requirements; check the current version for details.
 
@@ -52,7 +52,7 @@ Then `--target <tool name>` works. `body()` already writes the action, eyeline, 
 2. Put the shot ID in the downloaded file name, such as `E01-03-s1.mp4`.
 3. Run `bash scripts/ingest.sh $W` to move it to `video/E01-03/s1.mp4`.
 
-The editing scripts scale and crop any resolution to 1920×1080.
+The editing scripts scale and crop any resolution to the work's canvas (1920×1080 for 16:9, 1080×1920 for 9:16).
 
 ## What to test
 

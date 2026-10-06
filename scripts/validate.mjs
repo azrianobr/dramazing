@@ -4,7 +4,7 @@
 
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { T, cutBeats, episodeScenes, epTag, flag, lang, loadWork, phrases, segmentsOf, speakSeconds } from './lib.mjs';
+import { INSERT_FITS, T, cutBeats, episodeScenes, epTag, flag, insertOf, lang, loadWork, phrases, segmentsOf, speakSeconds } from './lib.mjs';
 
 const argv = process.argv.slice(2);
 if (!flag(argv, '--work')) { console.log(T('validate.mjs --work <作品目录> --ep <集>', 'validate.mjs --work <work dir> --ep <episode>', 'validate.mjs --work <작품 폴더> --ep <화>')); process.exit(0); }
@@ -15,6 +15,14 @@ const ep = Number(flag(argv, '--ep', '1'));
 const err = [], warn = [];
 const SIZES = ['extreme-wide', 'wide', 'full', 'medium', 'medium-close', 'close', 'extreme-close'];
 const CAMERAS = ['Static Shot', 'Push In', 'Pull Out', 'Pan', 'Tilt', 'Rack Focus', 'Tracking Shot', 'Handheld', 'Crane', 'POV'];
+const MEDIA = /\.(mp4|mov|m4v|webm|png|jpe?g|webp)$/i;
+const { w: CW, h: CH } = W.aspect;
+// 插入镜头 / 贴屏的素材：写成作品目录里的相对路径
+function checkMedia(k, label, file) {
+  if (typeof file !== 'string' || !file.trim()) return err.push(T(`${k}：${label} 没写 file`, `${k}: ${label} has no file`, `${k}: ${label}에 file이 없습니다`));
+  if (!MEDIA.test(file)) err.push(T(`${k}：${label} 的 ${file} 不是视频或图片（mp4 / mov / webm / png / jpg / webp）`, `${k}: ${label} ${file} is not a video or image (mp4 / mov / webm / png / jpg / webp)`, `${k}: ${label}의 ${file}은(는) 영상이나 이미지가 아닙니다(mp4 / mov / webm / png / jpg / webp)`));
+  else if (!existsSync(join(W.work, file))) warn.push(T(`${k}：${label} 的素材 ${file} 还没放进作品目录，叙事预览显示文字卡，剪辑会停`, `${k}: ${label} file ${file} is not in the work dir yet; the preview shows a text card and the edit stops`, `${k}: ${label} 소재 ${file}이(가) 아직 작품 폴더에 없습니다. 미리보기는 글자 카드, 편집은 멈춥니다`));
+}
 
 const scenes = episodeScenes(W.script, ep);
 for (const sc of scenes) {
@@ -40,6 +48,25 @@ for (const seg of segmentsOf(W.storyboard, ep)) {
     total += c.seconds;
     if (!Array.isArray(c.beats) || c.beats.length !== 2 || c.beats[0] > c.beats[1]) { err.push(T(`${k}：beats 要写成 [起, 止]`, `${k}: beats must be [from, to]`, `${k}: beats는 [시작, 끝]으로 쓰세요`)); return; }
     covered.get(sc.index).push([...c.beats, k]);
+    const ins = insertOf(c);
+    if (ins) {
+      // 插入镜头：不出图不出片，只查素材、时长和台词
+      checkMedia(k, 'insert', ins.file);
+      if (!INSERT_FITS.includes(ins.fit)) err.push(T(`${k}：insert.fit「${ins.fit}」不认识，可选 ${INSERT_FITS.join(' / ')}`, `${k}: unknown insert.fit "${ins.fit}"; choose ${INSERT_FITS.join(' / ')}`, `${k}: 알 수 없는 insert.fit "${ins.fit}". 선택: ${INSERT_FITS.join(' / ')}`));
+      if (c.screen) err.push(T(`${k}：insert 和 screen 不能写在同一切`, `${k}: insert and screen cannot be on the same cut`, `${k}: insert와 screen은 같은 컷에 쓸 수 없습니다`));
+      if (!(c.seconds >= 2 && c.seconds <= 30)) err.push(T(`${k}：插入镜头 ${c.seconds} 秒，要在 2–30 秒之间`, `${k}: insert is ${c.seconds} s; it must be 2–30 s`, `${k}: 삽입 숏 ${c.seconds}초. 2–30초여야 합니다`));
+      if (cutBeats(sc, c).some((b) => b.say)) err.push(T(`${k}：插入镜头里有台词或心声；插入镜头没有声音，台词放到前后的人物镜头里`, `${k}: the insert covers a line or inner voice; inserts have no sound, put the line in a shot with the character`, `${k}: 삽입 숏에 대사나 속마음이 있습니다. 삽입 숏에는 소리가 없으니 인물 숏으로 옮기세요`));
+      return;
+    }
+    if (c.screen !== undefined) {
+      // 贴屏：剪辑时把素材按四个角贴到画面里的屏幕上（左上、右上、右下、左下，成片画布像素）
+      checkMedia(k, 'screen', c.screen?.file);
+      const cs = c.screen?.corners;
+      if (cs === undefined) warn.push(T(`${k}：screen 还没写 corners；出片后在镜头里量好屏幕四个角（左上、右上、右下、左下，${CW}×${CH} 画布的像素）再写，剪辑才会贴屏`, `${k}: screen has no corners yet; after the shot is made, measure the screen's four corners (top-left, top-right, bottom-right, bottom-left, in ${CW}×${CH} canvas pixels) so the edit can place it`, `${k}: screen에 corners가 아직 없습니다. 숏이 나온 뒤 화면 네 모서리(왼쪽 위, 오른쪽 위, 오른쪽 아래, 왼쪽 아래, ${CW}×${CH} 캔버스 픽셀)를 재서 쓰세요`));
+      else if (!Array.isArray(cs) || cs.length !== 4 || cs.some((p) => !Array.isArray(p) || p.length !== 2 || !(p[0] >= 0 && p[0] <= CW && p[1] >= 0 && p[1] <= CH)))
+        err.push(T(`${k}：screen.corners 要写成四个 [x, y]（左上、右上、右下、左下），都在 ${CW}×${CH} 画布里`, `${k}: screen.corners must be four [x, y] points (top-left, top-right, bottom-right, bottom-left) inside the ${CW}×${CH} canvas`, `${k}: screen.corners는 ${CW}×${CH} 캔버스 안의 [x, y] 네 개(왼쪽 위, 오른쪽 위, 오른쪽 아래, 왼쪽 아래)여야 합니다`));
+      if (c.camera && c.camera !== 'Static Shot') warn.push(T(`${k}：贴屏的四个角是固定的，${c.camera} 会让屏幕移位，贴屏镜头用 Static Shot`, `${k}: screen corners are fixed; ${c.camera} moves the screen, use a Static Shot`, `${k}: 화면 모서리는 고정입니다. ${c.camera}은(는) 화면을 움직이니 Static Shot을 쓰세요`));
+    }
     if (!c.frame?.trim()) err.push(T(`${k}：没写 frame（首帧画面）`, `${k}: no frame (first-frame picture)`, `${k}: frame(첫 프레임 화면)이 없습니다`));
     if (!c.action?.trim()) err.push(T(`${k}：没写 action（镜头里发生什么）`, `${k}: no action (what happens in the shot)`, `${k}: action(숏에서 일어나는 일)이 없습니다`));
     if (!SIZES.includes(c.size)) err.push(T(`${k}：size「${c.size}」不认识，可选 ${SIZES.join(' / ')}`, `${k}: unknown size "${c.size}"; choose ${SIZES.join(' / ')}`, `${k}: 알 수 없는 size "${c.size}". 선택: ${SIZES.join(' / ')}`));

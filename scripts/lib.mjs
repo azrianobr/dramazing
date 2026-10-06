@@ -99,7 +99,29 @@ export function alignLines(lines, pieces, l = STORY) {
 
 export const ACTION_SECONDS = 2.5;
 
-/** 读整个作品。返回 { work, project, script, storyboard, char, scene, prop, names } */
+/* ---------------- 画幅 ---------------- */
+
+// project.aspect 写成「宽:高」（16:9 横屏、9:16 竖屏），不写按 16:9。成片画布长边 1920，短边按比例取偶数。
+// 设定图是参考图，不进成片，不管作品是什么画幅都用 16:9（多视图并排放得下）
+export const SHEET_ASPECT = '16:9';
+export function parseAspect(a = '16:9') {
+  const m = /^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/.exec(String(a).trim());
+  if (!m || !(+m[1] > 0 && +m[2] > 0)) throw new Error(T(`aspect「${a}」要写成 宽:高，比如 16:9、9:16`, `aspect "${a}" must be width:height, e.g. 16:9 or 9:16`, `aspect "${a}"는 너비:높이로 쓰세요. 예: 16:9, 9:16`));
+  const ratio = m[1] / m[2], even = (x) => Math.round(x / 2) * 2;
+  const [w, h] = ratio >= 1 ? [1920, even(1920 / ratio)] : [even(1920 * ratio), 1920];
+  return { label: `${m[1]}:${m[2]}`, ratio, w, h, orient: ratio > 1.05 ? 'landscape' : ratio < 0.95 ? 'portrait' : 'square' };
+}
+
+/**
+ * 插入镜头：不出图、不出片，叙事预览和剪辑直接用一段现成的素材（录屏、截图）。
+ * cut.insert 写成作品目录里的相对路径，或 { file, fit }；fit 是素材比例和画幅不一样时怎么放：
+ * blur（默认，原样居中，空白处垫一层放大虚化的同一画面）/ crop（放大裁满）/ pad（原样居中，空白处黑边）
+ */
+export const INSERT_FITS = ['blur', 'crop', 'pad'];
+export const insertOf = (c) => (c?.insert == null ? null
+  : typeof c.insert === 'string' ? { file: c.insert, fit: 'blur' } : { fit: 'blur', ...c.insert });
+
+/** 读整个作品。返回 { work, project, script, storyboard, char, scene, prop, names, aspect } */
 export function loadWork(workArg) {
   const work = resolve(workArg);
   const project = readJson(join(work, 'project.json'));
@@ -111,7 +133,7 @@ export function loadWork(workArg) {
   const storyboard = readOpt(join(work, 'storyboard.json'), { episodes: [] });
   const byId = (list) => new Map((list ?? []).map((x) => [x.id, x]));
   const char = byId(project.characters), scene = byId(project.scenes), prop = byId(project.props);
-  return { work, project, script, storyboard, char, scene, prop, names: [...char.values()].map((c) => c.name) };
+  return { work, project, script, storyboard, char, scene, prop, names: [...char.values()].map((c) => c.name), aspect: parseAspect(project.aspect) };
 }
 
 /**

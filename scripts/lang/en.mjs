@@ -48,6 +48,7 @@ export default {
     still: 'the camera does not move',
     sameCast: 'the number of people stays the same; costumes, hair and the set match the first frame',
     oneTake: 'one continuous shot with no cuts, no jumps, no change of camera position, consistent screen direction',
+    screen: 'the screen stays a plain flat grey panel showing nothing; all four edges of it stay fully in frame and are never covered by hands or bodies',
     phase2: 'the camera stops moving once phase two begins',
   },
   solo: (l) => !l.startsWith('this is the only camera move') && !/^the camera (?:position stays fixed|and framing stay still)/.test(l),
@@ -96,7 +97,8 @@ export default {
 
   /* ---------- sentences for the image tool ---------- */
   img: {
-    tail: '16:9 landscape, one complete image only: no text, no watermark, no border.',
+    // aspect follows the use: frames use the work's aspect, sheets are always 16:9
+    tail: (ratio, orient) => `${ratio} ${orient}, one complete image only: no text, no watermark, no border.`,
     scene: (name, light) => `setting sheet for the location "${name}": follow its environment, materials and light${light ? ` (light at this moment: ${light})` : ''}`,
     char: (name) => `character sheet for ${name}: follow the face, hair and costume`,
     prop: (name) => `prop sheet for "${name}": follow its shape and materials`,

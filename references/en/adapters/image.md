@@ -7,7 +7,7 @@ The image step cares only about the result: each image is a PNG at the image's `
 The image tool must be able to do two things:
 
 - **Accept reference images.** Storyboard frames must follow the character, scene and prop sheets, so faces and costumes stay consistent. With a tool that cannot take reference images, characters look different in every image.
-- **Make 16:9 landscape images.** A storyboard frame is the video's first frame, so its aspect ratio must match the final cut.
+- **Make images in the work's aspect ratio.** A storyboard frame is the video's first frame, so its aspect ratio must match the final cut: `aspect` in `project.json`, 16:9 landscape when left out, 9:16 for vertical works. Sheets never reach the final cut and stay 16:9.
 
 ## Three providers
 

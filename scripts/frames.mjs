@@ -10,7 +10,7 @@
 import { execFileSync, spawn } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { episodeScenes, flag, loadWork, phrases, readJson, segmentsOf, T, writeJson } from './lib.mjs';
+import { SHEET_ASPECT, episodeScenes, flag, insertOf, loadWork, parseAspect, phrases, readJson, segmentsOf, T, writeJson } from './lib.mjs';
 
 const USAGE = () => T(`frames.mjs — 出图
 
@@ -51,8 +51,10 @@ const USAGE = () => T(`frames.mjs — 出图
 
 const flags = (argv, name) => argv.flatMap((a, i) => (a === name && argv[i + 1] ? [argv[i + 1]] : []));
 // 写给出图工具的固定句子按故事语言（lang/<语言>.mjs 的 img）；loadWork 之后才知道是哪种语言
-let IMG = null;
-const openWork = async (dir) => { const W = loadWork(dir); IMG = (await phrases()).img; return W; };
+let IMG = null, ASPECT = parseAspect();
+const openWork = async (dir) => { const W = loadWork(dir); IMG = (await phrases()).img; ASPECT = W.aspect; return W; };
+// 设定图（sheets/）固定 16:9，其余（分镜图）按作品画幅
+const aspectFor = (target) => (String(target).startsWith('sheets/') ? parseAspect(SHEET_ASPECT) : ASPECT);
 
 /* ---------------- plan ---------------- */
 
@@ -99,14 +101,17 @@ async function cmdPlan(argv) {
       const sc = scenes[seg.scene - 1];
       if (!sc) { problems.push(T(`${seg.id} 的 scene ${seg.scene} 在剧本里找不到`, `${seg.id}: scene ${seg.scene} is not in the script`, `${seg.id}의 scene ${seg.scene}이 대본에 없습니다`)); continue; }
       const place = sheet('scene', sc.scene);
+      // 插入镜头用现成素材，不出图；本段第一张分镜图 = 第一个不是插入镜头的切
+      const first = seg.cuts.findIndex((c) => !insertOf(c));
       seg.cuts.forEach((c, ci) => {
+        if (insertOf(c)) return;
         // 挂图顺序：场景 → 人物 → 道具 → 本切额外的设定图；非首切再挂本段第一张分镜图，锁住光线和站位
         const refs = [];
         if (place && !c.place) refs.push({ path: place.target, role: IMG.scene(place.name, sc.light) }); // 写了 cut.place 就不挂本场场景图，要挂别的用 sheets
         for (const t of (c.chars ?? []).map((x) => sheet('char', x)).filter(Boolean)) refs.push({ path: t.target, role: IMG.char(t.name) });
         for (const t of (c.props ?? []).map((x) => sheet('prop', x)).filter(Boolean)) refs.push({ path: t.target, role: IMG.prop(t.name) });
         for (const r of extra(c.sheets, sc.light)) if (!refs.some((x) => x.path === r.path)) refs.push(r);
-        if (ci > 0) refs.push({ path: `frames/${seg.id}/f1.png`, role: IMG.first });
+        if (ci > first) refs.push({ path: `frames/${seg.id}/f${first + 1}.png`, role: IMG.first });
         const head = refs.map((r, i) => IMG.ref(i + 1, r.role)).join('\n');
         frames.push({ id: `frame:${seg.id}/f${ci + 1}`, kind: 'frame', target: `frames/${seg.id}/f${ci + 1}.png`,
           prompt: withStyle(`${head ? `${head}\n\n` : ''}${IMG.frame(c.frame)}`), refs, status: 'pending' });
@@ -128,11 +133,14 @@ async function cmdPlan(argv) {
 
 /* ---------------- 出图方式 ---------------- */
 
-const fullPrompt = (prompt) => `${prompt}\n\n${IMG.tail}`;
+// 任务号认出图放哪：sheet:C01 → sheets/，frame:… → frames/，fix:<target> → target
+const targetOf = (tag) => (tag.startsWith('sheet:') ? `sheets/${tag.slice(6)}.png` : tag.startsWith('fix:') ? tag.slice(4) : `frames/${tag.slice(6)}.png`);
+
+const fullPrompt = (prompt, target) => { const a = aspectFor(target); return `${prompt}\n\n${IMG.tail(a.label, a.orient)}`; };
 
 // Codex CLI：让它用内置出图工具画一张，存到 out
 function codex(work, tag, prompt, refs, out) {
-  const full = `${IMG.codex(out)}\n\n${fullPrompt(prompt)}`;
+  const full = `${IMG.codex(out)}\n\n${fullPrompt(prompt, targetOf(tag))}`;
   const args = ['exec', '--json', '--skip-git-repo-check', '-s', 'workspace-write', '-C', work,
     ...refs.flatMap((r) => ['-i', resolve(work, r)]), '-'];
   return run(work, tag, 'codex', args, full, out, (so) => {
@@ -146,7 +154,7 @@ function cmdProvider(work, tag, prompt, refs, out, template) {
   if (!template) die(T('cmd 出图要在 project.json 写 images.cmd，或加 --cmd "<命令模板>"', 'the cmd provider needs images.cmd in project.json, or --cmd "<template>"', 'cmd 방식은 project.json에 images.cmd를 쓰거나 --cmd "<명령 템플릿>"을 붙여야 합니다'));
   const pf = join(work, '_logs', `prompt-${tag.replace(/[:/]/g, '_')}.txt`);
   mkdirSync(join(work, '_logs'), { recursive: true });
-  writeFileSync(pf, fullPrompt(prompt));
+  writeFileSync(pf, fullPrompt(prompt, targetOf(tag)));
   const q = (x) => `'${String(x).replace(/'/g, "'\\''")}'`;
   const line = template.replace(/\{prompt\}/g, q(pf)).replace(/\{out\}/g, q(out)).replace(/\{work\}/g, q(work))
     .replace(/\{refs\}/g, refs.map((r) => q(resolve(work, r))).join(' '));
@@ -179,7 +187,7 @@ function provider(argv, W) {
   return { name, make: name === 'codex' ? codex : (w, tag, p, refs, out) => cmdProvider(w, tag, p, refs, out, template) };
 }
 
-// PNG 头里读宽高；比例偏离 16:9 超过 3% 只提醒，不拦
+// PNG 头里读宽高；比例偏离应有画幅（设定图 16:9，分镜图按作品 aspect）超过 3% 只提醒，不拦
 function pngSize(file) {
   const b = readFileSync(file);
   return b.subarray(1, 4).toString() === 'PNG' ? { w: b.readUInt32BE(16), h: b.readUInt32BE(20) } : null;
@@ -197,7 +205,8 @@ function place(work, src, target) {
   execFileSync('ffmpeg', ['-y', '-v', 'error', '-i', resolve(work, src), dest], { stdio: 'ignore' }); // 任何格式转成 PNG
   if (resolve(work, src).startsWith(join(work, '_logs'))) rmSync(resolve(work, src), { force: true }); // 只删自己的临时文件
   const s = pngSize(dest);
-  return s && Math.abs(s.w / s.h - 16 / 9) / (16 / 9) > 0.03 ? T(`比例 ${s.w}×${s.h} 不是 16:9`, `${s.w}×${s.h} is not 16:9`, `비율 ${s.w}×${s.h}가 16:9가 아닙니다`) : '';
+  const a = aspectFor(target);
+  return s && Math.abs(s.w / s.h - a.ratio) / a.ratio > 0.03 ? T(`比例 ${s.w}×${s.h} 不是 ${a.label}`, `${s.w}×${s.h} is not ${a.label}`, `비율 ${s.w}×${s.h}가 ${a.label}가 아닙니다`) : '';
 }
 
 async function pool(items, jobs, fn) {
@@ -261,9 +270,9 @@ function exportManual(work, tasks) {
     const refs = t.refs.map((r, i) => T(`  参考图${i + 1}：${r.path}（${r.role}）`, `  reference ${i + 1}: ${r.path} (${r.role})`, `  참고 이미지 ${i + 1}: ${r.path} (${r.role})`)).join('\n') || T('  无', '  none', '  없음');
     const place = `node scripts/frames.mjs place --work <${T('作品目录', 'project dir', '작품 폴더')}> --target ${t.target} --from <${T('下载的图', 'downloaded image', '받은 이미지')}>`;
     writeFileSync(join(dir, `${t.id.replace(/[:/]/g, '_')}.txt`), T(
-      `出好后放到：${t.target}\n（或运行 ${place}）\n\n参考图（按顺序上传）：\n${refs}\n\n提示词：\n${fullPrompt(t.prompt)}\n`,
-      `Put the finished image at: ${t.target}\n(or run ${place})\n\nReference images (upload in this order):\n${refs}\n\nPrompt:\n${fullPrompt(t.prompt)}\n`,
-      `완성된 그림을 넣을 곳: ${t.target}\n(또는 ${place} 실행)\n\n참고 이미지(이 순서로 올리기):\n${refs}\n\n프롬프트:\n${fullPrompt(t.prompt)}\n`));
+      `出好后放到：${t.target}\n（或运行 ${place}）\n\n参考图（按顺序上传）：\n${refs}\n\n提示词：\n${fullPrompt(t.prompt, t.target)}\n`,
+      `Put the finished image at: ${t.target}\n(or run ${place})\n\nReference images (upload in this order):\n${refs}\n\nPrompt:\n${fullPrompt(t.prompt, t.target)}\n`,
+      `완성된 그림을 넣을 곳: ${t.target}\n(또는 ${place} 실행)\n\n참고 이미지(이 순서로 올리기):\n${refs}\n\n프롬프트:\n${fullPrompt(t.prompt, t.target)}\n`));
   }
   console.log(T(`· 已导出 ${tasks.length} 份出图说明 → ${dir}\n  用任何出图工具按说明出图，再用 place 放回；放好的图下一轮自动跳过`,
     `· exported ${tasks.length} image briefs → ${dir}\n  make them in any image tool, then place them back; placed images are skipped next round`,

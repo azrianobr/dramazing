@@ -5,10 +5,13 @@
 import argparse, os, shutil, subprocess, sys, tempfile
 from PIL import Image, ImageDraw
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from dzlang import load, L, T, font as subfont, wrap
+from dzlang import load, L, T, font as subfont, wrap, canvas
 ap = argparse.ArgumentParser(); ap.add_argument('--work', required=True); ap.add_argument('--ep', type=int, default=1)
 ap.add_argument('--dir', default='video'); a = ap.parse_args()
 load(os.path.abspath(a.work)); W = os.path.join(os.path.abspath(a.work), a.dir); E = f'E{a.ep:02d}'
+CW, CH = canvas()
+# 字幕离底边多远：横屏 200 像素；竖屏放在下方五分之一处，让开短视频平台底部的标题、按钮
+BOTTOM = 200 if CW >= CH else round(CH * 0.2)
 font = subfont(54)  # 字体按故事语言（lang/langs.json），SUB_FONT 可覆盖
 JOIN = '' if L()['wrap'] == 'char' else ' '  # 字幕文件里一句分成几行时，中文直接接上，英文、韩文用空格
 LINE = 66  # 折行后每行的行高
@@ -23,11 +26,11 @@ tmp = tempfile.mkdtemp()
 ins, fc, prev = ['-i', f'{W}/{E}.mp4'], '', '0:v'
 for i, (s, e, txt) in enumerate(cues):
     # 一行放不下（多是英文）就按词折行，往上长，最后一行的位置不变
-    rows = wrap(ImageDraw.Draw(Image.new('RGBA', (1, 1))), txt, font, 1760) or ['']; up = LINE * (len(rows) - 1)
-    im = Image.new('RGBA', (1920, 140 + up), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
-    for k, r in enumerate(rows): d.text((960, 70 + LINE * k), r, font=font, fill='white', anchor='mm', stroke_width=4, stroke_fill='black')
+    rows = wrap(ImageDraw.Draw(Image.new('RGBA', (1, 1))), txt, font, CW - 160) or ['']; up = LINE * (len(rows) - 1)
+    im = Image.new('RGBA', (CW, 140 + up), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+    for k, r in enumerate(rows): d.text((CW // 2, 70 + LINE * k), r, font=font, fill='white', anchor='mm', stroke_width=4, stroke_fill='black')
     p = f'{tmp}/{i}.png'; im.save(p); ins += ['-i', p]
-    fc += f"[{prev}][{i + 1}:v]overlay=0:H-{200 + up}:enable='between(t,{s},{e})'[v{i}];"; prev = f'v{i}'
+    fc += f"[{prev}][{i + 1}:v]overlay=0:H-{BOTTOM + up}:enable='between(t,{s},{e})'[v{i}];"; prev = f'v{i}'
 subprocess.run(['ffmpeg', '-v', 'error', '-y', *ins, '-filter_complex', fc.rstrip(';'), '-map', f'[{prev}]', '-map', '0:a',
                 '-c:v', 'libx264', '-crf', '16', '-preset', os.environ.get('X264_PRESET', 'slow'), '-c:a', 'copy', '-movflags', '+faststart', f'{W}/{E}.final.mp4'], check=True)
 shutil.rmtree(tmp)

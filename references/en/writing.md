@@ -19,7 +19,7 @@ Follow the rules below when you write. Each one comes from a real problem in vid
 - **Make `alias` an appearance phrase that identifies the character at a glance.** For example, "the young woman with long braids". Video models do not know character names.
 - **Match costumes and props to the source text.** Where the source says nothing, fill in details that fit the period and the character's position, write them into the setting, and follow them in every storyboard cut afterwards.
 - **Write each scene's `ambient` by lighting.** The same scene moves differently in fog and after daybreak.
-- **`sheet` prompts for the sheets**: for a character, a multi-view character sheet (front bust portrait + full-body front, side and back); for a scene, an environment reference image; for a prop, a multi-angle image on a white background. All in 16:9 landscape.
+- **`sheet` prompts for the sheets**: for a character, a multi-view character sheet (front bust portrait + full-body front, side and back); for a scene, an environment reference image; for a prop, a multi-angle image on a white background. All in 16:9 landscape, whatever the work's aspect ratio, so the views fit side by side.
 
 ## 3. script.json: the script
 

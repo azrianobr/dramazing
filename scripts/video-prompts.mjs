@@ -10,7 +10,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import { readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import {
-  LANGS, T, cutBeats, episodeScenes, epTag, flag, lang, loadWork, phrases, readOpt, segmentsOf, speakSeconds, speakable, writeJson,
+  LANGS, T, cutBeats, episodeScenes, epTag, flag, insertOf, lang, loadWork, phrases, readOpt, segmentsOf, speakSeconds, speakable, writeJson,
 } from './lib.mjs';
 
 const TARGETS = readdirSync(new URL('./targets/', import.meta.url)).filter((f) => f.endsWith('.mjs') && !f.startsWith('_')).map((f) => f.slice(0, -4));
@@ -95,6 +95,7 @@ for (const seg of segmentsOf(W.storyboard, epNo)) {
   const sc = scenes[seg.scene - 1];
   seg.cuts.forEach((c, ci) => {
     const key = `${seg.id}/s${ci + 1}`;
+    if (insertOf(c)) { delete out[key]; delete shots[key]; return; } // 插入镜头用现成素材，不出片
     const lines = cutBeats(sc, c).filter((b) => b.kind !== 'act');
     const talk = lines.reduce((s, l) => s + speakSeconds(l.say), 0);
     const chars = c.chars ?? [];
@@ -176,6 +177,7 @@ for (const seg of segmentsOf(W.storyboard, epNo)) {
       if (seconds < 10) warn.push(T(`${key} 两阶段运镜用在 ${seconds}s 的镜头上：太短，拆成两镜`, `${key} two-phase move on a ${seconds}s shot: too short, split it into two shots`, `${key} ${seconds}초 숏에 2단계 카메라 움직임: 너무 짧으니 두 숏으로 나누세요`));
     }
     if (c.camera === 'Static Shot') limits.push(P.limit.still);
+    if (c.screen) limits.push(P.limit.screen); // 贴屏：后期把素材贴到屏幕上，屏幕要一直是空的、四边都在画面里
     if (mv) {
       limits.push(...mv.limits);
       if (c.camera === 'Handheld' && !c.move?.level) warn.push(T(`${key} 手持没写强度（move.level：${Object.values(P.levels).join(' / ')}），默认按${P.levels.calm}写`, `${key} handheld has no intensity (move.level: ${Object.values(P.levels).join(' / ')}); defaulting to ${P.levels.calm}`, `${key} 핸드헬드 강도가 없습니다(move.level: ${Object.values(P.levels).join(' / ')}). 기본값 ${P.levels.calm}`));

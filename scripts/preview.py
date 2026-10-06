@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 """叙事预览：批量出片前，用分镜图拼一版无声粗剪，确认故事看得懂。
 每切停留分镜时长（台词更长就按台词），左上角是镜头编号，底部是这一切的台词（人名：台词），
-没有台词的切显示动作说明。缺图的切用黑底文字卡代替。输出 <dir>/E0N.preview.mp4
+没有台词的切显示动作说明。缺图的切用黑底文字卡代替。画布按 project.json 的 aspect（不写是 16:9）。
+插入镜头（cut.insert）取素材中间那一帧，按 insert.fit 放进画布；素材还没有时同样用文字卡。输出 <dir>/E0N.preview.mp4
 用法：preview.py --work <作品目录> --ep 1 [--dir video]"""
 import argparse, json, os, shutil, subprocess, sys, tempfile
 from PIL import Image, ImageDraw
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from dzlang import load as load_project, L, T, font, wrap, speak_seconds
+from dzlang import load as load_project, L, T, font, wrap, speak_seconds, canvas, insert_of, fit_image, IMAGE_EXT
 ap = argparse.ArgumentParser(); ap.add_argument('--work', required=True); ap.add_argument('--ep', type=int, default=1)
 ap.add_argument('--dir', default='video'); a = ap.parse_args()
 WORK = os.path.abspath(a.work); OUT = os.path.join(WORK, a.dir); os.makedirs(OUT, exist_ok=True)
 E = f'E{a.ep:02d}'
 project = load_project(WORK); PV = L()['preview']  # 字体、折行、标点按故事语言
+CW, CH = canvas()
 big, small = font(46), font(34)
 load = lambda n: json.load(open(os.path.join(WORK, n), encoding='utf-8'))
 script, board = load('script.json'), load('storyboard.json')
@@ -19,14 +21,22 @@ name = {c['id']: c['name'] for c in project.get('characters', [])}
 scenes = next(e for e in script['episodes'] if e['ep'] == a.ep)['scenes']
 segs = next(e for e in board['episodes'] if e['ep'] == a.ep)['segments']
 
-def card(path, img, label, text):
-    im = Image.open(img).convert('RGB').resize((1920, 1080)) if img and os.path.exists(img) else Image.new('RGB', (1920, 1080), (20, 20, 20))
+def still(src, at):
+    """视频素材取第 at 秒的一帧，图片素材原样打开"""
+    if src.lower().endswith(IMAGE_EXT): return Image.open(src)
+    p = f'{tmp}/grab.png'
+    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-ss', str(at), '-i', src, '-frames:v', '1', p], check=True)
+    return Image.open(p)
+
+
+def card(path, im, label, text):
+    im = im if im is not None else Image.new('RGB', (CW, CH), (20, 20, 20))
     d = ImageDraw.Draw(im, 'RGBA')
     d.rounded_rectangle((30, 30, 250, 110), 14, fill=(0, 0, 0, 160)); d.text((140, 70), label, font=big, fill=(255, 230, 80), anchor='mm')
-    rows = wrap(d, text, small, 1700)[:4]
+    rows = wrap(d, text, small, CW - 220)[:4]
     if rows:
-        h = 50 * len(rows) + 30; d.rectangle((0, 1080 - h, 1920, 1080), fill=(0, 0, 0, 170))
-        for i, r in enumerate(rows): d.text((960, 1080 - h + 40 + 50 * i), r, font=small, fill='white', anchor='mm')
+        h = 50 * len(rows) + 30; d.rectangle((0, CH - h, CW, CH), fill=(0, 0, 0, 170))
+        for i, r in enumerate(rows): d.text((CW // 2, CH - h + 40 + 50 * i), r, font=small, fill='white', anchor='mm')
     im.save(path)
 
 tmp = tempfile.mkdtemp(); items, total = [], 0.0
@@ -38,7 +48,10 @@ for seg in segs:
         text = PV['sep'].join(said) or PV['actOpen'] + PV['actSep'].join(b['act'] for b in bs if b.get('act'))[:80] + PV['actClose']
         sec = max(c['seconds'], sum(speak_seconds(b['say']) for b in bs if b.get('say')))
         label = f"{seg['id'][-2:]}-{i + 1}"; p = f'{tmp}/{len(items):03d}.png'
-        card(p, os.path.join(WORK, 'frames', seg['id'], f'f{i + 1}.png'), label, text)
+        ins = insert_of(c)
+        src = os.path.join(WORK, ins['file']) if ins else os.path.join(WORK, 'frames', seg['id'], f'f{i + 1}.png')
+        im = fit_image(still(src, c['seconds'] / 2), CW, CH, ins['fit'] if ins else 'crop') if os.path.exists(src) else None
+        card(p, im, label, text)
         items.append((p, round(sec, 2))); total += sec
 lst = f'{tmp}/list.txt'
 with open(lst, 'w') as f:

@@ -13,7 +13,7 @@ This skill includes no browser automation scripts. Follow the Grok / xAI terms o
 4. Choose the settings:
    - Resolution 1080p.
    - Duration from this shot's `seconds`: 6 or 10 seconds.
-   - Aspect ratio 16:9.
+   - Aspect ratio of the work: 16:9, or 9:16 for vertical works.
 5. Submit. A 6-second shot takes about a minute and a half; a 10-second shot takes a little longer.
 6. When the video is ready, download it with the page's download button. The file is named after the conversation (`grok-video-<conversation id>.mp4`); take it in with `ingest.sh $W --file <file> E01-03-s1`. Note the shot ID and the conversation id from the address bar when you submit, so the downloads can be matched later.
 
@@ -26,7 +26,7 @@ You can open 2 or 3 tabs in parallel, with one submission at a time per tab.
 - **Keep the sound button on** ("video audio"). With it off, the video has no dialogue.
 - **If the upload stalls** (the thumbnail is greyed out and the send button does not respond), refresh the page and upload again. After a reconnect, an extra image may appear in the input box and the resolution drops to 720p; again, refresh and upload only one image.
 - **One submission may produce two videos.** The page has no setting for the number. When there is a second one, note it as a spare; for rework, check the spare first.
-- **Downloads are 1920×1088.** "Upscale" gives 1904×1072. The editing scripts scale and crop everything to 1920×1080, so no manual work is needed.
+- **Downloads are 1920×1088.** "Upscale" gives 1904×1072. The editing scripts scale and crop everything to the work's canvas (1920×1080 for 16:9), so no manual work is needed. Vertical download sizes have not been measured yet.
 - **If a submission never produces a video and shows no error,** the first frame was most likely blocked by moderation, usually because a character looks like a minor. Do not resubmit in different ways to get around moderation. First find what is wrong with the first frame (childlike look, expression, freckles), redraw it following `prompt-rules.md`, and tell the user.
 
 ## Stalled downloads

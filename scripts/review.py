@@ -22,7 +22,7 @@ def badge(label, p):
     d.rounded_rectangle((0, 0, 219, 89), 14, fill=(0, 0, 0, 150))
     d.text((110, 45), label, font=font, fill=(255, 230, 80, 255), anchor='mm'); im.save(p)
 
-table, T, parts = [], 0.0, []
+table, total, parts = [], 0.0, []
 for f in segs:
     seg = os.path.basename(f)[:-4]; shots = json.load(open(f'{W}/{seg}.shots.json'))
     ins, fc, last, t = ['-i', f], '', '0:v', 0.0
@@ -30,8 +30,8 @@ for f in segs:
         label = f'{seg[-2:]}-{k + 1}'; p = f'{tmp}/{label}.png'; badge(label, p); ins += ['-i', p]
         end = t + s['dur'] if k < len(shots) - 1 else 1e6  # 最后一个镜头延到段尾
         fc += f"[{last}][{k + 1}:v]overlay=30:30:enable='between(t,{t:.3f},{end - 0.001:.3f})'[o{k}];"; last = f'o{k}'
-        table.append((label, T + t, f'{seg}/s{s["shot"]}.mp4')); t += s['dur']
-    out = f'{tmp}/{seg}.mp4'; parts.append(out); T += vdur(f)
+        table.append((label, total + t, s.get('src') or f'{seg}/s{s["shot"]}.mp4')); t += s['dur']  # 插入镜头记的是素材路径
+    out = f'{tmp}/{seg}.mp4'; parts.append(out); total += vdur(f)
     subprocess.run(['ffmpeg', '-v', 'error', '-y', *ins, '-filter_complex', fc.rstrip(';'), '-map', f'[{last}]',
                     '-an', '-c:v', 'libx264', '-crf', '18', '-preset', 'medium', out], check=True)
 open(f'{tmp}/list.txt', 'w').write(''.join(f"file '{p}'\n" for p in parts))

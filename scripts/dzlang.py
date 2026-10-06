@@ -1,18 +1,19 @@
 """Python 脚本的语言层，和 lib.mjs 同一套规则：故事语言读 project.json 的 language（没写按 zh），
 各语言的语音识别代码、语速、字幕字体见 lang/langs.json；T(中文, English, 한국어) 选界面语言。"""
 import json, os, re
-from PIL import ImageFont
+from PIL import Image, ImageFilter, ImageFont, ImageOps
 
 LANGS = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'lang', 'langs.json'), encoding='utf-8'))
-_story, _rate, _loaded = 'zh', None, False
+_story, _rate, _loaded, _aspect = 'zh', None, False, '16:9'
 
 
 def load(work):
     """读作品的 project.json，定下故事语言；返回 project"""
-    global _story, _rate, _loaded
+    global _story, _rate, _loaded, _aspect
     p = json.load(open(os.path.join(work, 'project.json'), encoding='utf-8'))
-    _story, _rate, _loaded = p.get('language', 'zh'), p.get('speechRate'), True
+    _story, _rate, _loaded, _aspect = p.get('language', 'zh'), p.get('speechRate'), True, p.get('aspect', '16:9')
     if _story not in LANGS: raise SystemExit(f'project.json language "{_story}": {" / ".join(LANGS)}')
+    canvas()  # aspect 写错就在这里停
     return p
 
 
@@ -56,3 +57,40 @@ def wrap(draw, text, fnt, width):
         if cur and draw.textlength(t, font=fnt) > width: lines.append(cur); cur = w
         else: cur = t
     return lines + [cur] if cur else lines
+
+
+def canvas():
+    """成片画布（宽, 高），和 lib.mjs 的 parseAspect 同一算法：project.aspect 写成 宽:高，长边 1920，短边取偶数"""
+    m = re.fullmatch(r'(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)', str(_aspect).strip())
+    if not m or not (float(m[1]) > 0 and float(m[2]) > 0): raise SystemExit(f'project.json aspect "{_aspect}": 16:9 / 9:16 / ...')
+    r = float(m[1]) / float(m[2]); even = lambda x: int(round(x / 2) * 2)
+    return (1920, even(1920 / r)) if r >= 1 else (even(1920 * r), 1920)
+
+
+def insert_of(cut):
+    """插入镜头（见 lib.mjs 的 insertOf）：{file, fit}，不是插入镜头返回 None"""
+    v = cut.get('insert')
+    if v is None: return None
+    return {'file': v, 'fit': 'blur'} if isinstance(v, str) else {'fit': 'blur', **v}
+
+
+IMAGE_EXT = ('.png', '.jpg', '.jpeg', '.webp')
+
+
+def fit_image(im, w, h, mode='crop'):
+    """把一张图放进 w×h：crop 放大裁满；pad 原样居中加黑边；blur 原样居中，底下垫放大虚化的同一张"""
+    im = im.convert('RGB')
+    if mode == 'crop': return ImageOps.fit(im, (w, h), Image.LANCZOS)
+    s = min(w / im.width, h / im.height); fg = im.resize((max(1, round(im.width * s)), max(1, round(im.height * s))), Image.LANCZOS)
+    bg = ImageOps.fit(im, (w, h)).filter(ImageFilter.GaussianBlur(40)) if mode == 'blur' else Image.new('RGB', (w, h))
+    bg.paste(fg, ((w - fg.width) // 2, (h - fg.height) // 2)); return bg
+
+
+def ffmpeg_fit(w, h, mode, src, dst):
+    """和 fit_image 同样的放法，写成 ffmpeg 滤镜链：从标签 src 到标签 dst（不带方括号）"""
+    if mode == 'crop':
+        return f'[{src}]scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},setsar=1[{dst}]'
+    if mode == 'pad':
+        return f'[{src}]scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2,setsar=1[{dst}]'
+    return (f'[{src}]split[{dst}b0][{dst}f0];[{dst}b0]scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h},gblur=sigma=40[{dst}b1];'
+            f'[{dst}f0]scale={w}:{h}:force_original_aspect_ratio=decrease[{dst}f1];[{dst}b1][{dst}f1]overlay=(W-w)/2:(H-h)/2,setsar=1[{dst}]')

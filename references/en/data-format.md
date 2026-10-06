@@ -31,6 +31,7 @@ For a complete example, see `examples/渡口/` (Chinese, 6 episodes). English an
   "source": "story.txt",
   "episodes": 6,
   "language": "zh",
+  "aspect": "16:9",
   "targetSeconds": [130, 150],
   "style": "Realistic cinematic look, Jiangnan in the 1930s Republic of China era, natural light, gentle film grain",
   "images": { "provider": "manual", "cmd": "(when provider is cmd) image command template" },
@@ -61,6 +62,7 @@ For a complete example, see `examples/渡口/` (Chinese, 6 episodes). English an
 - `alias`: an appearance phrase. Video tools do not know character names, so names in prompts are replaced with this phrase. `en` is used in English sentences; the story-language entry (`zh` / `ko`) is used in story-language sentences. English stories need only `en`. If it is missing, the name is used as is.
 - `trait` (optional): a character's unusual feature, such as a blind eye, a scar or a limp. When the character faces the camera, the prompt says "keep it throughout" once in English and once in the story language. Same keys as `alias`: write the story-language key and `en`. Without the story-language key the trait never reaches the prompt; `validate.mjs` warns about it. The first frame alone cannot hold it: the video tool will "fix" it (tested on Grok).
 - `ambient`: the scene's ambience. Each key is a lighting value (`light`) from the script; `*` is the default.
+- `aspect` (optional): the aspect ratio of the final cut, written as `width:height`; `16:9` when left out. Use `9:16` for vertical short dramas. Storyboard frames, video prompts, the narrative preview, the edit and the subtitles all follow it: the long side of the canvas is 1920, so 16:9 is 1920×1080 and 9:16 is 1080×1920. Sheets are references and never reach the final cut, so they stay 16:9.
 - `sheet`: the sheet prompt. For a character, describe the face, hair, costume and age in full. For a young woman, state that she is an adult, or she may be judged a minor. See `prompt-rules.md`.
 
 ## script.json
@@ -160,6 +162,8 @@ There are only three kinds of beat:
 - `place` (optional): use it when this cut is filmed somewhere other than the scene's location, `{ "name": "muddy riverside path", "ambient": "the dry reeds on both sides sway…" }`. The scene name and ambient motion in the prompt are replaced by these; leave out `ambient` for none. With `place`, the scene sheet of the scene is no longer attached automatically when drawing; list the sheets you need in `sheets`.
 - `only` (optional): for close-ups of a body part other than hands (feet, a pocket, a coat hem), say exactly what is in the frame, `{ "zh": "坐着的人的大衣口袋、大衣下摆和腿", "en": "the coat pocket, coat hem and thigh of the seated man" }`, keyed by the story language and `en`. Without it the generator writes "only hands, sleeves and props in the frame", and a pocket shot then brings the hand out.
 - You can use character names directly in `frame` and `action`; they are replaced with `alias` when the prompts are generated.
+- `insert` (optional): an insert shot that uses existing footage (a screen recording or a screenshot) with no image or video generation. Write a path relative to the work dir, or `{ "file": "inserts/list.mp4", "fit": "blur" }`. `fit` says how footage of a different aspect ratio is placed: `blur` (default: centred as is, with a scaled-up blurred copy behind it) / `crop` (scaled up to fill) / `pad` (centred as is, black bars). An insert has only `beats`, `seconds` (2–30) and `insert`, with no size, camera or characters. It has no sound, so its beats cannot hold a line; the edit pads it with silence. Until the footage is in the work dir, the preview shows a text card and the edit skips the segment.
+- `screen` (optional): screen replacement. A computer or TV screen in the shot is replaced with footage in the edit, `{ "file": "inserts/confirm.mp4", "corners": [[x, y], [x, y], [x, y], [x, y]] }`. `corners` are the four corners of the screen, top-left, top-right, bottom-right, bottom-left, in canvas pixels; measure them in the shot after it is made. Without them `validate.mjs` only warns and the edit skips the segment. Draw the screen switched off in one flat colour in the first frame and use `Static Shot` so the corners hold. A handheld phone or tablet keeps moving: use an insert instead.
 
 ## ID conventions
 
