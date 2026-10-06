@@ -25,7 +25,7 @@ Two languages are involved here. Do not confuse them:
 
 ## Before you start
 
-1. Ask where the source text is, how many episodes to make, and what visual style (realistic / animated / period). If the user does not say, suggest something and wait for approval.
+1. Ask where the source text is, how many episodes to make, what visual style (realistic / animated / period), and what aspect ratio (landscape 16:9 / vertical 9:16, `aspect` in `project.json`). If the user does not say, suggest something and wait for approval.
 2. Confirm the story language. Chinese, English and Korean are supported. A complete work has been made in Chinese; English and Korean have each had only one trial shot, and their speech rates are estimated from that single shot. In the first episode, make a trial shot to calibrate first (see `workflow.md`, "Story language").
 3. Ask which tool to use for images and which for video. If the user has no preference, explain that the tested combination is Codex + Grok, and that other tools need a trial shot first. Write the choice into `images.provider` and `video.target` in `project.json`.
 4. Create a work directory, save the source text as `story.txt`, and copy the three JSON files from `templates/<story language>/` into it.

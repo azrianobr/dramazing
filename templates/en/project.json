@@ -3,6 +3,7 @@
  "source": "story.txt",
  "episodes": 1,
  "language": "en",
+ "aspect": "16:9",
  "targetSeconds": [
   120,
   150
