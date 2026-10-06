@@ -76,7 +76,8 @@ export function alignLines(lines, pieces, l = STORY) {
   let li = 0;
   for (const p of ps) {
     let best = -1, bs = 0.34;
-    for (let k = li; k < Math.min(li + 3, lines.length); k++) if (score(p, k) > bs || (k > li && score(p, k) === bs && bs > 0.34)) { bs = score(p, k); best = k; }
+    // 同分时归后一句，但不跳过还没对上的句子（「冻结？」被单独听成一条时，和下一句「冻结的意思是」同分）
+    for (let k = li; k < Math.min(li + 3, lines.length); k++) if (score(p, k) > bs || (k > li && score(p, k) === bs && bs > 0.34 && lines[best].hit)) { bs = score(p, k); best = k; }
     if (best < 0) continue;
     li = best;
     p.used = true;
