@@ -21,7 +21,9 @@ const { w: CW, h: CH } = W.aspect;
 function checkMedia(k, label, file) {
   if (typeof file !== 'string' || !file.trim()) return err.push(T(`${k}：${label} 没写 file`, `${k}: ${label} has no file`, `${k}: ${label}에 file이 없습니다`));
   if (!MEDIA.test(file)) err.push(T(`${k}：${label} 的 ${file} 不是视频或图片（mp4 / mov / webm / png / jpg / webp）`, `${k}: ${label} ${file} is not a video or image (mp4 / mov / webm / png / jpg / webp)`, `${k}: ${label}의 ${file}은(는) 영상이나 이미지가 아닙니다(mp4 / mov / webm / png / jpg / webp)`));
-  else if (!existsSync(join(W.work, file))) warn.push(T(`${k}：${label} 的素材 ${file} 还没放进作品目录，叙事预览显示文字卡，剪辑会停`, `${k}: ${label} file ${file} is not in the work dir yet; the preview shows a text card and the edit stops`, `${k}: ${label} 소재 ${file}이(가) 아직 작품 폴더에 없습니다. 미리보기는 글자 카드, 편집은 멈춥니다`));
+  else if (!existsSync(join(W.work, file))) warn.push(label === 'insert'
+    ? T(`${k}：insert 的素材 ${file} 还没放进作品目录，叙事预览显示文字卡，剪辑会停`, `${k}: insert file ${file} is not in the work dir yet; the preview shows a text card and the edit stops`, `${k}: insert 소재 ${file}이(가) 아직 작품 폴더에 없습니다. 미리보기는 글자 카드, 편집은 멈춥니다`)
+    : T(`${k}：screen 的素材 ${file} 还没放进作品目录，叙事预览照常用首帧，剪辑会停`, `${k}: screen file ${file} is not in the work dir yet; the preview still uses the first frame, the edit stops`, `${k}: screen 소재 ${file}이(가) 아직 작품 폴더에 없습니다. 미리보기는 그대로 첫 프레임, 편집은 멈춥니다`));
 }
 
 const scenes = episodeScenes(W.script, ep);
