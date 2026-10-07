@@ -5,12 +5,14 @@
   skip=不用的镜头号，fix=强制时长（秒），in=从原片第几秒开始取（默认 0，动作来得晚时用），extra=分镜外追加的镜头（号: 时长，接在段尾）
 project.json 写了 cutTail（秒）时，有台词的镜头按「台词说完 + cutTail」切，不再至少留到分镜时长（台词后人物干站着会显得拖）。
 画布按 project.json 的 aspect（不写是 16:9，长边 1920）。插入镜头（cut.insert）直接取作品目录里的素材，按分镜时长、insert.fit 放进画布；
-贴屏（cut.screen 写了 file 和 corners）把素材按四个角贴到镜头里的屏幕上。素材没有声音时垫静音
+贴屏（cut.screen 写了 file 和 corners）把素材按四个角贴到镜头里的屏幕上。素材没有声音时垫静音。
+盖画面（cut.cover）：这一切的人物镜头照常剪、声音照常用，从第 cover.at 秒起画面换成录屏，盖完再回到人物（台词说到一半切到录屏）；
+这一切至少留到 at + 录屏时长，原片不够长就把录屏截短
 用法：cut.py --work <作品目录> --ep 1 [--dir video] [E01-02 E01-03 ...]（不写段号 = 整集）"""
 import argparse, json, math, os, re, subprocess, sys, tempfile
 from PIL import Image, ImageDraw
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from dzlang import load, L, T, units, canvas, cut_tail, insert_of, title_of, title_image, ffmpeg_fit, IMAGE_EXT
+from dzlang import load, L, T, units, canvas, cut_tail, insert_of, cover_of, title_of, title_image, ffmpeg_fit, IMAGE_EXT
 ap = argparse.ArgumentParser(); ap.add_argument('--work', required=True); ap.add_argument('--ep', type=int, default=1)
 ap.add_argument('--dir', default='video'); ap.add_argument('segs', nargs='*'); a = ap.parse_args()
 WORK = os.path.abspath(a.work); W = os.path.join(WORK, a.dir); load(WORK); CW, CH = canvas()
@@ -104,6 +106,9 @@ for seg in a.segs or list(plan):
             if e and cut_tail() is not None: d = max(2.0, min(length - 0.05, e + cut_tail()))  # 台词说完留 cutTail 秒就切，不等分镜时长
             else: d = max(p, min(length - 0.05, e + 0.35)) if e else p
             print(T(f'  {seg}/s{n} 台词到 {e:.1f}s「{txt.strip()}」', f'  {seg}/s{n} speech ends at {e:.1f}s "{txt.strip()}"', f'  {seg}/s{n} 대사 끝 {e:.1f}초 「{txt.strip()}」') + rate_note(f'{seg}/s{n}', st, e))
+        cv = cover_of(CUTS[seg][i])
+        if cv:  # 盖画面：至少留到录屏放完；原片不够长就只能截短录屏
+            d = max(d, cv['at'] + cv.get('seconds', dur(os.path.join(WORK, cv['file'])))); has = True
         D.append(min(d, length - 0.05)); talk.append(has)
     if missing:
         print(T(f'  {seg} 缺镜头 {missing}：这一段先不拼', f'  {seg} missing shots {missing}: segment not assembled yet', f'  {seg} 빠진 숏 {missing}: 이 구간은 아직 잇지 않습니다'))
@@ -126,6 +131,15 @@ for seg in a.segs or list(plan):
         cut = CUTS[seg][nums[i] - 1] if nums[i] <= len(CUTS[seg]) else {}
         ins_c = insert_of(cut)
         fc += f'[{x}:v]trim={a0}:{a1},setpts=PTS-STARTPTS,fps=24[t{i}];' + ffmpeg_fit(CW, CH, ins_c['fit'] if ins_c else 'crop', f't{i}', f'p{i}') + ';'
+        cv = None if ins_c else cover_of(cut)
+        if cv and cv['at'] < D[i] - 0.3:
+            # 盖画面：录屏按 fit 放进画布，时间轴挪到第 at 秒，盖在人物镜头上；声音不动
+            cf = os.path.join(WORK, cv['file']); cl = round(min(cv.get('seconds', dur(cf)), D[i] - cv['at']), 3)
+            y = len([v for v in ins if v == '-i']); ins += media_in(cf, cl)
+            fc += (f'[{y}:v]trim=0:{cl},setpts=PTS-STARTPTS,fps=24[cv{i}];' + ffmpeg_fit(CW, CH, cv['fit'], f'cv{i}', f'cf{i}') + ';'
+                   f"[cf{i}]setpts=PTS+{cv['at']}/TB[cs{i}];[p{i}][cs{i}]overlay=0:0:eof_action=pass:enable='between(t,{cv['at']},{cv['at'] + cl:.3f})'[pc{i}];")
+        else:
+            fc += f'[p{i}]null[pc{i}];'
         sc = cut.get('screen')
         if sc and not ins_c:
             # 贴屏：素材拉成画布大小，透视变换到四个角（ffmpeg 的顺序是左上、右上、左下、右下），四边形外用遮罩挖掉
@@ -134,9 +148,9 @@ for seg in a.segs or list(plan):
             y = len([v for v in ins if v == '-i']); ins += media_in(sf, D[i]) + ['-loop', '1', '-framerate', '24', '-t', f'{D[i]:.3f}', '-i', m]
             fc += (f'[{y}:v]trim=0:{D[i]},setpts=PTS-STARTPTS,fps=24,tpad=stop_mode=clone:stop_duration={D[i]},trim=0:{D[i]},'
                    f'scale={CW}:{CH},setsar=1,format=rgba,perspective={x0}:{y0}:{x1}:{y1}:{x3}:{y3}:{x2}:{y2}:sense=destination[s{i}];'
-                   f'[{y + 1}:v]format=gray[m{i}];[s{i}][m{i}]alphamerge[sm{i}];[p{i}][sm{i}]overlay=0:0:shortest=1[q{i}];')
+                   f'[{y + 1}:v]format=gray[m{i}];[s{i}][m{i}]alphamerge[sm{i}];[pc{i}][sm{i}]overlay=0:0:shortest=1[q{i}];')
         else:
-            fc += f'[p{i}]null[q{i}];'
+            fc += f'[pc{i}]null[q{i}];'
         tt = title_of(cut)
         if tt and tt['at'] < D[i] - 0.3:
             # 花字：画成透明 PNG，淡入淡出叠在这一切上；剪辑把这一切剪短了就跟着提前收
