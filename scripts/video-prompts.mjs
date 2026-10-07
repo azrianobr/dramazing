@@ -124,7 +124,9 @@ for (const seg of segmentsOf(W.storyboard, epNo)) {
     const amb = c.place ? (c.place.ambient || null) // place 里不写 ambient = 这一切不带环境动态
       : place?.ambient?.[sc.light] ?? place?.ambient?.['*']; // 同一场景光线会变：先按光照找
     const action = P.sentence(swap(c.action));
-    const pace = P.run.test(c.action ?? '') ? ' Real-time speed, NOT slow motion.' : '';
+    // 有台词的镜头也要写明正常语速：不写时模型会把一句短台词拖满整个镜头（实测约 3 字/秒，对白常态 4–5）
+    const pace = (P.run.test(c.action ?? '') || spoken.length ? ' Real-time speed, NOT slow motion.' : '')
+      + (spoken.length ? ' Lines are spoken at a brisk, natural conversational pace, no drawn-out syllables, no long pauses between words.' : '');
     const rig = [c.aim && P.aim(swap(c.aim)), c.angle, c.lens].filter(Boolean).join(P.join);
     // 画外的人只写方向，不写是谁：写了是谁，推近时模型会把人画进来
     const offEyeText = (e) => {

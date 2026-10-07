@@ -2,7 +2,9 @@
 """把视频工具出的镜头（Grok 6/10 秒、其他工具 5/10 秒等）按分镜时长剪短、拼成段：有台词的镜头至少留到台词说完（whisper 测），
 多出来的时间从无台词镜头里扣（每个镜头最少 2 秒）。镜头原片在 <dir>/E02-03/s1.mp4（ingest.sh 收进来的）。
 手工修正写在 <dir>/fix.json：{"E01-06": {"skip": [2], "fix": {"1": 4.0}, "in": {"3": 1.25}, "extra": {"5": 4.5}}}
-  skip=不用的镜头号，fix=强制时长（秒），in=从原片第几秒开始取（默认 0，动作来得晚时用），extra=分镜外追加的镜头（号: 时长，接在段尾）
+  skip=不用的镜头号，fix=强制时长（秒），in=从原片第几秒开始取（默认 0，动作来得晚时用），extra=分镜外追加的镜头（号: 时长，接在段尾），
+  speed=加速系数（号: 1.2；画面和声音同一个系数，口型不错位，音高不变）
+--rate 4.0：有台词的镜头按实测语速自动加速到每秒约 4.0 字（只加不减，系数上限 1.3，再快人物动作就假）；fix.json 的 speed 优先
 project.json 写了 cutTail（秒）时，有台词的镜头按「台词说完 + cutTail」切，不再至少留到分镜时长（台词后人物干站着会显得拖）。
 画布按 project.json 的 aspect（不写是 16:9，长边 1920）。插入镜头（cut.insert）直接取作品目录里的素材，按分镜时长、insert.fit 放进画布；
 贴屏（cut.screen 写了 file 和 corners）把素材按四个角贴到镜头里的屏幕上。素材没有声音时垫静音。
@@ -14,7 +16,8 @@ from PIL import Image, ImageDraw
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from dzlang import load, L, T, units, canvas, cut_tail, insert_of, cover_of, title_of, title_image, ffmpeg_fit, IMAGE_EXT
 ap = argparse.ArgumentParser(); ap.add_argument('--work', required=True); ap.add_argument('--ep', type=int, default=1)
-ap.add_argument('--dir', default='video'); ap.add_argument('segs', nargs='*'); a = ap.parse_args()
+ap.add_argument('--dir', default='video'); ap.add_argument('--rate', type=float, default=0); ap.add_argument('segs', nargs='*'); a = ap.parse_args()
+SPMAX = 1.3
 WORK = os.path.abspath(a.work); W = os.path.join(WORK, a.dir); load(WORK); CW, CH = canvas()
 WD = os.path.expanduser(os.environ.get('WHISPER_MODELS', '~/models/whisper'))
 ep = next(e for e in json.load(open(f'{WORK}/storyboard.json'))['episodes'] if e['ep'] == a.ep)
@@ -41,12 +44,16 @@ def speech_end(f, skip=0):
     return max(0, tr[0]['offsets']['from'] / 1000 - skip), tr[-1]['offsets']['to'] / 1000 - skip, ''.join(s['text'] for s in tr)
 
 
-def rate_note(key, start, end):
-    """实测语速：这个镜头台词的字（词）数 ÷ 开口到说完的秒数。用来校准 langs.json 的 rate"""
+def rate_of(key, start, end):
+    """实测语速：这个镜头台词的字（词）数 ÷ 开口到说完的秒数；测不出返回 0"""
     says = [x.get('say', '') for x in (SHOTS or {}).get(key, {}).get('lines', []) if x.get('kind', 'line') == 'line']
     n = sum(units(x) for x in says)
-    if not n or end - start < 0.5: return ''
-    r = n / (end - start)
+    return n / (end - start) if n and end - start >= 0.5 else 0
+
+def rate_note(key, start, end):
+    """用来校准 langs.json 的 rate"""
+    r = rate_of(key, start, end)
+    if not r: return ''
     return T(f'，语速 {r:.2f}', f', rate {r:.2f}', f', 말 속도 {r:.2f}')
 
 def dur(f):
@@ -79,7 +86,8 @@ for seg in a.segs or list(plan):
     fx = FIX.get(seg, {}); fixd = {int(k): v for k, v in fx.get('fix', {}).items()}
     extra = {int(k): v for k, v in fx.get('extra', {}).items()}
     inp = {int(k): v for k, v in fx.get('in', {}).items()}
-    shots, D, talk, nums, IN = [], [], [], [], []
+    spd = {int(k): v for k, v in fx.get('speed', {}).items()}
+    shots, D, talk, nums, IN, SP = [], [], [], [], [], []
     # 只出了试探镜头、或者还没出齐时：有的镜头照样测台词（给语速校准用），这一段先不拼
     missing = [i + 1 for i in range(len(plan[seg])) if i + 1 not in fx.get('skip', []) and not os.path.exists(src_of(seg, i + 1))]
     # 贴屏要素材和四个角都齐，否则成片里会留一块灰屏
@@ -95,21 +103,28 @@ for seg in a.segs or list(plan):
         n = i + 1
         if n in fx.get('skip', []): continue
         f = src_of(seg, n); shots.append(f); nums.append(n); IN.append(inp.get(n, 0)); length = dur(f) - IN[-1]
+        sp = spd.get(n, 1.0)
         if n in fixd:
-            D.append(fixd[n]); talk.append(True); continue
+            D.append(fixd[n]); talk.append(True); SP.append(sp); continue
         if insert_of(CUTS[seg][i]):  # 插入镜头按分镜时长，不参与扣时间
-            D.append(min(p, length)); talk.append(True); continue
+            D.append(min(p, length)); talk.append(True); SP.append(1.0); continue
         has = has_lines(f'{seg}/s{n}')
         d = p
         if has:
-            st, e, txt = speech_end(f, IN[-1])
-            if e and cut_tail() is not None: d = max(2.0, min(length - 0.05, e + cut_tail()))  # 台词说完留 cutTail 秒就切，不等分镜时长
-            else: d = max(p, min(length - 0.05, e + 0.35)) if e else p
-            print(T(f'  {seg}/s{n} 台词到 {e:.1f}s「{txt.strip()}」', f'  {seg}/s{n} speech ends at {e:.1f}s "{txt.strip()}"', f'  {seg}/s{n} 대사 끝 {e:.1f}초 「{txt.strip()}」') + rate_note(f'{seg}/s{n}', st, e))
+            st, e, txt = speech_end(f, IN[-1]); r = rate_of(f'{seg}/s{n}', st, e)
+            if n not in spd and a.rate and r: sp = round(min(SPMAX, max(1.0, a.rate / r)), 2)
+            # 以下 d 是原片秒数，加速后的成片时长 = d / sp
+            if e and cut_tail() is not None: d = max(2.0 * sp, min(length - 0.05, e + cut_tail() * sp))  # 台词说完留 cutTail 秒就切，不等分镜时长
+            else: d = max(p * sp if sp == 1 else e + 0.35 * sp, min(length - 0.05, e + 0.35 * sp)) if e else p * sp
+            print(T(f'  {seg}/s{n} 台词到 {e:.1f}s「{txt.strip()}」', f'  {seg}/s{n} speech ends at {e:.1f}s "{txt.strip()}"', f'  {seg}/s{n} 대사 끝 {e:.1f}초 「{txt.strip()}」') + rate_note(f'{seg}/s{n}', st, e)
+                  + (T(f'，加速 ×{sp}', f', speed ×{sp}', f', 가속 ×{sp}') if sp != 1 else ''))
+        else:
+            d = p * sp
+        d = min(d, length - 0.05) / sp
         cv = cover_of(CUTS[seg][i])
-        if cv:  # 盖画面：至少留到录屏放完；原片不够长就只能截短录屏
-            d = max(d, cv['at'] + cv.get('seconds', dur(os.path.join(WORK, cv['file'])))); has = True
-        D.append(min(d, length - 0.05)); talk.append(has)
+        if cv:  # 盖画面：至少留到录屏放完；原片不够长就只能截短录屏。at 是原片秒数，加速后跟着提前
+            d = max(d, cv['at'] / sp + cv.get('seconds', dur(os.path.join(WORK, cv['file'])))); has = True
+        D.append(min(d, (length - 0.05) / sp)); talk.append(has); SP.append(sp)
     if missing:
         print(T(f'  {seg} 缺镜头 {missing}：这一段先不拼', f'  {seg} missing shots {missing}: segment not assembled yet', f'  {seg} 빠진 숏 {missing}: 이 구간은 아직 잇지 않습니다'))
         continue
@@ -117,7 +132,7 @@ for seg in a.segs or list(plan):
         print(T(f'  {seg} 镜头 {noscreen} 的贴屏缺素材或四个角（screen.file / screen.corners）：这一段先不拼', f'  {seg} shots {noscreen} lack the screen file or corners (screen.file / screen.corners): segment not assembled yet', f'  {seg} 숏 {noscreen}의 화면 합성 소재나 모서리(screen.file / screen.corners)가 없습니다: 이 구간은 아직 잇지 않습니다'))
         continue
     for n, v in extra.items():
-        shots.append(f'{W}/{seg}/s{n}.mp4'); nums.append(n); IN.append(inp.get(n, 0)); D.append(v); talk.append(True)
+        shots.append(f'{W}/{seg}/s{n}.mp4'); nums.append(n); IN.append(inp.get(n, 0)); D.append(v); talk.append(True); SP.append(spd.get(n, 1.0))
     over = sum(D) - sum(plan[seg]) - sum(extra.values())
     for i in sorted(range(len(D)), key=lambda i: -D[i]):
         if over <= 0: break
@@ -126,12 +141,13 @@ for seg in a.segs or list(plan):
     D = [round(x, 2) for x in D]
     fc, ins, tmp = '', [], tempfile.mkdtemp()
     for i, f in enumerate(shots):
-        x = len([v for v in ins if v == '-i']); ins += media_in(f, IN[i] + D[i]); fo = max(0, D[i] - 0.08)
-        a0, a1 = IN[i], round(IN[i] + D[i], 3)
+        sp = SP[i]; x = len([v for v in ins if v == '-i']); ins += media_in(f, IN[i] + D[i] * sp); fo = max(0, D[i] - 0.08)
+        a0, a1 = IN[i], round(IN[i] + D[i] * sp, 3)
         cut = CUTS[seg][nums[i] - 1] if nums[i] <= len(CUTS[seg]) else {}
         ins_c = insert_of(cut)
-        fc += f'[{x}:v]trim={a0}:{a1},setpts=PTS-STARTPTS,fps=24[t{i}];' + ffmpeg_fit(CW, CH, ins_c['fit'] if ins_c else 'crop', f't{i}', f'p{i}') + ';'
+        fc += f'[{x}:v]trim={a0}:{a1},setpts=(PTS-STARTPTS)/{sp},fps=24[t{i}];' + ffmpeg_fit(CW, CH, ins_c['fit'] if ins_c else 'crop', f't{i}', f'p{i}') + ';'
         cv = None if ins_c else cover_of(cut)
+        if cv: cv = {**cv, 'at': round(cv['at'] / sp, 3)}
         if cv and cv['at'] < D[i] - 0.3:
             # 盖画面：录屏按 fit 放进画布，时间轴挪到第 at 秒，盖在人物镜头上；声音不动
             cf = os.path.join(WORK, cv['file']); cl = round(min(cv.get('seconds', dur(cf)), D[i] - cv['at']), 3)
@@ -163,7 +179,7 @@ for seg in a.segs or list(plan):
             fc += f'[q{i}]null[r{i}];'
         fc += f'[r{i}]format=yuv420p[v{i}];'
         if has_audio(f):
-            fc += f'[{x}:a]atrim={a0}:{a1},asetpts=PTS-STARTPTS,aresample=48000,afade=t=out:st={fo}:d=0.08[a{i}];'
+            fc += f'[{x}:a]atrim={a0}:{a1},asetpts=PTS-STARTPTS,aresample=48000,' + (f'atempo={sp},' if sp != 1 else '') + f'afade=t=out:st={fo}:d=0.08[a{i}];'
         else:  # 录屏、截图没有声音：垫一段同样长的静音，concat 才拼得上
             fc += f'anullsrc=channel_layout=stereo:sample_rate=48000,atrim=0:{D[i]},asetpts=PTS-STARTPTS[a{i}];'
     k = len(shots)
@@ -171,6 +187,6 @@ for seg in a.segs or list(plan):
     out = f'{W}/{seg}.mp4'
     subprocess.run(['ffmpeg', '-v', 'error', '-y', *ins, '-filter_complex', fc, '-map', '[v]', '-map', '[ao]', '-c:v', 'libx264',
                     '-crf', '16', '-preset', os.environ.get('X264_PRESET', 'slow'), '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', out], check=True)
-    json.dump([{'shot': n, 'dur': d, **({'in': i} if i else {}), **({'src': os.path.relpath(f, WORK)} if n <= len(CUTS[seg]) and insert_of(CUTS[seg][n - 1]) else {})}
-               for n, d, i, f in zip(nums, D, IN, shots)], open(f'{W}/{seg}.shots.json', 'w'))
+    json.dump([{'shot': n, 'dur': d, **({'in': i} if i else {}), **({'speed': s} if s != 1 else {}), **({'src': os.path.relpath(f, WORK)} if n <= len(CUTS[seg]) and insert_of(CUTS[seg][n - 1]) else {})}
+               for n, d, i, f, s in zip(nums, D, IN, shots, SP)], open(f'{W}/{seg}.shots.json', 'w'))
     print(T(f'✓ {seg} 镜头 {D} → {dur(out):.1f}s（分镜 {sum(plan[seg])}s）', f'✓ {seg} shots {D} → {dur(out):.1f}s (storyboard {sum(plan[seg])}s)', f'✓ {seg} 숏 {D} → {dur(out):.1f}초 (콘티 {sum(plan[seg])}초)'))
