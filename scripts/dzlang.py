@@ -85,6 +85,14 @@ def insert_of(cut):
     return {'file': v, 'fit': 'blur'} if isinstance(v, str) else {'fit': 'blur', **v}
 
 
+def cover_of(cut):
+    """录屏盖画面（见 lib.mjs 的 coverOf）：{file, at, fit, seconds}。这一切照常出片、照常有台词和声音，
+    从第 at 秒起画面换成素材，盖 seconds 秒（不写 = 素材全长），声音还是这一切自己的。没写返回 None"""
+    v = cut.get('cover')
+    if v is None: return None
+    return {'at': 1.0, 'fit': 'blur', **({'file': v} if isinstance(v, str) else v)}
+
+
 IMAGE_EXT = ('.png', '.jpg', '.jpeg', '.webp')
 
 

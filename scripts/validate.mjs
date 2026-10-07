@@ -21,7 +21,9 @@ const { w: CW, h: CH } = W.aspect;
 function checkMedia(k, label, file) {
   if (typeof file !== 'string' || !file.trim()) return err.push(T(`${k}：${label} 没写 file`, `${k}: ${label} has no file`, `${k}: ${label}에 file이 없습니다`));
   if (!MEDIA.test(file)) err.push(T(`${k}：${label} 的 ${file} 不是视频或图片（mp4 / mov / webm / png / jpg / webp）`, `${k}: ${label} ${file} is not a video or image (mp4 / mov / webm / png / jpg / webp)`, `${k}: ${label}의 ${file}은(는) 영상이나 이미지가 아닙니다(mp4 / mov / webm / png / jpg / webp)`));
-  else if (!existsSync(join(W.work, file))) warn.push(label === 'insert'
+  else if (!existsSync(join(W.work, file))) warn.push(label === 'cover'
+    ? T(`${k}：cover 的素材 ${file} 还没放进作品目录，剪辑会停`, `${k}: cover file ${file} is not in the work dir yet; the edit stops`, `${k}: cover 소재 ${file}이(가) 아직 작품 폴더에 없습니다. 편집은 멈춥니다`)
+    : label === 'insert'
     ? T(`${k}：insert 的素材 ${file} 还没放进作品目录，叙事预览显示文字卡，剪辑会停`, `${k}: insert file ${file} is not in the work dir yet; the preview shows a text card and the edit stops`, `${k}: insert 소재 ${file}이(가) 아직 작품 폴더에 없습니다. 미리보기는 글자 카드, 편집은 멈춥니다`)
     : T(`${k}：screen 的素材 ${file} 还没放进作品目录，叙事预览照常用首帧，剪辑会停`, `${k}: screen file ${file} is not in the work dir yet; the preview still uses the first frame, the edit stops`, `${k}: screen 소재 ${file}이(가) 아직 작품 폴더에 없습니다. 미리보기는 그대로 첫 프레임, 편집은 멈춥니다`));
 }
@@ -69,6 +71,16 @@ for (const seg of segmentsOf(W.storyboard, ep)) {
       if (!(c.seconds >= 2 && c.seconds <= 30)) err.push(T(`${k}：插入镜头 ${c.seconds} 秒，要在 2–30 秒之间`, `${k}: insert is ${c.seconds} s; it must be 2–30 s`, `${k}: 삽입 숏 ${c.seconds}초. 2–30초여야 합니다`));
       if (cutBeats(sc, c).some((b) => b.say)) err.push(T(`${k}：插入镜头里有台词或心声；插入镜头没有声音，台词放到前后的人物镜头里`, `${k}: the insert covers a line or inner voice; inserts have no sound, put the line in a shot with the character`, `${k}: 삽입 숏에 대사나 속마음이 있습니다. 삽입 숏에는 소리가 없으니 인물 숏으로 옮기세요`));
       return;
+    }
+    if (c.cover !== undefined) {
+      // 盖画面：人物镜头照常出片、照常说台词，剪辑时从第 at 秒起画面换成录屏，声音不动
+      const cv = typeof c.cover === 'string' ? { file: c.cover } : (c.cover ?? {});
+      const at = cv.at ?? 1;
+      checkMedia(k, 'cover', cv.file);
+      if (!INSERT_FITS.includes(cv.fit ?? 'blur')) err.push(T(`${k}：cover.fit「${cv.fit}」不认识，可选 ${INSERT_FITS.join(' / ')}`, `${k}: unknown cover.fit "${cv.fit}"; choose ${INSERT_FITS.join(' / ')}`, `${k}: 알 수 없는 cover.fit "${cv.fit}". 선택: ${INSERT_FITS.join(' / ')}`));
+      if (!(at >= 0 && at <= c.seconds - 0.5)) err.push(T(`${k}：cover.at ${at} 要在 0 到 ${c.seconds - 0.5} 秒之间`, `${k}: cover.at ${at} must be between 0 and ${c.seconds - 0.5} s`, `${k}: cover.at ${at}는 0–${c.seconds - 0.5}초여야 합니다`));
+      if (c.screen) err.push(T(`${k}：cover 和 screen 不能写在同一切`, `${k}: cover and screen cannot be on the same cut`, `${k}: cover와 screen은 같은 컷에 쓸 수 없습니다`));
+      if (!cutBeats(sc, c).some((b) => b.say)) warn.push(T(`${k}：cover 用在没有台词的镜头上，和插入镜头没区别，直接用 insert`, `${k}: cover on a shot without lines is just an insert; use insert`, `${k}: 대사 없는 숏의 cover는 삽입 숏과 같습니다. insert를 쓰세요`));
     }
     if (c.screen !== undefined) {
       // 贴屏：剪辑时把素材按四个角贴到画面里的屏幕上（左上、右上、右下、左下，成片画布像素）
