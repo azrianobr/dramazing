@@ -16,6 +16,20 @@ font = subfont(54)  # 字体按故事语言（lang/langs.json），SUB_FONT 可�
 JOIN = '' if L()['wrap'] == 'char' else ' '  # 字幕文件里一句分成几行时，中文直接接上，英文、韩文用空格
 LINE = 66  # 折行后每行的行高
 
+PUNCT = '，。！？、；：,.!?;:'
+
+def balance(draw, txt, rows):
+    """中文折成两行以上时重排：先在最靠中间、两半都放得下的标点处断开（行尾的标点去掉），没有就按字数对半分，
+    避免第二行只剩一两个字"""
+    if L()['wrap'] != 'char' or len(rows) != 2: return rows
+    fits = lambda t: draw.textlength(t, font=font) <= CW - 160
+    cands = [i for i, ch in enumerate(txt[:-1]) if ch in PUNCT and fits(txt[:i]) and fits(txt[i + 1:])]
+    if cands:
+        i = min(cands, key=lambda i: abs(len(txt[:i]) - len(txt[i + 1:])))
+        return [txt[:i], txt[i + 1:]]
+    h = (len(txt) + 1) // 2
+    return [txt[:h], txt[h:]] if fits(txt[:h]) else rows
+
 def sec(x):
     h, m, r = x.split(':'); s, ms = r.split(','); return int(h) * 3600 + int(m) * 60 + int(s) + int(ms) / 1000
 
@@ -26,7 +40,7 @@ tmp = tempfile.mkdtemp()
 ins, fc, prev = ['-i', f'{W}/{E}.mp4'], '', '0:v'
 for i, (s, e, txt) in enumerate(cues):
     # 一行放不下（多是英文）就按词折行，往上长，最后一行的位置不变
-    rows = wrap(ImageDraw.Draw(Image.new('RGBA', (1, 1))), txt, font, CW - 160) or ['']; up = LINE * (len(rows) - 1)
+    dr = ImageDraw.Draw(Image.new('RGBA', (1, 1))); rows = balance(dr, txt, wrap(dr, txt, font, CW - 160) or ['']); up = LINE * (len(rows) - 1)
     im = Image.new('RGBA', (CW, 140 + up), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
     for k, r in enumerate(rows): d.text((CW // 2, 70 + LINE * k), r, font=font, fill='white', anchor='mm', stroke_width=4, stroke_fill='black')
     p = f'{tmp}/{i}.png'; im.save(p); ins += ['-i', p]
