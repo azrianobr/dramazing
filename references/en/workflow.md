@@ -50,8 +50,8 @@ node scripts/frames.mjs batch --work $W
 ```
 
 - When it says some images wait for their references (sheets), run it again.
-- To redraw existing images, add `--redo`. To change one detail, use `fix`: `frames.mjs fix --work $W --target frames/E01-03/f2.png --prompt <file> --ref frames/E01-03/f2.png`.
-- `--provider` or `images.provider` in `project.json` sets how images are made: `manual` (default: export instructions, make the images in any tool, then put them back with `place`), `cmd` (your own command line) or `codex`. See `adapters/image.md`.
+- To redraw existing images, add `--redo`. To change one detail, use `fix`: `frames.mjs fix --work $W --target frames/E01-03/f2.png --prompt <file>`. The original goes in as reference image 1; the prompt names only the change, and `fix` adds the sentences that keep everything else.
+- `--provider` or `images.provider` in `project.json` sets how images are made: `manual` (default: export instructions, make the images in any tool, then put them back with `place`), `cmd` (your own command line), `codex` or `openai` (the OpenAI Images API). See `adapters/image.md`.
 
 ### 3. Check the images
 

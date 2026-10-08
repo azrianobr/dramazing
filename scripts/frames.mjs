@@ -5,6 +5,7 @@
 //   manual  导出提示词，你用任何工具出图（ChatGPT、Midjourney、即梦、ComfyUI…），再用 place 放回来（默认）
 //   cmd     调你自己的命令行，模板见 images.cmd，占位符 {prompt} {out} {refs} {work}
 //   codex   Codex CLI 内置出图（实测过）
+//   openai  OpenAI 图像接口（官方或兼容的服务），地址和型号见 images.baseUrl / images.model，密钥读环境变量 DZ_IMAGES_KEY
 // 出过的图不重出，除非 --redo。
 
 import { execFileSync, spawn } from 'node:child_process';
@@ -16,43 +17,46 @@ const USAGE = () => T(`frames.mjs — 出图
 
   plan  --work <作品目录> --eps 3[,4|1-6] [--force]
         按 project.json 和分镜建任务单 tasks.json：先设定图，再分镜图。已有任务单不覆盖，除非 --force
-  batch --work <作品目录> [--provider manual|cmd|codex] [--only <正则>] [--redo] [--jobs 3]
+  batch --work <作品目录> [--provider manual|cmd|codex|openai] [--only <正则>] [--redo] [--jobs 3]
         出任务单里还没出的图。参考图还没出的任务跳过，等下一轮。
         manual：把这一轮要出的图导出到 _handoff/images/，每张一个 .txt（提示词 + 参考图 + 放到哪）
   place --work <作品目录> --target <相对路径> --from <图片>
         把你出好的图（jpg / png / webp 都行）转成 PNG 放到 target，并在任务单里记为完成
-  fix   --work <作品目录> --target <相对路径> --prompt <文件> [--ref <图> ...] [--provider cmd|codex]
-        单张重画：提示词写「只改哪里」，参考图 1 一般放原图。旧图改名为 <名>.v<N>.png
+  fix   --work <作品目录> --target <相对路径> --prompt <文件> [--ref <图> ...] [--provider cmd|codex|openai] [--raw]
+        单张重画：提示词只写要改的那一处。原图自动当参考图 1，提示词前后自动套上「只改…，其余保持原图不变」；
+        --raw 不套、不自动挂原图。旧图改名为 <名>.v<N>.png
   status --work <作品目录>`,
 `frames.mjs — images
 
   plan  --work <project dir> --eps 3[,4|1-6] [--force]
         Build tasks.json from project.json and the storyboard: sheets first, then frames. An existing tasks.json is kept unless --force
-  batch --work <project dir> [--provider manual|cmd|codex] [--only <regex>] [--redo] [--jobs 3]
+  batch --work <project dir> [--provider manual|cmd|codex|openai] [--only <regex>] [--redo] [--jobs 3]
         Make the images not made yet. Tasks whose reference images are missing wait for the next round.
         manual: export this round to _handoff/images/, one .txt per image (prompt + references + where to put it)
   place --work <project dir> --target <relative path> --from <image>
         Convert your image (jpg / png / webp) to PNG at target and mark it done in tasks.json
-  fix   --work <project dir> --target <relative path> --prompt <file> [--ref <image> ...] [--provider cmd|codex]
-        Redraw one image: the prompt says only what to change; reference 1 is usually the original. The old image becomes <name>.v<N>.png
+  fix   --work <project dir> --target <relative path> --prompt <file> [--ref <image> ...] [--provider cmd|codex|openai] [--raw]
+        Redraw one image: the prompt names the one thing to change. The original becomes reference 1 and the prompt is wrapped in
+        "change only …, keep the rest as the original"; --raw skips both. The old image becomes <name>.v<N>.png
   status --work <project dir>`,
 `frames.mjs — 이미지
 
   plan  --work <작품 폴더> --eps 3[,4|1-6] [--force]
         project.json과 콘티로 tasks.json을 만듭니다: 설정화 먼저, 그다음 콘티 그림. 이미 있으면 --force 없이는 덮어쓰지 않습니다
-  batch --work <작품 폴더> [--provider manual|cmd|codex] [--only <정규식>] [--redo] [--jobs 3]
+  batch --work <작품 폴더> [--provider manual|cmd|codex|openai] [--only <정규식>] [--redo] [--jobs 3]
         아직 안 만든 그림을 만듭니다. 참고 이미지가 없는 작업은 다음 회차로 미룹니다.
         manual: 이번 회차를 _handoff/images/에 내보냅니다. 그림마다 .txt 하나(프롬프트 + 참고 이미지 + 넣을 위치)
   place --work <작품 폴더> --target <상대 경로> --from <이미지>
         만든 그림(jpg / png / webp)을 PNG로 바꿔 target에 넣고 tasks.json에 완료로 기록합니다
-  fix   --work <작품 폴더> --target <상대 경로> --prompt <파일> [--ref <이미지> ...] [--provider cmd|codex]
-        한 장 다시 그리기: 프롬프트에는 고칠 곳만 씁니다. 참고 이미지 1은 보통 원본. 원본은 <이름>.v<N>.png로 바뀝니다
+  fix   --work <작품 폴더> --target <상대 경로> --prompt <파일> [--ref <이미지> ...] [--provider cmd|codex|openai] [--raw]
+        한 장 다시 그리기: 프롬프트에는 고칠 한 곳만 씁니다. 원본이 자동으로 참고 이미지 1이 되고, 프롬프트 앞뒤에
+        「이것만 고침…, 나머지는 원본 그대로」를 붙입니다. --raw는 둘 다 하지 않습니다. 원본은 <이름>.v<N>.png로 바뀝니다
   status --work <작품 폴더>`);
 
 const flags = (argv, name) => argv.flatMap((a, i) => (a === name && argv[i + 1] ? [argv[i + 1]] : []));
 // 写给出图工具的固定句子按故事语言（lang/<语言>.mjs 的 img）；loadWork 之后才知道是哪种语言
-let IMG = null, ASPECT = parseAspect();
-const openWork = async (dir) => { const W = loadWork(dir); IMG = (await phrases()).img; ASPECT = W.aspect; return W; };
+let IMG = null, SIZES = {}, ASPECT = parseAspect();
+const openWork = async (dir) => { const W = loadWork(dir); const ph = await phrases(); IMG = ph.img; SIZES = ph.sizes; ASPECT = W.aspect; return W; };
 // 设定图（sheets/）固定 16:9，其余（分镜图）按作品画幅
 const aspectFor = (target) => (String(target).startsWith('sheets/') ? parseAspect(SHEET_ASPECT) : ASPECT);
 
@@ -113,8 +117,9 @@ async function cmdPlan(argv) {
         for (const r of extra(c.sheets, sc.light)) if (!refs.some((x) => x.path === r.path)) refs.push(r);
         if (ci > first) refs.push({ path: `frames/${seg.id}/f${first + 1}.png`, role: IMG.first });
         const head = refs.map((r, i) => IMG.ref(i + 1, r.role)).join('\n');
+        const size = SIZES[c.size] ? `${IMG.size(SIZES[c.size], c.size)}\n` : ''; // 景别表的裁法写死在画面前面
         frames.push({ id: `frame:${seg.id}/f${ci + 1}`, kind: 'frame', target: `frames/${seg.id}/f${ci + 1}.png`,
-          prompt: withStyle(`${head ? `${head}\n\n` : ''}${IMG.frame(c.frame)}`), refs, status: 'pending' });
+          prompt: withStyle(`${head ? `${head}\n\n` : ''}${size}${IMG.frame(c.frame)}`), refs, status: 'pending' });
       });
     }
   }
@@ -161,9 +166,49 @@ function cmdProvider(work, tag, prompt, refs, out, template) {
   return run(work, tag, 'sh', ['-c', line], '', out, () => null);
 }
 
+// OpenAI 图像接口（官方或兼容的服务）：有参考图走 /images/edits，没有走 /images/generations。
+// 不传 size：比例由提示词末尾那句决定（实测带参考图时服务端会忽略 size，按比例句出图）；要传就写 images.size / images.quality
+async function openaiProvider(work, tag, prompt, refs, out, cfg) {
+  const t0 = Date.now();
+  const key = process.env.DZ_IMAGES_KEY ?? die(T('openai 出图要先设置环境变量 DZ_IMAGES_KEY（接口密钥）', 'the openai provider needs the DZ_IMAGES_KEY environment variable (API key)', 'openai 방식은 환경 변수 DZ_IMAGES_KEY(API 키)가 필요합니다'));
+  const base = String(cfg.baseUrl ?? 'https://api.openai.com/v1').replace(/\/$/, '');
+  const opts = { model: cfg.model ?? 'gpt-image-2.5-sunburst', prompt: fullPrompt(prompt, targetOf(tag)), ...(cfg.size && { size: cfg.size }), ...(cfg.quality && { quality: cfg.quality }) };
+  let res, body, err = '';
+  try {
+    if (refs.length) {
+      const form = new FormData();
+      for (const [k, v] of Object.entries(opts)) form.append(k, v);
+      for (const r of refs) form.append('image[]', new Blob([readFileSync(resolve(work, r))], { type: 'image/png' }), r.split('/').pop());
+      res = await fetch(`${base}/images/edits`, { method: 'POST', headers: { Authorization: `Bearer ${key}` }, body: form, signal: AbortSignal.timeout(600e3) });
+    } else {
+      res = await fetch(`${base}/images/generations`, { method: 'POST', headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify(opts), signal: AbortSignal.timeout(600e3) });
+    }
+    body = await res.json().catch(() => null);
+    const img = body?.data?.[0];
+    if (img?.b64_json) writeFileSync(join(work, out), Buffer.from(img.b64_json, 'base64'));
+    else if (img?.url) writeFileSync(join(work, out), Buffer.from(await (await fetch(img.url)).arrayBuffer()));
+    else err = JSON.stringify(body?.error ?? body ?? res.status).slice(0, 4000);
+  } catch (e) { err = String(e); }
+  const made = existsSync(join(work, out));
+  const code = made ? 0 : (res?.status ?? 1);
+  logImage(work, { tag, bin: 'openai', code, secs: (Date.now() - t0) / 1e3, out, usage: body?.usage ?? null,
+    model: opts.model, returned: body && { size: body.size, quality: body.quality } });
+  if (!made) { mkdirSync(join(work, '_logs'), { recursive: true }); writeFileSync(join(work, '_logs', `img-${tag.replace(/[:/]/g, '_')}.err`), err); }
+  return { code, usage: body?.usage ?? null, made };
+}
+
+// 每张图记一行：耗时、实际尺寸、用量；服务端换了模型或尺寸，从这里看得出来
+function logImage(work, { out, ...rec }) {
+  const logs = join(work, '_logs');
+  mkdirSync(logs, { recursive: true });
+  const f = join(work, out), s = existsSync(f) ? pngSize(f) : null;
+  appendFileSync(join(logs, 'images-usage.jsonl'), `${JSON.stringify({ at: new Date().toISOString(), ...rec, ...(rec.secs !== undefined && { secs: Math.round(rec.secs) }), ...(s && { size: `${s.w}x${s.h}` }) })}\n`);
+}
+
 function run(work, tag, bin, args, stdin, out, usageOf) {
   const logs = join(work, '_logs');
   mkdirSync(logs, { recursive: true });
+  const t0 = Date.now();
   return new Promise((ok) => {
     const p = spawn(bin, args, { cwd: work, stdio: ['pipe', 'pipe', 'pipe'] });
     let so = '', se = '';
@@ -173,7 +218,7 @@ function run(work, tag, bin, args, stdin, out, usageOf) {
     p.stdin.end(stdin);
     p.on('close', (code) => {
       const usage = usageOf(so);
-      appendFileSync(join(logs, 'images-usage.jsonl'), `${JSON.stringify({ at: new Date().toISOString(), tag, bin, code, usage })}\n`);
+      logImage(work, { tag, bin, code, secs: (Date.now() - t0) / 1e3, out, usage });
       if (code) writeFileSync(join(logs, `img-${tag.replace(/[:/]/g, '_')}.err`), (se || so).slice(-4000));
       ok({ code, usage, made: existsSync(join(work, out)) });
     });
@@ -182,8 +227,9 @@ function run(work, tag, bin, args, stdin, out, usageOf) {
 
 function provider(argv, W) {
   const name = flag(argv, '--provider') ?? W.project.images?.provider ?? 'manual';
-  if (!['manual', 'cmd', 'codex'].includes(name)) die(T(`没有这种出图方式：${name}（manual / cmd / codex）`, `unknown image provider: ${name} (manual / cmd / codex)`, `없는 이미지 방식: ${name} (manual / cmd / codex)`));
+  if (!['manual', 'cmd', 'codex', 'openai'].includes(name)) die(T(`没有这种出图方式：${name}（manual / cmd / codex / openai）`, `unknown image provider: ${name} (manual / cmd / codex / openai)`, `없는 이미지 방식: ${name} (manual / cmd / codex / openai)`));
   const template = flag(argv, '--cmd') ?? W.project.images?.cmd;
+  if (name === 'openai') return { name, make: (w, tag, p, refs, out) => openaiProvider(w, tag, p, refs, out, W.project.images ?? {}) };
   return { name, make: name === 'codex' ? codex : (w, tag, p, refs, out) => cmdProvider(w, tag, p, refs, out, template) };
 }
 
@@ -295,10 +341,16 @@ async function cmdFix(argv) {
   const pv = provider(argv, await openWork(work));
   if (pv.name === 'manual') die(T('手动出图：按原图和修改说明在你的工具里重画，再用 place 放回', 'manual provider: redraw it in your tool from the original and your fix notes, then place it back', '수동 방식: 원본과 수정 설명대로 도구에서 다시 그린 뒤 place로 넣으세요'));
   const target = flag(argv, '--target') ?? die(T('缺 --target', 'missing --target', '--target이 없습니다'));
-  const prompt = readFileSync(flag(argv, '--prompt') ?? die(T('缺 --prompt', 'missing --prompt', '--prompt가 없습니다')), 'utf8');
+  const text = readFileSync(flag(argv, '--prompt') ?? die(T('缺 --prompt', 'missing --prompt', '--prompt가 없습니다')), 'utf8').trim();
+  // 默认：原图当参考图 1，修改说明套上「只改…，其余保持原图不变」；--raw 原样交出去
+  const raw = argv.includes('--raw');
+  if (!raw && !existsSync(join(work, target))) die(T(`找不到原图 ${target}；要从头画就加 --raw`, `original not found: ${target}; add --raw to draw from scratch`, `원본 ${target}이(가) 없습니다. 처음부터 그리려면 --raw를 붙이세요`));
+  const extraRefs = flags(argv, '--ref').filter((r) => resolve(work, r) !== resolve(work, target));
+  const refs = raw ? flags(argv, '--ref') : [target, ...extraRefs];
+  const prompt = raw ? text : `${IMG.ref(1, IMG.original)}\n\n${IMG.fix(text)}`;
   const tmp = `_logs/fix-${target.replace(/[/]/g, '_')}`;
   rmSync(join(work, tmp), { force: true });
-  const r = await pv.make(work, `fix:${target}`, prompt, flags(argv, '--ref'), tmp);
+  const r = await pv.make(work, `fix:${target}`, prompt, refs, tmp);
   if (!r.made) return console.log(T(`✗ ${target} 没出图（exit ${r.code}，见 _logs/）`, `✗ ${target} no image (exit ${r.code}, see _logs/)`, `✗ ${target} 그림 없음 (exit ${r.code}, _logs/ 참고)`));
   const note = place(work, tmp, target);
   console.log(`✓ ${target}  ${fmt(r.usage)}${note ? `  ⚠️ ${note}` : ''}`);
