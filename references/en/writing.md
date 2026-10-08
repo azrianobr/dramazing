@@ -10,7 +10,9 @@ Follow the rules below when you write. Each one comes from a real problem in vid
 
 - After reading the source text, give the user an estimate of the scale first: how many episodes, how many scenes per episode, how long each episode runs, and how many characters and main props appear. Wait for the user to approve before you write more.
 - 120 to 150 seconds is a good length for an episode. For reference: *Dukou (渡口)*, 813 characters long, became 6 episodes, 9 scenes and 123 lines of dialogue, with final cuts of 128 to 152 seconds per episode.
-- End each episode on a hook: an unfinished sentence, an object just revealed, a character's reaction.
+- **Open the first 3 seconds on the strangest thing.** No setup, small talk or background at the start of an episode. Open on the strangest image or the strangest line in it. If viewers do not understand at once, that is fine: they stop to watch. If they see two people making small talk, they swipe away. A title card at the start also uses these 3 seconds.
+- **In a series, end each episode on a hook**: an unfinished sentence, an object just revealed, a character's reaction. Change the type of hook from episode to episode: if this one reveals a secret, make the next one a hard choice or a reversal. A single short ends on its punchline, which must land; it does not end on a hook.
+- These two rules, "cause and effect" in section 3 and the self-check in "After you write" come from the craft experience of short-drama writers. They are not yet checked against audience-retention data from this project.
 
 ## 2. project.json: characters, scenes, props
 
@@ -28,6 +30,7 @@ Follow the rules below when you write. Each one comes from a real problem in vid
 - **No dashes in dialogue.** Use commas for pauses.
 - **Mark inner voice with `inner: true`.** In an inner-voice shot, either show the speaker's face with their mouth closed, or keep them out of the frame.
 - **Introduce every entrance.** The first time a character appears in a scene, an earlier beat must show how they got there.
+- **Beats follow from each other.** Two beats next to each other must join as "because … so …": because he sees the note is in his own handwriting, he snorts. After you write, read the script again with every unspoken "and then" replaced by "because … so". Where it does not join, add the cause or cut the beat.
 - **Keep beats consistent with the scene's cast.** If you write the sound of a punting pole, the person punting must be in this scene's `cast`.
 - **Dialogue length sets the running time.** Chinese runs at about 3 characters/second, plus 1 second of lead-in, so a 20-character line takes about 7.7 seconds. Speech rates for English and Korean are in `scripts/lang/langs.json`; `validate.mjs` calculates by the story language.
 
@@ -67,8 +70,11 @@ Follow the rules below when you write. Each one comes from a real problem in vid
 
 ### After you write
 
-1. Run `node scripts/validate.mjs --work <work directory> --ep N`. You must fix every `✗`. Read every `⚠️` so you know about it.
-2. After the storyboard frames are made, build a narrative preview for the user to confirm the story is easy to follow, then generate video. See step 4 of `workflow.md`.
+1. Check it yourself first:
+   - At the end of each scene, at least one of these has changed: a character's state of mind, a relationship, what the audience knows, how strong the conflict is. If none changed, cut the scene or merge it into another.
+   - Do the first 3 seconds open on something strange? Does every beat join with "because … so"? Is there one image people will remember?
+2. Run `node scripts/validate.mjs --work <work directory> --ep N`. You must fix every `✗`. Read every `⚠️` so you know about it.
+3. After the storyboard frames are made, build a narrative preview for the user to confirm the story is easy to follow, then generate video. See step 4 of `workflow.md`.
 
 ## 5. Pacing for vertical shorts
 
