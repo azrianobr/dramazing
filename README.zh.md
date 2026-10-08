@@ -61,7 +61,7 @@ dramazing 是一个 AI 助手用的 skill（[Agent Skills](https://agentskills.i
 | 环节 | 谁来做 | 实测过的工具 | 可以换成 |
 |---|---|---|---|
 | 分集、人物设定、剧本、分镜 | AI 助手，按 `references/zh/writing.md` | Claude Code | 任何能读 skill 的助手，或人工写 |
-| 设定图、每切的首帧 | `scripts/frames.mjs` 出任务单 | Codex CLI | 手动用任何出图工具，或接你的命令行（[说明](references/zh/adapters/image.md)） |
+| 设定图、每切的首帧 | `scripts/frames.mjs` 出任务单 | Codex CLI | OpenAI 图像接口（经兼容服务试过，官方地址未实测）；手动用任何出图工具；或接你的命令行（[说明](references/zh/adapters/image.md)） |
 | 视频提示词和预检 | `scripts/video-prompts.mjs` | Grok 写法 | 通用写法，或自己写一个 target（[说明](references/zh/adapters/video-other.md)） |
 | 出片 | 你或 AI 助手，在视频工具里按正常界面操作 | Grok 网页 | 可灵、即梦、Veo、Runway 等，未实测 |
 | 剪辑、拼接、字幕、审片版 | `cut.py`、`assemble.mjs`、`review.py`、`burn-subs.py` | ffmpeg + whisper.cpp | — |
@@ -69,6 +69,8 @@ dramazing 是一个 AI 助手用的 skill（[Agent Skills](https://agentskills.i
 只有「Codex 出图 + Grok 出片」这一组完整做过作品：一部 6 集横屏短剧和三部竖屏短片。换别的工具，第一集先多出几条试探镜头。
 
 ## 功能
+
+**出图。** 四种方式：手动（`manual`）、接你的命令行（`cmd`）、Codex CLI 内置出图（`codex`）、OpenAI 图像接口（`openai`，官方或兼容的服务，密钥放在环境变量 `DZ_IMAGES_KEY`）。首帧提示词自动带一句景别说明，写明画面裁到哪。改一张图用 `fix`：原图自动当参考图，只改你写的那一处。见 [`adapters/image.md`](references/zh/adapters/image.md)。
 
 **画幅。** `project.json` 的 `aspect` 选横屏 16:9 或竖屏 9:16。首帧、提示词、预览、剪辑、字幕都跟着变，人物和场景设定图仍是 16:9。见 [`data-format.md`](references/zh/data-format.md)。
 
@@ -115,7 +117,7 @@ git clone https://github.com/azrianobr/dramazing ~/.claude/skills/dramazing
 
 - Node.js 18+、Python 3 + Pillow、ffmpeg
 - [whisper.cpp](https://github.com/ggerganov/whisper.cpp)（`whisper-cli`），模型 `ggml-large-v3-turbo` 和 `ggml-silero-v5.1.2`，放在 `~/models/whisper`（可用 `WHISPER_MODELS` 改）
-- 一个能传参考图的出图工具（实测：[Codex CLI](https://github.com/openai/codex)）
+- 一个能传参考图的出图工具（实测：[Codex CLI](https://github.com/openai/codex)；OpenAI 图像接口经兼容服务试过）
 - 一个「首帧 + 文字 → 视频」、能说故事语言台词的视频工具（实测：Grok 网页的 Imagine）
 - 目前在 macOS 上测试过。字幕字体默认用 macOS 自带的中文、英文、韩文字体，授权只覆盖在本机使用；成片要商用，在 `project.json` 的 `subFont` 换成可商用字体（环境变量 `SUB_FONT` 优先）
 
