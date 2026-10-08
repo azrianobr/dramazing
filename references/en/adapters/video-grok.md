@@ -28,6 +28,7 @@ You can open 2 or 3 tabs in parallel, with one submission at a time per tab.
 - **One submission may produce two videos.** The page has no setting for the number. When there is a second one, note it as a spare; for rework, check the spare first.
 - **Downloads are 1920×1088.** "Upscale" gives 1904×1072. The editing scripts scale and crop everything to the work's canvas (1920×1080 for 16:9), so no manual work is needed. Vertical download sizes have not been measured yet.
 - **If a submission never produces a video and shows no error,** the first frame was most likely blocked by moderation, usually because a character looks like a minor. Do not resubmit in different ways to get around moderation. First find what is wrong with the first frame (childlike look, expression, freckles), redraw it following `prompt-rules.md`, and tell the user.
+- **"No text of any kind" does not stop burned-in subtitles.** In a shot with dialogue, Grok sometimes burns the line into the picture as a subtitle (加油 E01-04/s6). When you ingest, look at the bottom third of every video. To avoid generating again, cover it with a gradient patch made from clean frames before and after the subtitle; make the patch about 20 pixels larger on each side so it hides the edge of the subtitle box. Keep a copy of the original.
 
 ## Stalled downloads
 

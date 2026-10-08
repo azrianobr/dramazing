@@ -39,6 +39,8 @@ Follow the 12 steps in `references/<language>/workflow.md`. The three most impor
 2. **Review every prompt.** What `video-prompts.mjs` generates is a draft. Check each prompt against its first frame before submitting it.
 3. **Generate video through the tool's normal interface or public API.** Follow the tool's terms of service, and do not get around moderation or billing.
 
+Before writing the storyboard, decide what not to give to the video model: text to be read, pictures that do not move, and changes that must land on an exact moment. See "Before you write" in `writing.md`. For the pacing of vertical shorts, see section 5 of `writing.md`.
+
 ## Reference docs
 
 Read them as needed, not all at once. `<language>` in the paths is `zh`, `en` or `ko`:

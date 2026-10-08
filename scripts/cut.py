@@ -60,6 +60,18 @@ def dur(f):
     if f.lower().endswith(IMAGE_EXT): return math.inf  # 图片素材多长都行
     return float(subprocess.check_output(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f]))
 
+AV_GAP = 0.25  # 音画长度差的上限（秒）：AAC、loudnorm 会在末尾补几十毫秒，不算问题；再大多半是音轨被截短或拼歪了
+
+def check_av(f):
+    """出片后核对音轨和画面的 stream 时长（帧数 ÷ 24 不准：变帧率的片子会算错）"""
+    out = subprocess.check_output(['ffprobe', '-v', 'error', '-show_entries', 'stream=codec_type,duration', '-of', 'csv=p=0', f], text=True)
+    d = {k: float(v) for k, v in (l.split(',') for l in out.split() if l.count(',') == 1 and l.split(',')[1] not in ('', 'N/A'))}
+    if 'audio' in d and 'video' in d and abs(d['audio'] - d['video']) > AV_GAP:
+        g = d['audio'] - d['video']
+        sys.exit(T(f'✗ {f}：音轨 {d["audio"]:.2f} 秒，画面 {d["video"]:.2f} 秒，差 {g:.2f} 秒，超过 {AV_GAP} 秒，音画会错位',
+                   f'✗ {f}: audio {d["audio"]:.2f} s, video {d["video"]:.2f} s, off by {g:.2f} s (over {AV_GAP} s); sound and picture will drift',
+                   f'✗ {f}: 오디오 {d["audio"]:.2f}초, 영상 {d["video"]:.2f}초, {g:.2f}초 차이({AV_GAP}초 초과). 소리와 화면이 어긋납니다'))
+
 def has_audio(f):
     if f.lower().endswith(IMAGE_EXT): return False
     return bool(subprocess.check_output(['ffprobe', '-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=index', '-of', 'csv=p=0', f]).strip())
@@ -187,6 +199,7 @@ for seg in a.segs or list(plan):
     out = f'{W}/{seg}.mp4'
     subprocess.run(['ffmpeg', '-v', 'error', '-y', *ins, '-filter_complex', fc, '-map', '[v]', '-map', '[ao]', '-c:v', 'libx264',
                     '-crf', '16', '-preset', os.environ.get('X264_PRESET', 'slow'), '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', out], check=True)
+    check_av(out)
     json.dump([{'shot': n, 'dur': d, **({'in': i} if i else {}), **({'speed': s} if s != 1 else {}), **({'src': os.path.relpath(f, WORK)} if n <= len(CUTS[seg]) and insert_of(CUTS[seg][n - 1]) else {})}
                for n, d, i, f, s in zip(nums, D, IN, shots, SP)], open(f'{W}/{seg}.shots.json', 'w'))
     print(T(f'✓ {seg} 镜头 {D} → {dur(out):.1f}s（分镜 {sum(plan[seg])}s）', f'✓ {seg} shots {D} → {dur(out):.1f}s (storyboard {sum(plan[seg])}s)', f'✓ {seg} 숏 {D} → {dur(out):.1f}초 (콘티 {sum(plan[seg])}초)'))

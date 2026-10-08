@@ -120,6 +120,14 @@ It moves each video whose file name contains `E01-03-s1` to `video/E01-03/s1.mp4
 
 After ingesting, check that every cut has a video and that each video matches its storyboard frame. Shots have been missed in batch submissions before.
 
+**Check frame by frame for things that appear from nowhere.** Video models sometimes add props in the middle of an action. In 加油 E01-03/s1, a shoe flew down the stairs after he stamped his foot. It was on screen for only 0.4 seconds, and frames sampled every 0.5 seconds missed it. For every range the edit will use, make contact sheets at 8 frames per second or more, and look closely before and after hand and foot movements and handovers of props:
+
+```bash
+ffmpeg -ss 2 -to 4 -i $W/video/E01-03/s1.mp4 -vf fps=12,scale=270:-1,tile=6x4 /tmp/E01-03-s1.png
+```
+
+If this happens in a static shot, you can cover the area with a clean frame instead of generating again.
+
 ### 10. Edit and review
 
 ```bash
@@ -129,10 +137,16 @@ python3 scripts/review.py --work $W --ep $EP                              # revi
 ```
 
 - `cut.py` uses whisper to find when the dialogue ends, and always keeps at least that much.
-- Write manual cut points in `video/fix.json`: `{"E01-06": {"fix": {"1": 4.0}, "skip": [2], "in": {"3": 1.25}}}`. Shots in `fix` are not shortened. `in` is the second of the raw clip to start from: if an action comes later than the prompt asked (a lamp that goes out a second late), take the later part instead of generating again.
+- Write manual cut points in `video/fix.json`: `{"E01-06": {"fix": {"1": 4.0}, "skip": [2], "in": {"3": 1.25}, "speed": {"4": 1.6}}}`. Shots in `fix` are not shortened. `in` is the second of the raw clip to start from: if an action comes later than the prompt asked (a lamp that goes out a second late), take the later part instead of generating again.
 - When you check sampled frames, always look at the full frame. Do not crop to the faces.
 - The user gives feedback by shot ID (such as `06-2`). For rework, first check for a spare second take; generate again only if there is none. Then go back to step 9.
 - Cutting off a flaw at the end is cheaper than generating again: if the flaw appears late, after the dialogue is over, shorten the cut in `fix.json`.
+- `speed` is the speed-up factor for the cut. Picture and sound speed up together, and the pitch stays the same. For a vertical short, follow the pacing in section 5 of `writing.md`: ×1.4–2.0 for action-only shots.
+- **Check that sound and picture stay in sync.** `cut.py` and `assemble.mjs` compare the length of the audio and the video after each render, and stop if they differ by more than 0.25 seconds. If you do extra post-production yourself, check it too:
+  1. Read the audio and video stream durations from `ffprobe`. Do not divide the frame count by 24; that is wrong for variable frame rate files.
+  2. Pick a few visual boundaries (a jump in brightness, a cut) and check that the sound lands on the same frame.
+
+  Matching subtitle times against a loudness envelope is not a check: both were laid out from the planned times, so a match only shows they agree with each other. That is how the first version of 加油 missed a 0.3 second drift.
 
 ### 11. Final cut
 
