@@ -37,6 +37,12 @@ Follow the rules below when you write. Each one comes from a real problem in vid
 
 - **Check against the end of the previous episode.** Is each person standing or sitting, where are they, what are they holding, is each prop open or closed? This episode starts exactly where the last one ended.
 - **Write `blocking` first for each segment.** Where each person is at the start of the segment, their pose, which way they face, and the state of each prop. Every cut's first frame follows it.
+- **First list what this episode will not give to the video model.** Video models get the following wrong, and handing them over only leads to repeated generations:
+  - **Text the audience must read** (on a note, a screen, a gauge): draw no text in the first frame or the video; overlay it in the edit, for example with a `title`.
+  - **Pictures that do not move** (a note on a desk, a fuel gauge): use the first frame as an insert (`insert` points to the first-frame file) and generate no video. An insert is at least 2 seconds for now; shorter stills must be made separately after the edit.
+  - **Changes that must land on an exact moment** (a light snapping on, a car stopping): keep them unchanged in the video and make them in the edit, for example by changing the brightness, or with a freeze frame, a shake and a sound effect. The edit scripts do not do these effects yet; make them separately with ffmpeg.
+
+  Reference: in 加油, 3 of the 14 cuts were stills, the corridor light and the engine stall were made in the edit, and none of the 11 generated videos had to be generated again.
 
 ### Each cut
 
@@ -50,8 +56,32 @@ Follow the rules below when you write. Each one comes from a real problem in vid
 - **No character names in hand close-ups.** Write "a hand", not "her hand".
 - **Use the last frame for continuous action.** When the action of two cuts must connect (standing up, handing something over), the next cut's first frame is the frame at the previous cut's cut point, not the storyboard frame.
 - **State what small props are doing.** Loose or tied up, where they are, whether anyone touches them.
+- **Text to be read never faces the camera.** The text is overlaid in the edit, so the generated cut says "the note always shows its back to the camera". Otherwise the model draws a line of garbled text.
+- **Use a static camera wherever possible, and give each cut one continuous chain of action.** In 加油, 13 of the 14 cuts were static, and each was generated in one attempt.
+- **For a cut with dialogue, write `limits` for the people in the frame:**
+  1. Each speaker's voice: age, timbre, tone. Write it in every cut, for example "an adult man of thirty-six, low and steady, completely serious".
+  2. When more than one person is in the frame, state which line is spoken by the person in which part of the frame, and that the person not speaking keeps their mouth closed. For example, "the first line is spoken by her on the right of the frame, the second by him on the left; while one speaks, the other keeps their mouth closed".
+  3. For narration from off-screen, write "the person in the frame keeps their mouth closed throughout".
+
+  大水 and 加油 were both written this way, and neither had a wrong speaker or two people moving their mouths at once.
 
 ### After you write
 
 1. Run `node scripts/validate.mjs --work <work directory> --ep N`. You must fix every `✗`. Read every `⚠️` so you know about it.
 2. After the storyboard frames are made, build a narrative preview for the user to confirm the story is easy to follow, then generate video. See step 4 of `workflow.md`.
+
+## 5. Pacing for vertical shorts
+
+For a vertical short of 30 to 60 seconds, follow the numbers from 加油. The user rated it the most comfortable of the three shorts for pacing and speech rate.
+
+| | 不能闭眼 | 大水 | 加油 |
+|---|---|---|---|
+| Average shot length | 3.7 s | 3.3 s | 1.5 s |
+| Words per second, whole film (Chinese characters) | 2.5 | 3.6 | 1.7 |
+| Speed-up of shots with dialogue | ×1.15, whole film | ×1.0–1.3 | ×1.0–1.25 |
+| Speed-up of action-only shots | ×1.15, whole film | not separately | ×1.4–2.0 |
+
+- **Keep shots short.** About 1.5 seconds per cut on average, never more than 3.5 seconds. When you write the storyboard, split a long action into several cuts.
+- **Pack in events, not words.** 加油 has the fewest words and drags the least. Fill the time between lines with action, quick cuts, sound effects and stills, so that something happens every second.
+- **Speed up speech a little, action a lot.** Shots with dialogue run at ×1.0–1.25; `cut.py --rate 4.0` works this out (up to 1.3). For action-only shots (putting something down, straightening a collar, opening a door), write ×1.4–2.0 in `speed` in `fix.json`. Within a line, Chinese runs at about 5–8 characters per second; leave a 0.2–0.3 second breath between lines.
+- **Make every silence deliberate.** Keep the pause before a punchline, such as 1.3 seconds of dark corridor or a 1.3 second freeze when the engine dies. Cut gaps that do no work.

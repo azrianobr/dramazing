@@ -16,7 +16,21 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 function ffprobe(file) {
   const j = JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-show_streams', '-show_format', '-of', 'json', file], { encoding: 'utf8' }));
   const v = j.streams.find((s) => s.codec_type === 'video') ?? {};
-  return { width: v.width, height: v.height, duration: Number(j.format.duration), audio: j.streams.some((s) => s.codec_type === 'audio') };
+  const a = j.streams.find((s) => s.codec_type === 'audio');
+  return { width: v.width, height: v.height, duration: Number(j.format.duration), audio: !!a, vdur: Number(v.duration), adur: a && Number(a.duration) };
+}
+
+// 音画长度核对：音轨和画面的 stream 时长差超过 0.25 秒就停。AAC 编码、loudnorm 会在末尾补几十毫秒，不算问题；
+// 差出零点几秒以上，多半是哪一步把音轨截短了或拼歪了，往后音画会错位（帧数 ÷ 24 不准，变帧率的片子要看 stream 时长）
+const AV_GAP = 0.25;
+function checkAV(file) {
+  const p = ffprobe(file);
+  if (!p.audio || !(p.vdur > 0) || !(p.adur > 0)) return;
+  const d = p.adur - p.vdur;
+  if (Math.abs(d) > AV_GAP) {
+    console.error('✗ ' + T(`${file}：音轨 ${p.adur.toFixed(2)} 秒，画面 ${p.vdur.toFixed(2)} 秒，差 ${d.toFixed(2)} 秒，超过 ${AV_GAP} 秒，音画会错位`, `${file}: audio ${p.adur.toFixed(2)} s, video ${p.vdur.toFixed(2)} s, off by ${d.toFixed(2)} s (over ${AV_GAP} s); sound and picture will drift`, `${file}: 오디오 ${p.adur.toFixed(2)}초, 영상 ${p.vdur.toFixed(2)}초, ${d.toFixed(2)}초 차이(${AV_GAP}초 초과). 소리와 화면이 어긋납니다`));
+    process.exit(1);
+  }
 }
 
 // 剧本台词里的破折号：中文会被视频模型念成「一」（Grok 实测），提示词里已换成逗号；字幕跟着念法走（speakable）
@@ -168,6 +182,7 @@ function cmdAssemble(argv) {
     // loudnorm 会把采样率升到 192k，AAC 只能退到 96k，部分播放器会卡画面；固定 48k，并把索引放到文件头
     ...(loudnorm && !epSb.audio?.length ? ['-af', 'loudnorm=I=-16:TP=-1.5:LRA=11'] : []), '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', `${base}.mp4`]);
   if (epSb.audio?.length) mixAudio(work, base, epSb.audio, subs, loudnorm);
+  checkAV(`${base}.mp4`);
   // 本机 ffmpeg 没编 libass，烧不了硬字幕：封一条 mov_text 软字幕轨（QuickTime / IINA 可开关），
   // 要硬字幕时换带 libass 的 ffmpeg 再用 subtitles 滤镜
   execFileSync('ffmpeg', ['-y', '-v', 'error', '-i', `${base}.mp4`, '-i', `${base}.srt`,
