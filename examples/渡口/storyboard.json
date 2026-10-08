@@ -15,7 +15,7 @@
         1
        ],
        "seconds": 3.5,
-       "size": "medium",
+       "size": "medium-close",
        "camera": "Tracking Shot",
        "move": {
         "dir": "前方",
@@ -1699,7 +1699,7 @@
         29
        ],
        "seconds": 2.5,
-       "size": "wide",
+       "size": "full",
        "camera": "Static Shot",
        "chars": [
         "C01",
@@ -1799,7 +1799,7 @@
         33
        ],
        "seconds": 5.0,
-       "size": "wide",
+       "size": "full",
        "camera": "Static Shot",
        "frame": "全景，船舱外的河面，浓雾翻涌，刚才船影出现的地方只剩一片灰白",
        "action": "固定镜头，舱外的河面浓雾翻涌，刚才船影出现的地方只剩一片灰白",
@@ -1892,7 +1892,7 @@
         3
        ],
        "seconds": 5.0,
-       "size": "wide",
+       "size": "full",
        "camera": "Static Shot",
        "chars": [
         "C03"
@@ -1923,7 +1923,7 @@
         4
        ],
        "seconds": 4.0,
-       "size": "wide",
+       "size": "full",
        "camera": "Static Shot",
        "chars": [
         "C03"
@@ -2065,7 +2065,7 @@
         10
        ],
        "seconds": 3.0,
-       "size": "wide",
+       "size": "full",
        "camera": "Static Shot",
        "chars": [
         "C03"
@@ -2108,7 +2108,7 @@
         12
        ],
        "seconds": 2.0,
-       "size": "wide",
+       "size": "full",
        "camera": "Static Shot",
        "frame": "全景，船舱外的河面，浓雾里汽笛又是一声，雾中隐约透出一团模糊的灰影和翻起的白浪",
        "action": "固定镜头，舱外的河面浓雾翻滚，雾深处隐约有一团模糊的灰影，船头破开的白浪越来越近",
@@ -2410,7 +2410,7 @@
         24
        ],
        "seconds": 3.5,
-       "size": "wide",
+       "size": "full",
        "camera": "Static Shot",
        "chars": [
         "C03"
@@ -2441,7 +2441,7 @@
         25
        ],
        "seconds": 4.5,
-       "size": "wide",
+       "size": "full",
        "camera": "Static Shot",
        "chars": [
         "C03"
@@ -2464,7 +2464,7 @@
         26
        ],
        "seconds": 3.5,
-       "size": "wide",
+       "size": "full",
        "camera": "Static Shot",
        "chars": [
         "C01",
@@ -2638,7 +2638,7 @@
         33
        ],
        "seconds": 5.5,
-       "size": "wide",
+       "size": "full",
        "camera": "Static Shot",
        "chars": [
         "C03"
@@ -3139,7 +3139,7 @@
         18
        ],
        "seconds": 4.0,
-       "size": "wide",
+       "size": "full",
        "camera": "Static Shot",
        "chars": [
         "C01",
@@ -3329,7 +3329,7 @@
         26
        ],
        "seconds": 3.0,
-       "size": "wide",
+       "size": "full",
        "camera": "Static Shot",
        "chars": [
         "C01",
@@ -3519,7 +3519,7 @@
         1
        ],
        "seconds": 3.5,
-       "size": "wide",
+       "size": "full",
        "camera": "Static Shot",
        "chars": [
         "C03"
@@ -3694,7 +3694,7 @@
         8
        ],
        "seconds": 3.0,
-       "size": "wide",
+       "size": "full",
        "camera": "Static Shot",
        "chars": [
         "C03"
@@ -3808,7 +3808,7 @@
         13
        ],
        "seconds": 2.5,
-       "size": "wide",
+       "size": "full",
        "camera": "Static Shot",
        "chars": [
         "C01"
@@ -3934,7 +3934,7 @@
         18
        ],
        "seconds": 2.5,
-       "size": "wide",
+       "size": "full",
        "camera": "Static Shot",
        "chars": [
         "C01",
@@ -4384,7 +4384,7 @@
         18
        ],
        "seconds": 2.0,
-       "size": "wide",
+       "size": "full",
        "camera": "Static Shot",
        "frame": "全景，从昏暗的船舱里望向舱口，舱外芦苇的影子从船舷边缓缓滑过，雾越来越薄，岸越来越近，船舱里没有人入画",
        "action": "固定镜头，从船舱望向舱口，舱外芦苇的影子从船舷边缓缓滑过，雾越来越薄",
@@ -4468,7 +4468,7 @@
         3
        ],
        "seconds": 3.5,
-       "size": "wide",
+       "size": "full",
        "camera": "Static Shot",
        "chars": [
         "C01",
@@ -4737,7 +4737,7 @@
         12
        ],
        "seconds": 3.0,
-       "size": "wide",
+       "size": "full",
        "camera": "Pull Out",
        "move": {
         "from": "打开的皮箱",
@@ -5016,7 +5016,7 @@
         24
        ],
        "seconds": 6.0,
-       "size": "wide",
+       "size": "full",
        "camera": "Tilt",
        "move": {
         "dir": "下",
@@ -5055,7 +5055,7 @@
         1
        ],
        "seconds": 3.5,
-       "size": "wide",
+       "size": "full",
        "camera": "Pan",
        "move": {
         "dir": "右",

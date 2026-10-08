@@ -7,7 +7,7 @@
 - **能传参考图。** 分镜图要参照人物、场景、道具的设定图，脸和服装才能前后一致。不能传参考图的工具，人物每张都会变样。
 - **能按作品画幅出图。** 分镜图就是视频的首帧，比例要和成片一致：`project.json` 的 `aspect`，不写是 16:9 横图，竖屏作品是 9:16。设定图不进成片，一律 16:9。
 
-## 三种方式
+## 四种方式
 
 用 `--provider` 选，或者写在 `project.json` 的 `images.provider` 里。
 
@@ -48,6 +48,32 @@ node scripts/frames.mjs place --work $W --target frames/E01-01/f1.png --from ~/D
 ### codex：Codex CLI 内置出图（实测过）
 
 《渡口》6 集用的是这一种。要装好 [Codex CLI](https://github.com/openai/codex) 并登录。参考图用 `-i` 传进去，一张图约 2 到 4 分钟，`--jobs 3` 并行。每张图的用量记在 `_logs/images-usage.jsonl`。
+
+### openai：OpenAI 图像接口（官方，或兼容的服务；经兼容服务实测，官方地址未实测）
+
+不经过 Codex，直接调图像接口：有参考图时用 `/images/edits`，参考图按顺序上传；没有时用 `/images/generations`。一张图约 20 到 40 秒，`--jobs 3` 并行。
+
+```json
+"images": {
+  "provider": "openai",
+  "baseUrl": "https://api.openai.com/v1",
+  "model": "gpt-image-2.5-sunburst"
+}
+```
+
+- `baseUrl` 不写就是 OpenAI 官方地址；接兼容的服务时换成它的地址。
+- 密钥只从环境变量 `DZ_IMAGES_KEY` 读，不写进任何文件。不用 `OPENAI_API_KEY`，因为 Codex CLI 也读这个变量，设了它，Codex 可能改成按 API 计费。
+- 不传尺寸参数，画幅靠提示词末尾的「画面比例」那句。出好的图比例偏差超过 3% 会提醒。
+- 每张图的耗时、实际尺寸，以及服务端返回的型号、质量档位、尺寸，记在 `_logs/images-usage.jsonl`。
+- macOS 上 `baseUrl` 是局域网地址时，终端 App 要在「系统设置 → 隐私与安全性 → 本地网络」里打开，否则报 `EHOSTUNREACH`。
+
+## 改一张图：fix
+
+```bash
+node scripts/frames.mjs fix --work $W --target frames/E01-03/f2.png --prompt <文件>
+```
+
+原图自动作为参考图 1。提示词文件只写要改的那一处，`fix` 会套上固定句式：只改这一处，人物身份、构图、光线、服装保持原图不变。一次只改一处，要改两处就跑两次。要从头重画、不带原图，加 `--raw`。走 `codex`、`cmd`、`openai` 时可用。
 
 ## 换工具时注意
 

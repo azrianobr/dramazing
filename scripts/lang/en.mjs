@@ -17,6 +17,7 @@ export default {
   slowmo: /slow[ -]?motion/i,
   hand: w('hands?|thumbs?|fingers?|fingertips?|palms?'),
   face: w('face|eyes?|mouth|lips|brows?|hair|profile'),
+  wholeFace: w('face|profile'), // the whole face in frame (an extreme close-up shows one detail; see validate)
   side: /frame (?:left|right)|(?:left|right) of (?:the )?frame/i,
   noEye: /^(none|no face|-|)$/i,
   toneAction: w('wipes?|pats?|grabs?|holds?|puts? down|stands? up|sits? down|turns?|walks?'),
@@ -105,6 +106,10 @@ export default {
     first: 'first storyboard frame of this segment: keep the light, haze and positions continuous with it',
     ref: (i, role) => `Reference ${i} = ${role}`,
     frame: (t) => `Frame: ${t}`,
+    // the "where the frame cuts" column of the shot-size table, placed before "Frame:" so the tool does not guess the shot size
+    size: (name, key) => `Shot size: ${name}, ${{ 'extreme-wide': 'the whole place in frame, people only specks or absent', wide: 'the person together with a large part of the surroundings', full: 'the person head to feet, with room ahead in the direction of movement', medium: 'the person from the waist up', 'medium-close': 'the person from the chest up; hands enter only when raised to the chest', close: 'one face from forehead to chin filling the frame, or one prop filling the frame', 'extreme-close': 'only one detail in frame, such as one eye, one finger or one clasp' }[key]}.`,
+    original: 'the original image: this is the one to change',
+    fix: (t) => `Change only: ${t}\nKeep the person's identity, composition, lighting and clothing exactly as in the original; change only this one thing.`,
     codex: (out) => `Use your built-in image generation tool to generate one image directly. Do not write code, call an API or draw with a script. Generate only once. Save the image as ${out} in the current directory (do not overwrite other files), then stop.`,
   },
 };

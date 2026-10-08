@@ -50,8 +50,8 @@ node scripts/frames.mjs batch --work $W
 ```
 
 - 「참고 이미지 N장이 아직 생성되지 않았습니다」라는 안내가 나오면 한 번 더 실행합니다.
-- 이미 있는 이미지를 다시 그리려면 `--redo`를 붙입니다. 한 곳만 고치려면 `fix`를 씁니다: `frames.mjs fix --work $W --target frames/E01-03/f2.png --prompt <파일> --ref frames/E01-03/f2.png`.
-- 이미지 생성 방식은 `--provider` 또는 `project.json`의 `images.provider`로 정합니다: `manual`(기본값. 안내문을 내보낸 뒤 어떤 도구로든 그리고 `place`로 되돌려 넣음), `cmd`(직접 쓰는 명령줄 연결), `codex`. `adapters/image.md`를 참고하세요.
+- 이미 있는 이미지를 다시 그리려면 `--redo`를 붙입니다. 한 곳만 고치려면 `fix`를 씁니다: `frames.mjs fix --work $W --target frames/E01-03/f2.png --prompt <파일>`. 원본이 자동으로 참고 이미지 1이 되고, 프롬프트에는 고칠 곳만 씁니다. 나머지를 그대로 두라는 문장은 `fix`가 붙입니다.
+- 이미지 생성 방식은 `--provider` 또는 `project.json`의 `images.provider`로 정합니다: `manual`(기본값. 안내문을 내보낸 뒤 어떤 도구로든 그리고 `place`로 되돌려 넣음), `cmd`(직접 쓰는 명령줄 연결), `codex`, `openai`(OpenAI 이미지 API). `adapters/image.md`를 참고하세요.
 
 ### 3. 이미지 확인
 

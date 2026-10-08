@@ -48,8 +48,8 @@ node scripts/frames.mjs batch --work $W
 ```
 
 - 提示「N 张参考图还没出」时，再跑一遍。
-- 重画已有的图加 `--redo`；只改一处用 `fix`：`frames.mjs fix --work $W --target frames/E01-03/f2.png --prompt <文件> --ref frames/E01-03/f2.png`。
-- 出图方式由 `--provider` 或 `project.json` 的 `images.provider` 决定：`manual`（默认，导出说明后用任何工具出图，再用 `place` 放回）、`cmd`（接你自己的命令行）、`codex`。见 `adapters/image.md`。
+- 重画已有的图加 `--redo`；只改一处用 `fix`：`frames.mjs fix --work $W --target frames/E01-03/f2.png --prompt <文件>`。原图自动当参考图 1，提示词只写要改的那一处，其余保持不变的句子由 `fix` 补上。
+- 出图方式由 `--provider` 或 `project.json` 的 `images.provider` 决定：`manual`（默认，导出说明后用任何工具出图，再用 `place` 放回）、`cmd`（接你自己的命令行）、`codex`、`openai`（OpenAI 图像接口）。见 `adapters/image.md`。
 
 ### 3. 看图
 

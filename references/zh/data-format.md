@@ -55,7 +55,7 @@
 - `speechRate`（可选）：这部作品台词的语速，中文、韩文按字（音节）/秒，英文按词/秒。不写用 `langs.json` 的值：中文 3 字/秒是实测值，英文、韩文是试探镜头量出来的，见 `workflow.md`「故事语言」。
 - `style`：画风前缀。每张设定图和分镜图的提示词前面都加这一句。没写会报警告，整批画风会不统一。
 - `targetSeconds`：一集的目标时长，可以写一个数或一个区间。
-- `images.provider`：出图方式，`manual`（默认）/ `cmd` / `codex`，见 `adapters/image.md`。
+- `images.provider`：出图方式，`manual`（默认）/ `cmd` / `codex` / `openai`，见 `adapters/image.md`。`openai` 另有 `images.baseUrl`（不写是 OpenAI 官方地址）和 `images.model`（默认 `gpt-image-2.5-sunburst`），密钥放在环境变量 `DZ_IMAGES_KEY`。
 - `video.target`：视频提示词按哪个工具写，`grok` / `generic` / 你自己写的 `scripts/targets/<名>.mjs`。`durations` 不写就用 target 自带的时长档位。
 - `alias`：外貌短语。视频工具不认识人名，提示词里的人名会换成这个短语。`en` 用在英文句子里，故事语言那一项（`zh` / `ko`）用在故事语言的句子里；英文故事只写 `en`。不写就用原名。
 - `trait`（可选）：人物的异样特征，比如瞎眼、伤疤、跛脚。人物正面入画时，提示词会用英文和故事语言各写一遍「全程保持」，键和 `alias` 一样：要写故事语言那项和 `en`，缺了故事语言那项，这条特征不会写进提示词，`validate.mjs` 会提醒。只靠首帧守不住，视频工具会把它「修好」（Grok 实测）。
