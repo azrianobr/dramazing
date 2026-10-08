@@ -12,17 +12,17 @@
 
 ---
 
-dramazing 是一个 AI 助手用的 skill（[Agent Skills](https://agentskills.io) 格式，Claude Code、Codex CLI 等都能读）。给它一篇中文、英文或韩文的短篇故事，它带着你一集一集做出有人物、有对白、带硬字幕的短剧成片，每集约 2 分钟，也就是常说的 AI 短剧、AI 微短剧。画风改成动漫就能做 AI 漫剧（目前只实测过写实画风）。
+dramazing 是一个 AI 助手用的 skill（[Agent Skills](https://agentskills.io) 格式，Claude Code、Codex CLI 等都能读）。给它一篇中文、英文或韩文的短篇故事，它带着你一集一集做出有人物、有对白、带硬字幕的短剧成片，也就是常说的 AI 短剧、AI 微短剧。横屏分集每集约 2 分钟；也能做 35–50 秒的 9:16 竖屏短视频。画风改成动漫就能做 AI 漫剧（目前只实测过写实画风）。
 
 出图和出片工具都可以换。流程只规定每一步的输入和输出，工具通过适配器接入。
 
-这套流程是做完一部 6 集短剧之后整理出来的。每条规则都来自一次实际出片的问题，在 `references/` 里注明了出处。
+这套流程是做完一部 6 集横屏短剧和三部竖屏短视频之后整理出来的。每条规则都来自一次实际出片的问题，在 `references/` 里注明了出处。
 
 ## 语言
 
 | 故事语言 | 实测情况 |
 |---|---|
-| 中文 | 完整做过一部 6 集作品（《渡口》），语速 3 字/秒是实测值 |
+| 中文 | 完整做过一部 6 集作品（《渡口》），语速 3 字/秒是实测值；另做过三部 9:16 竖屏短片（37–47 秒） |
 | 英文 | 一条 10 秒试探镜头（Grok）：台词一字不差，口型、画面稳定；语速实测 2.2 词/秒（1 条样本） |
 | 韩文 | 一条 10 秒试探镜头（Grok）：台词念对，口型、画面稳定；语速实测 4.5 音节/秒（1 条样本） |
 
@@ -66,7 +66,31 @@ dramazing 是一个 AI 助手用的 skill（[Agent Skills](https://agentskills.i
 | 出片 | 你或 AI 助手，在视频工具里按正常界面操作 | Grok 网页 | 可灵、即梦、Veo、Runway 等，未实测 |
 | 剪辑、拼接、字幕、审片版 | `cut.py`、`assemble.mjs`、`review.py`、`burn-subs.py` | ffmpeg + whisper.cpp | — |
 
-只有「Codex 出图 + Grok 出片」这一组完整做过一部作品。换别的工具，第一集先多出几条试探镜头。
+只有「Codex 出图 + Grok 出片」这一组完整做过作品：一部 6 集横屏短剧和三部竖屏短片。换别的工具，第一集先多出几条试探镜头。
+
+## 功能
+
+**画幅。** `project.json` 的 `aspect` 选横屏 16:9 或竖屏 9:16。首帧、提示词、预览、剪辑、字幕都跟着变，人物和场景设定图仍是 16:9。见 [`data-format.md`](references/zh/data-format.md)。
+
+**分镜。** 字段说明都在 [`data-format.md`](references/zh/data-format.md)：
+- 景别：七种景别各裁到哪、必须留下什么，写错时 `validate.mjs` 会提醒（比如大特写里说台词）。
+- 一切挂额外的设定图（`sheets`），换地点（`place`），写明特写画面里只有什么（`only`）。
+- 插入镜头（`insert`）：直接用现成素材，不出图不出片，最短 2 秒。
+- 换屏（`screen`）：把录屏贴到画面里的屏幕上。
+- 盖画面（`cover`）：人物说着台词，画面切到录屏或截图，声音不断。
+- 花字（`title`）：人名卡这类画面文字，在本地画，不经过视频模型。
+- 每集的片头片尾（`intro` / `outro`）和配乐音效轨（`audio`，有台词的地方自动压低）。
+
+**剪辑。** `cutTail` 见 [`data-format.md`](references/zh/data-format.md)，`fix.json` 见 [`workflow.md`](references/zh/workflow.md)，提速多少见 [`writing.md`](references/zh/writing.md) 第 5 节：
+- `cutTail`：台词说完就剪，人物不会站着等到 6 秒或 10 秒的片子放完。
+- 有台词的镜头按语速自动提速（`cut.py --rate`，上限 ×1.3）；单切的入点和提速写在 `fix.json` 里。
+- 出片后比对音轨和画面的长度，差超过 0.25 秒就停下报错。
+
+**字幕。** `project.json` 的 `subFont` 和 `subSize` 指定字体和字号。中文字幕折两行时在最靠中间的标点处断开，句末句号自动去掉。台词按语音识别对齐到各自的镜头里。
+
+**检查。** 出片前有两道关口：叙事预览和试探镜头。收片时逐帧查凭空多出来的道具。成片按画面分界点核对音画同步。见 [`workflow.md`](references/zh/workflow.md)。
+
+**竖屏短片的节奏。** 以节奏最好的一部为基准，写了镜头长度、提速幅度和静音怎么用，见 [`writing.md`](references/zh/writing.md) 第 5 节。
 
 ## 安装
 
@@ -93,7 +117,7 @@ git clone https://github.com/azrianobr/dramazing ~/.claude/skills/dramazing
 - [whisper.cpp](https://github.com/ggerganov/whisper.cpp)（`whisper-cli`），模型 `ggml-large-v3-turbo` 和 `ggml-silero-v5.1.2`，放在 `~/models/whisper`（可用 `WHISPER_MODELS` 改）
 - 一个能传参考图的出图工具（实测：[Codex CLI](https://github.com/openai/codex)）
 - 一个「首帧 + 文字 → 视频」、能说故事语言台词的视频工具（实测：Grok 网页的 Imagine）
-- 目前在 macOS 上测试过。字幕字体默认用 macOS 自带的中文、英文、韩文字体（可用 `SUB_FONT` 改）
+- 目前在 macOS 上测试过。字幕字体默认用 macOS 自带的中文、英文、韩文字体，授权只覆盖在本机使用；成片要商用，在 `project.json` 的 `subFont` 换成可商用字体（环境变量 `SUB_FONT` 优先）
 
 ## 目录
 
