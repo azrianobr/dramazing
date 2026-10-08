@@ -61,7 +61,7 @@ video tool animates first frames ──▶ cut, align dialogue ──▶ review 
 | Stage | Who does it | Tested tool | Can be replaced by |
 |---|---|---|---|
 | Episodes, characters, script, storyboard | The AI assistant, following `references/en/writing.md` | Claude Code | Any assistant that can read skills, or write them by hand |
-| Sheets, first frame of each cut | `scripts/frames.mjs` writes the task list | Codex CLI | Any image tool by hand, or your own command line ([details](references/en/adapters/image.md)) |
+| Sheets, first frame of each cut | `scripts/frames.mjs` writes the task list | Codex CLI | The OpenAI Images API (tried through a compatible service; the official address is untested); any image tool by hand; or your own command line ([details](references/en/adapters/image.md)) |
 | Video prompts and preflight | `scripts/video-prompts.mjs` | Grok format | The generic format, or write your own target ([details](references/en/adapters/video-other.md)) |
 | Video | You or the AI assistant, through the video tool's normal interface | Grok (web) | Kling, Jimeng, Veo, Runway, etc. (not tested) |
 | Cutting, assembly, subtitles, review cut | `cut.py`, `assemble.mjs`, `review.py`, `burn-subs.py` | ffmpeg + whisper.cpp | — |
@@ -69,6 +69,8 @@ video tool animates first frames ──▶ cut, align dialogue ──▶ review 
 Only the "Codex for images + Grok for video" combination has made complete works: one 6-episode landscape drama and three vertical shorts. With other tools, make a few extra trial shots in the first episode.
 
 ## Features
+
+**Images.** Four providers: by hand (`manual`), your own command line (`cmd`), Codex CLI built-in image generation (`codex`), and the OpenAI Images API (`openai`, official or a compatible service, with the key in the environment variable `DZ_IMAGES_KEY`). Frame prompts carry a shot-size line that says where the frame crops. To change one image, use `fix`: the original goes in as a reference, and only what you write changes. See [`adapters/image.md`](references/en/adapters/image.md).
 
 **Aspect ratio.** `aspect` in `project.json` picks landscape 16:9 or vertical 9:16. First frames, prompts, preview, cutting and subtitles all follow it; character and scene sheets stay 16:9. See [`data-format.md`](references/en/data-format.md).
 
@@ -115,7 +117,7 @@ Installed this way, the command is `/dramazing:dramazing`.
 
 - Node.js 18+, Python 3 + Pillow, ffmpeg
 - [whisper.cpp](https://github.com/ggerganov/whisper.cpp) (`whisper-cli`), with the `ggml-large-v3-turbo` and `ggml-silero-v5.1.2` models in `~/models/whisper` (change with `WHISPER_MODELS`)
-- An image tool that accepts reference images (tested: [Codex CLI](https://github.com/openai/codex))
+- An image tool that accepts reference images (tested: [Codex CLI](https://github.com/openai/codex); the OpenAI Images API was tried through a compatible service)
 - A "first frame + text → video" tool that can speak dialogue in the story language (tested: Imagine on the Grok website)
 - Tested on macOS so far. Subtitles use the Chinese, English and Korean fonts built into macOS by default; their license covers use on that machine only. For a commercial release, set a font cleared for commercial use in `subFont` in `project.json` (the environment variable `SUB_FONT` takes precedence)
 

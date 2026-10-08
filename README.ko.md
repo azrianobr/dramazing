@@ -61,7 +61,7 @@ dramazing은 AI 어시스턴트용 skill입니다([Agent Skills](https://agentsk
 | 단계 | 누가 하나 | 실측한 도구 | 바꿀 수 있는 도구 |
 |---|---|---|---|
 | 화 나누기, 인물 설정, 대본, 콘티 | AI 어시스턴트, `references/ko/writing.md`에 따라 | Claude Code | skill을 읽을 수 있는 어떤 어시스턴트든, 또는 사람이 직접 |
-| 설정화, 컷별 첫 프레임 | `scripts/frames.mjs`가 작업 목록 생성 | Codex CLI | 어떤 이미지 도구든 수동으로, 또는 직접 쓰는 명령줄 연결([설명](references/ko/adapters/image.md)) |
+| 설정화, 컷별 첫 프레임 | `scripts/frames.mjs`가 작업 목록 생성 | Codex CLI | OpenAI 이미지 API(호환 서비스로 시험함, 공식 주소는 미실측), 어떤 이미지 도구든 수동으로, 또는 직접 쓰는 명령줄 연결([설명](references/ko/adapters/image.md)) |
 | 영상 프롬프트와 사전 점검 | `scripts/video-prompts.mjs` | Grok용 작성법 | 범용 작성법, 또는 직접 target 작성([설명](references/ko/adapters/video-other.md)) |
 | 영상 생성 | 사용자나 AI 어시스턴트가 영상 도구의 정상 화면에서 조작 | Grok 웹 | Kling, Jimeng, Veo, Runway 등, 미실측 |
 | 편집, 이어 붙이기, 자막, 검수본 | `cut.py`, `assemble.mjs`, `review.py`, `burn-subs.py` | ffmpeg + whisper.cpp | — |
@@ -69,6 +69,8 @@ dramazing은 AI 어시스턴트용 skill입니다([Agent Skills](https://agentsk
 「Codex로 이미지 생성 + Grok으로 영상 생성」 조합만 작품을 끝까지 만들어 봤습니다: 6화짜리 가로 화면 숏드라마 한 편과 세로 숏폼 세 편. 다른 도구로 바꾸면 1화에서 시험 컷을 몇 개 더 생성해 보세요.
 
 ## 기능
+
+**이미지 생성.** 네 가지 방식: 수동(`manual`), 직접 쓰는 명령줄 연결(`cmd`), Codex CLI 내장 이미지 생성(`codex`), OpenAI 이미지 API(`openai`, 공식 또는 호환 서비스, 키는 환경 변수 `DZ_IMAGES_KEY`). 첫 프레임 프롬프트에 화면을 어디서 자르는지 적은 숏 사이즈 문장이 자동으로 붙습니다. 이미지 한 장을 고칠 때는 `fix`를 씁니다. 원본이 자동으로 참고 이미지가 되고, 적은 곳만 바뀝니다. [`adapters/image.md`](references/ko/adapters/image.md)를 보세요.
 
 **화면 비율.** `project.json`의 `aspect`로 가로 16:9나 세로 9:16을 고릅니다. 첫 프레임, 프롬프트, 미리보기, 편집, 자막이 모두 따라 바뀌고, 인물과 장소 설정화는 16:9 그대로입니다. [`data-format.md`](references/ko/data-format.md) 참고.
 
@@ -115,7 +117,7 @@ Claude Code 플러그인으로 설치할 수도 있습니다.
 
 - Node.js 18+, Python 3 + Pillow, ffmpeg
 - [whisper.cpp](https://github.com/ggerganov/whisper.cpp)(`whisper-cli`), 모델 `ggml-large-v3-turbo`와 `ggml-silero-v5.1.2`를 `~/models/whisper`에 둡니다(`WHISPER_MODELS`로 변경 가능)
-- 참고 이미지를 넣을 수 있는 이미지 도구(실측: [Codex CLI](https://github.com/openai/codex))
+- 참고 이미지를 넣을 수 있는 이미지 도구(실측: [Codex CLI](https://github.com/openai/codex). OpenAI 이미지 API는 호환 서비스로 시험함)
 - 「첫 프레임 + 텍스트 → 영상」 방식이고 이야기 언어로 대사를 말할 수 있는 영상 도구(실측: Grok 웹의 Imagine)
 - 지금은 macOS에서만 테스트했습니다. 자막 글꼴은 기본으로 macOS에 들어 있는 중국어, 영어, 한국어 글꼴을 쓰며, 라이선스는 그 기기 안에서의 사용만 허용합니다. 상업용 완성본이면 `project.json`의 `subFont`에 상업 사용이 허용된 글꼴을 지정하세요(환경 변수 `SUB_FONT`가 우선)
 
