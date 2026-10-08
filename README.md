@@ -12,17 +12,17 @@
 
 ---
 
-dramazing is a skill for AI assistants (in the [Agent Skills](https://agentskills.io) format, readable by Claude Code, Codex CLI and others). Give it a short story in Chinese, English or Korean, and it walks you through making a short drama episode by episode, with characters, dialogue and burned-in subtitles, about 2 minutes per episode: what is often called an AI short drama or micro drama. Set the style to anime and it makes AI animated dramas too (only the realistic style has been tested so far).
+dramazing is a skill for AI assistants (in the [Agent Skills](https://agentskills.io) format, readable by Claude Code, Codex CLI and others). Give it a short story in Chinese, English or Korean, and it walks you through making a short drama episode by episode, with characters, dialogue and burned-in subtitles: what is often called an AI short drama or micro drama. Landscape episodes run about 2 minutes each; it also makes 9:16 vertical shorts of 35 to 50 seconds. Set the style to anime and it makes AI animated dramas too (only the realistic style has been tested so far).
 
 Both the image tool and the video tool can be swapped. The workflow defines only the inputs and outputs of each step; tools plug in through adapters.
 
-The workflow was written up after making a 6-episode short drama. Every rule comes from a real problem in video generation, and `references/` notes where each one came from.
+The workflow was written up after making a 6-episode landscape drama and three vertical shorts. Every rule comes from a real problem in video generation, and `references/` notes where each one came from.
 
 ## Language
 
 | Story language | Testing status |
 |---|---|
-| Chinese | A complete 6-episode work (*Dukou (渡口)*); the speech rate of 3 characters/second is measured |
+| Chinese | A complete 6-episode work (*Dukou (渡口)*); the speech rate of 3 characters/second is measured; also three 9:16 vertical shorts (37–47 seconds) |
 | English | One 10-second trial shot (Grok): the line came out word for word, lips and picture stable; measured speech rate 2.2 words/second (1 sample) |
 | Korean | One 10-second trial shot (Grok): the line came out right, lips and picture stable; measured speech rate 4.5 syllables/second (1 sample) |
 
@@ -66,7 +66,31 @@ video tool animates first frames ──▶ cut, align dialogue ──▶ review 
 | Video | You or the AI assistant, through the video tool's normal interface | Grok (web) | Kling, Jimeng, Veo, Runway, etc. (not tested) |
 | Cutting, assembly, subtitles, review cut | `cut.py`, `assemble.mjs`, `review.py`, `burn-subs.py` | ffmpeg + whisper.cpp | — |
 
-Only the "Codex for images + Grok for video" combination has made a complete work. With other tools, make a few extra trial shots in the first episode.
+Only the "Codex for images + Grok for video" combination has made complete works: one 6-episode landscape drama and three vertical shorts. With other tools, make a few extra trial shots in the first episode.
+
+## Features
+
+**Aspect ratio.** `aspect` in `project.json` picks landscape 16:9 or vertical 9:16. First frames, prompts, preview, cutting and subtitles all follow it; character and scene sheets stay 16:9. See [`data-format.md`](references/en/data-format.md).
+
+**Storyboard.** All fields are described in [`data-format.md`](references/en/data-format.md):
+- Shot sizes: where each of the seven sizes cuts the frame and what must stay in it. `validate.mjs` warns about likely mistakes, such as dialogue in an extreme close-up.
+- Attach extra sheets to one cut (`sheets`), move a cut to another location (`place`), and say exactly what a close-up shows (`only`).
+- Insert shots (`insert`): existing footage, with no image or video generation; at least 2 seconds.
+- Screen replacement (`screen`): put a screen recording onto a screen in the frame.
+- Cover (`cover`): the picture switches to a recording or screenshot while the character keeps talking.
+- Titles (`title`): name cards and other on-screen text, drawn locally so they never pass through the video model.
+- Per-episode intro and outro (`intro` / `outro`), and music and sound-effect tracks (`audio`, lowered automatically under dialogue).
+
+**Cutting.** `cutTail` is in [`data-format.md`](references/en/data-format.md), `fix.json` in [`workflow.md`](references/en/workflow.md), and how much to speed up in section 5 of [`writing.md`](references/en/writing.md):
+- `cutTail`: a dialogue shot ends shortly after its line, so characters do not stand idle until the 6 or 10 second clip runs out.
+- Dialogue shots speed up toward a target speaking rate (`cut.py --rate`, up to ×1.3). The in point and speed of a single cut go in `fix.json`.
+- After writing, the audio and video lengths are compared; a difference over 0.25 seconds stops with an error.
+
+**Subtitles.** `subFont` and `subSize` in `project.json` set the font and size. A two-line Chinese subtitle breaks at the punctuation mark nearest the middle, and the sentence-final full stop is dropped. Each line is aligned by speech recognition to its own cut.
+
+**Checks.** Two gates come before video generation: the narrative preview and the trial shot. Received clips are checked frame by frame for props that appear from nowhere. The final cut is checked for audio-video sync at picture boundaries. See [`workflow.md`](references/en/workflow.md).
+
+**Pacing for vertical shorts.** Shot length, how much to speed up, and how to use silence, measured on the short that played best. See section 5 of [`writing.md`](references/en/writing.md).
 
 ## Installation
 
@@ -93,7 +117,7 @@ Installed this way, the command is `/dramazing:dramazing`.
 - [whisper.cpp](https://github.com/ggerganov/whisper.cpp) (`whisper-cli`), with the `ggml-large-v3-turbo` and `ggml-silero-v5.1.2` models in `~/models/whisper` (change with `WHISPER_MODELS`)
 - An image tool that accepts reference images (tested: [Codex CLI](https://github.com/openai/codex))
 - A "first frame + text → video" tool that can speak dialogue in the story language (tested: Imagine on the Grok website)
-- Tested on macOS so far. Subtitles use the Chinese, English and Korean fonts built into macOS by default (change with `SUB_FONT`)
+- Tested on macOS so far. Subtitles use the Chinese, English and Korean fonts built into macOS by default; their license covers use on that machine only. For a commercial release, set a font cleared for commercial use in `subFont` in `project.json` (the environment variable `SUB_FONT` takes precedence)
 
 ## Layout
 
