@@ -70,7 +70,7 @@ dramazing은 AI 어시스턴트용 skill입니다([Agent Skills](https://agentsk
 
 ## 기능
 
-**이미지 생성.** 네 가지 방식: 수동(`manual`), 직접 쓰는 명령줄 연결(`cmd`), Codex CLI 내장 이미지 생성(`codex`), OpenAI 이미지 API(`openai`, 공식 또는 호환 서비스, 키는 환경 변수 `DZ_IMAGES_KEY`). 첫 프레임 프롬프트에 화면을 어디서 자르는지 적은 숏 사이즈 문장이 자동으로 붙고, 콘티에 `angle`을 쓴 컷에는 카메라 앵글 문장도 붙습니다. 이미지 한 장을 고칠 때는 `fix`를 씁니다. 원본이 자동으로 참고 이미지가 되고, 적은 곳만 바뀝니다. [`adapters/image.md`](references/ko/adapters/image.md)를 보세요.
+**이미지 생성.** 네 가지 방식: 수동(`manual`), 직접 쓰는 명령줄 연결(`cmd`), Codex CLI 내장 이미지 생성(`codex`), OpenAI 이미지 API(`openai`, 공식 또는 호환 서비스, 키는 환경 변수 `DZ_IMAGES_KEY`). 첫 프레임 프롬프트에 화면을 어디서 자르는지 적은 숏 사이즈 문장이 자동으로 붙고, 콘티에 `angle`을 쓴 컷에는 카메라 앵글 문장도 붙습니다. 이미지 한 장을 고칠 때는 `fix`를 씁니다. 원본이 자동으로 참고 이미지가 되고, 적은 곳만 바뀝니다. 앵글을 고를 때는 `grid`로 같은 장면을 12칸 한 장(행은 카메라 높이, 열은 숏 크기)에 뽑습니다. 칸이 작아 앵글 고르기에만 씁니다. [`adapters/image.md`](references/ko/adapters/image.md)를 보세요.
 
 **화면 비율.** `project.json`의 `aspect`로 가로 16:9나 세로 9:16을 고릅니다. 첫 프레임, 프롬프트, 미리보기, 편집, 자막이 모두 따라 바뀌고, 인물과 장소 설정화는 16:9 그대로입니다. [`data-format.md`](references/ko/data-format.md) 참고.
 

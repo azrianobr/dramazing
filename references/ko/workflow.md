@@ -51,6 +51,7 @@ node scripts/frames.mjs batch --work $W
 
 - 「참고 이미지 N장이 아직 생성되지 않았습니다」라는 안내가 나오면 한 번 더 실행합니다.
 - 이미 있는 이미지를 다시 그리려면 `--redo`를 붙입니다. 한 곳만 고치려면 `fix`를 씁니다: `frames.mjs fix --work $W --target frames/E01-03/f2.png --prompt <파일>`. 원본이 자동으로 참고 이미지 1이 되고, 프롬프트에는 고칠 곳만 씁니다. 나머지를 그대로 두라는 문장은 `fix`가 붙입니다.
+- 앵글 고르기(선택): 설정화나 첫 프레임이 나온 뒤 `frames.mjs grid --work $W --from frames/E01-03/f1.png --name corridor`로 16:9 격자 한 장을 `_handoff/grid/corridor.png`에 뽑습니다. 행은 카메라 높이(기본 눈높이, 로우, 하이), 열은 숏 크기(기본 원경, 미디엄숏, 클로즈업, 익스트림 클로즈업)이며 `--rows`, `--cols`로 바꿀 수 있습니다. 고른 뒤 콘티의 `angle`과 `size`를 고치고 그 컷만 다시 그립니다. 어느 한 칸의 앵글대로 그리게 하려면 `frames.mjs grid --work $W --name corridor --crop 2,3`으로 2행 3열을 잘라 `fix --ref`나 수동 생성의 참고로 씁니다. 칸마다 약 418×314밖에 안 되니 앵글 고르기에만 쓰고 첫 프레임으로 쓰지 않습니다. tasks.json은 건드리지 않습니다.
 - 이미지 생성 방식은 `--provider` 또는 `project.json`의 `images.provider`로 정합니다: `manual`(기본값. 안내문을 내보낸 뒤 어떤 도구로든 그리고 `place`로 되돌려 넣음), `cmd`(직접 쓰는 명령줄 연결), `codex`, `openai`(OpenAI 이미지 API). `adapters/image.md`를 참고하세요.
 
 ### 3. 이미지 확인
