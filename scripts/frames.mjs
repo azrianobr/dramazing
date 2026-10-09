@@ -118,8 +118,9 @@ async function cmdPlan(argv) {
         if (ci > first) refs.push({ path: `frames/${seg.id}/f${first + 1}.png`, role: IMG.first });
         const head = refs.map((r, i) => IMG.ref(i + 1, r.role)).join('\n');
         const size = SIZES[c.size] ? `${IMG.size(SIZES[c.size], c.size)}\n` : ''; // 景别表的裁法写死在画面前面
+        const angle = c.angle ? `${IMG.angle(c.angle)}\n` : ''; // 机位高度跟着景别写，不靠 frame 正文
         frames.push({ id: `frame:${seg.id}/f${ci + 1}`, kind: 'frame', target: `frames/${seg.id}/f${ci + 1}.png`,
-          prompt: withStyle(`${head ? `${head}\n\n` : ''}${size}${IMG.frame(c.frame)}`), refs, status: 'pending' });
+          prompt: withStyle(`${head ? `${head}\n\n` : ''}${size}${angle}${IMG.frame(c.frame)}`), refs, status: 'pending' });
       });
     }
   }

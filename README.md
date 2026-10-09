@@ -70,7 +70,7 @@ Only the "Codex for images + Grok for video" combination has made complete works
 
 ## Features
 
-**Images.** Four providers: by hand (`manual`), your own command line (`cmd`), Codex CLI built-in image generation (`codex`), and the OpenAI Images API (`openai`, official or a compatible service, with the key in the environment variable `DZ_IMAGES_KEY`). Frame prompts carry a shot-size line that says where the frame crops. To change one image, use `fix`: the original goes in as a reference, and only what you write changes. See [`adapters/image.md`](references/en/adapters/image.md).
+**Images.** Four providers: by hand (`manual`), your own command line (`cmd`), Codex CLI built-in image generation (`codex`), and the OpenAI Images API (`openai`, official or a compatible service, with the key in the environment variable `DZ_IMAGES_KEY`). Frame prompts carry a shot-size line that says where the frame crops, and a camera-angle line when the cut sets `angle`. To change one image, use `fix`: the original goes in as a reference, and only what you write changes. See [`adapters/image.md`](references/en/adapters/image.md).
 
 **Aspect ratio.** `aspect` in `project.json` picks landscape 16:9 or vertical 9:16. First frames, prompts, preview, cutting and subtitles all follow it; character and scene sheets stay 16:9. See [`data-format.md`](references/en/data-format.md).
 
