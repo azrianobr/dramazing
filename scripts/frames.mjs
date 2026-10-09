@@ -7,6 +7,7 @@
 //   codex   Codex CLI 内置出图（实测过）
 //   openai  OpenAI 图像接口（官方或兼容的服务），地址和型号见 images.baseUrl / images.model，密钥读环境变量 DZ_IMAGES_KEY
 // 出过的图不重出，除非 --redo。
+// grid 另算：挑机位用的宫格图，放 _handoff/grid/，不进任务单。
 
 import { execFileSync, spawn } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
@@ -25,6 +26,9 @@ const USAGE = () => T(`frames.mjs — 出图
   fix   --work <作品目录> --target <相对路径> --prompt <文件> [--ref <图> ...] [--provider cmd|codex|openai] [--raw]
         单张重画：提示词只写要改的那一处。原图自动当参考图 1，提示词前后自动套上「只改…，其余保持原图不变」；
         --raw 不套、不自动挂原图。旧图改名为 <名>.v<N>.png
+  grid  --work <作品目录> --from <参考图> --name <名字> [--rows 平视,仰拍,俯拍] [--cols 远景,中景,特写,大特写] [--provider …]
+        挑机位：同一场景按「行 = 机位高度、列 = 景别」出一张 16:9 宫格图，放到 _handoff/grid/<名字>.png。
+        每格很小，只用来挑角度，不当首帧；不改任务单
   status --work <作品目录>`,
 `frames.mjs — images
 
@@ -38,6 +42,9 @@ const USAGE = () => T(`frames.mjs — 出图
   fix   --work <project dir> --target <relative path> --prompt <file> [--ref <image> ...] [--provider cmd|codex|openai] [--raw]
         Redraw one image: the prompt names the one thing to change. The original becomes reference 1 and the prompt is wrapped in
         "change only …, keep the rest as the original"; --raw skips both. The old image becomes <name>.v<N>.png
+  grid  --work <project dir> --from <reference> --name <name> [--rows a,b,c] [--cols a,b,c,d] [--provider …]
+        Choose angles: one 16:9 grid of the same scene, rows = camera height, columns = shot size, at _handoff/grid/<name>.png.
+        Cells are small: for choosing angles only, not a first frame. tasks.json is not touched
   status --work <project dir>`,
 `frames.mjs — 이미지
 
@@ -51,14 +58,18 @@ const USAGE = () => T(`frames.mjs — 出图
   fix   --work <작품 폴더> --target <상대 경로> --prompt <파일> [--ref <이미지> ...] [--provider cmd|codex|openai] [--raw]
         한 장 다시 그리기: 프롬프트에는 고칠 한 곳만 씁니다. 원본이 자동으로 참고 이미지 1이 되고, 프롬프트 앞뒤에
         「이것만 고침…, 나머지는 원본 그대로」를 붙입니다. --raw는 둘 다 하지 않습니다. 원본은 <이름>.v<N>.png로 바뀝니다
+  grid  --work <작품 폴더> --from <참고 이미지> --name <이름> [--rows a,b,c] [--cols a,b,c,d] [--provider …]
+        앵글 고르기: 같은 장면을 「행 = 카메라 높이, 열 = 숏 크기」로 16:9 격자 한 장에 담아 _handoff/grid/<이름>.png에 둡니다.
+        칸이 작아 앵글 고르기용이며 첫 프레임으로 쓰지 않습니다. tasks.json은 건드리지 않습니다
   status --work <작품 폴더>`);
 
 const flags = (argv, name) => argv.flatMap((a, i) => (a === name && argv[i + 1] ? [argv[i + 1]] : []));
 // 写给出图工具的固定句子按故事语言（lang/<语言>.mjs 的 img）；loadWork 之后才知道是哪种语言
 let IMG = null, SIZES = {}, ASPECT = parseAspect();
 const openWork = async (dir) => { const W = loadWork(dir); const ph = await phrases(); IMG = ph.img; SIZES = ph.sizes; ASPECT = W.aspect; return W; };
-// 设定图（sheets/）固定 16:9，其余（分镜图）按作品画幅
-const aspectFor = (target) => (String(target).startsWith('sheets/') ? parseAspect(SHEET_ASPECT) : ASPECT);
+// 设定图（sheets/）和宫格图（_handoff/grid/）固定 16:9，其余（分镜图）按作品画幅
+const isGrid = (target) => String(target).startsWith('_handoff/grid/');
+const aspectFor = (target) => (String(target).startsWith('sheets/') || isGrid(target) ? parseAspect(SHEET_ASPECT) : ASPECT);
 
 /* ---------------- plan ---------------- */
 
@@ -140,9 +151,11 @@ async function cmdPlan(argv) {
 /* ---------------- 出图方式 ---------------- */
 
 // 任务号认出图放哪：sheet:C01 → sheets/，frame:… → frames/，fix:<target> → target
-const targetOf = (tag) => (tag.startsWith('sheet:') ? `sheets/${tag.slice(6)}.png` : tag.startsWith('fix:') ? tag.slice(4) : `frames/${tag.slice(6)}.png`);
+const targetOf = (tag) => (tag.startsWith('sheet:') ? `sheets/${tag.slice(6)}.png` : tag.startsWith('fix:') ? tag.slice(4) : tag.startsWith('grid:') ? `_handoff/grid/${tag.slice(5)}.png` : `frames/${tag.slice(6)}.png`);
 
-const fullPrompt = (prompt, target) => { const a = aspectFor(target); return `${prompt}\n\n${IMG.tail(a.label, a.orient)}`; };
+// 末尾那句：普通图是「只要一张完整的画面、不加边框」；宫格图本来就是多格加分隔线，换成宫格专用的一句
+let GRID = { r: 3, c: 4 };
+const fullPrompt = (prompt, target) => { const a = aspectFor(target); return `${prompt}\n\n${isGrid(target) ? IMG.gridTail(a.label, GRID.r, GRID.c) : IMG.tail(a.label, a.orient)}`; };
 
 // Codex CLI：让它用内置出图工具画一张，存到 out
 function codex(work, tag, prompt, refs, out) {
@@ -186,6 +199,7 @@ async function openaiProvider(work, tag, prompt, refs, out, cfg) {
     }
     body = await res.json().catch(() => null);
     const img = body?.data?.[0];
+    if (img) mkdirSync(join(work, out, '..'), { recursive: true }); // 临时目录可能还没建（比如 grid 不经过 plan）
     if (img?.b64_json) writeFileSync(join(work, out), Buffer.from(img.b64_json, 'base64'));
     else if (img?.url) writeFileSync(join(work, out), Buffer.from(await (await fetch(img.url)).arrayBuffer()));
     else err = JSON.stringify(body?.error ?? body ?? res.status).slice(0, 4000);
@@ -357,6 +371,49 @@ async function cmdFix(argv) {
   console.log(`✓ ${target}  ${fmt(r.usage)}${note ? `  ⚠️ ${note}` : ''}`);
 }
 
+// 挑机位：同一场景一张宫格图（行 = 机位高度，列 = 景别），给人看的参考，不进 frames/ 和任务单
+async function cmdGrid(argv) {
+  const work = resolve(flag(argv, '--work'));
+  const W = await openWork(work);
+  const pv = provider(argv, W);
+  const from = flag(argv, '--from') ?? die(T('缺 --from（参考图：场景设定图或已有首帧）', 'missing --from (reference: a scene sheet or an existing first frame)', '--from이 없습니다(참고 이미지: 장소 설정화나 이미 있는 첫 프레임)'));
+  if (!existsSync(resolve(work, from))) die(T(`找不到 ${from}`, `not found: ${from}`, `찾을 수 없음: ${from}`));
+  const name = flag(argv, '--name') ?? die(T('缺 --name', 'missing --name', '--name이 없습니다'));
+  if (!/^[\p{L}\p{N}_.-]+$/u.test(name)) die(T('--name 只能用字母、数字、_ . -', '--name may use only letters, digits, _ . -', '--name에는 글자, 숫자, _ . - 만 쓸 수 있습니다'));
+  const list = (f, d) => (flag(argv, f) ? flag(argv, f).split(/[,，]/).map((x) => x.trim()).filter(Boolean) : d);
+  const rows = list('--rows', IMG.gridRows), cols = list('--cols', IMG.gridCols);
+  GRID = { r: rows.length, c: cols.length };
+  const style = (W.project.style ?? '').trim();
+  const prompt = `${style ? `${style}\n\n` : ''}${IMG.grid(rows, cols)}`;
+  const target = `_handoff/grid/${name}.png`;
+  // 参考图路径按作品目录算；作品目录外的图先复制进来，出图工具才读得到
+  let ref = from;
+  if (!resolve(work, from).startsWith(work + '/')) {
+    mkdirSync(join(work, '_logs'), { recursive: true });
+    ref = `_logs/grid-ref-${name}${from.match(/\.\w+$/)?.[0] ?? '.png'}`;
+    writeFileSync(join(work, ref), readFileSync(resolve(work, from)));
+  }
+  if (pv.name === 'manual') {
+    mkdirSync(join(work, '_handoff', 'grid'), { recursive: true });
+    const brief = join(work, '_handoff', 'grid', `${name}.txt`);
+    writeFileSync(brief, T(`出好后放到：${target}（直接保存为这个文件即可）\n\n参考图（上传这一张）：\n  参考图1：${ref}\n\n提示词：\n${fullPrompt(prompt, target)}\n`,
+      `Save the finished image as: ${target}\n\nReference image (upload this one):\n  reference 1: ${ref}\n\nPrompt:\n${fullPrompt(prompt, target)}\n`,
+      `완성된 그림을 저장할 곳: ${target}\n\n참고 이미지(이 한 장을 올리기):\n  참고 이미지 1: ${ref}\n\n프롬프트:\n${fullPrompt(prompt, target)}\n`));
+    return console.log(T(`· 已导出宫格图说明 → ${brief}`, `· exported the grid brief → ${brief}`, `· 격자 그림 설명을 내보냄 → ${brief}`));
+  }
+  const tmp = `_logs/out-grid_${name}.png`;
+  rmSync(join(work, tmp), { force: true });
+  const r = await pv.make(work, `grid:${name}`, prompt, [ref], tmp);
+  if (ref !== from) rmSync(join(work, ref), { force: true });
+  if (!r.made) return console.log(T(`✗ ${target} 没出图（exit ${r.code}，见 _logs/）`, `✗ ${target} no image (exit ${r.code}, see _logs/)`, `✗ ${target} 그림 없음 (exit ${r.code}, _logs/ 참고)`));
+  const note = place(work, tmp, target);
+  console.log(`✓ ${target}  ${fmt(r.usage)}${note ? `  ⚠️ ${note}` : ''}`);
+  const s = pngSize(join(work, target)), cell = s ? `${Math.round(s.w / cols.length)}×${Math.round(s.h / rows.length)}` : '?';
+  console.log(T(`  每格约 ${cell}，只用来挑角度；挑好后把角度写进分镜的 angle 和 size`,
+    `  each cell is about ${cell}: choose angles from it, then write them into the storyboard's angle and size`,
+    `  칸마다 약 ${cell}: 앵글만 고르고, 고른 것은 콘티의 angle과 size에 적으세요`));
+}
+
 async function cmdStatus(argv) {
   const work = resolve(flag(argv, '--work'));
   await openWork(work);
@@ -373,5 +430,6 @@ if (cmd === 'plan') await cmdPlan(rest);
 else if (cmd === 'batch') await cmdBatch(rest);
 else if (cmd === 'fix') await cmdFix(rest);
 else if (cmd === 'place') await cmdPlace(rest);
+else if (cmd === 'grid') await cmdGrid(rest);
 else if (cmd === 'status') await cmdStatus(rest);
 else console.log(USAGE());

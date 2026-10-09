@@ -51,6 +51,7 @@ node scripts/frames.mjs batch --work $W
 
 - When it says some images wait for their references (sheets), run it again.
 - To redraw existing images, add `--redo`. To change one detail, use `fix`: `frames.mjs fix --work $W --target frames/E01-03/f2.png --prompt <file>`. The original goes in as reference image 1; the prompt names only the change, and `fix` adds the sentences that keep everything else.
+- Choosing angles (optional): once a sheet or first frame exists, `frames.mjs grid --work $W --from frames/E01-03/f1.png --name corridor` makes one 16:9 grid at `_handoff/grid/corridor.png`. Rows are camera heights (default eye level, low, high) and columns are shot sizes (default wide, medium, close-up, extreme close-up); change them with `--rows` and `--cols`. When you have picked, change the cuts' `angle` and `size` and redraw those cuts. Each cell is only about 418×314: use it to choose angles, not as a first frame. tasks.json is not touched.
 - `--provider` or `images.provider` in `project.json` sets how images are made: `manual` (default: export instructions, make the images in any tool, then put them back with `place`), `cmd` (your own command line), `codex` or `openai` (the OpenAI Images API). See `adapters/image.md`.
 
 ### 3. Check the images

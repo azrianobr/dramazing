@@ -111,6 +111,11 @@ export default {
     angle: (a) => `Camera angle: ${a}.`,
     original: 'the original image: this is the one to change',
     fix: (t) => `Change only: ${t}\nKeep the person's identity, composition, lighting and clothing exactly as in the original; change only this one thing.`,
+    // camera-angle grid (frames.mjs grid): one scene with camera height and shot size varied in one image; cells are small, for choosing angles only
+    gridRows: ['eye level', 'low angle looking up', 'high angle looking down'],
+    gridCols: ['wide (the person in relation to the space)', 'medium (posture and action)', 'close-up (face and upper body)', 'extreme close-up (a detail such as the eyes or a hand)'],
+    grid: (rows, cols) => `Using reference 1 as the only reference, make a ${rows.length * cols.length}-panel shot matrix of the same scene, in a clear grid of ${rows.length} rows and ${cols.length} columns. Keep the subject (the same person in the same clothes), the setting, light direction, time of day, mood and colour exactly as in reference 1. Do not redesign the scene and add no props, people, actions or story beats; between panels only the camera height and the framing distance change. Camera height by row, in order: ${rows.join('; ')}. Shot size by column, in order: ${cols.join('; ')}. Every panel is a complete film still.`,
+    gridTail: (ratio, r, c) => `${ratio} landscape, one image with ${r} rows and ${c} columns, panels separated by thin white lines; no text, no numbers, no watermark.`,
     codex: (out) => `Use your built-in image generation tool to generate one image directly. Do not write code, call an API or draw with a script. Generate only once. Save the image as ${out} in the current directory (do not overwrite other files), then stop.`,
   },
 };

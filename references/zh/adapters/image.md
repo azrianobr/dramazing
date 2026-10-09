@@ -75,6 +75,14 @@ node scripts/frames.mjs fix --work $W --target frames/E01-03/f2.png --prompt <�
 
 原图自动作为参考图 1。提示词文件只写要改的那一处，`fix` 会套上固定句式：只改这一处，人物身份、构图、光线、服装保持原图不变。一次只改一处，要改两处就跑两次。要从头重画、不带原图，加 `--raw`。走 `codex`、`cmd`、`openai` 时可用。
 
+## 挑机位：grid
+
+```bash
+node scripts/frames.mjs grid --work $W --from frames/E01-03/f1.png --name 楼道
+```
+
+拿一张场景设定图或首帧当参考图 1，出一张 16:9 宫格图：同一场景、同样的人，只换机位高度和景别。末尾那句换成宫格专用的「几行几列、格间细白线、不加文字」。`manual` 时导出说明到 `_handoff/grid/<名字>.txt`。走 `openai` 经兼容服务实测过（《大水》办公区，两个人物，1 张）。
+
 ## 换工具时注意
 
 - **第一集先出 1 段对照。** 看脸、服装、场景和设定图是否一致，再批量。
