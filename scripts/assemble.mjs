@@ -21,7 +21,8 @@ function ffprobe(file) {
 }
 
 // 音画长度核对：音轨和画面的 stream 时长差超过 0.25 秒就停。AAC 编码、loudnorm 会在末尾补几十毫秒，不算问题；
-// 差出零点几秒以上，多半是哪一步把音轨截短了或拼歪了，往后音画会错位（帧数 ÷ 24 不准，变帧率的片子要看 stream 时长）
+// 差出零点几秒以上，多半是哪一步把音轨截短了或拼歪了，往后音画会错位（帧数 ÷ 24 不准，变帧率的片子要看 stream 时长）。
+// 只比总长抓不住中途的错位，中途的对齐靠拼接时每段声音按采样数对齐画面（见 cmdAssemble）
 const AV_GAP = 0.25;
 function checkAV(file) {
   const p = ffprobe(file);
@@ -134,7 +135,9 @@ function cmdAssemble(argv) {
       process.exit(1);
     }
   }
-  if (intro) { parts.push(intro); offset += ffprobe(intro).duration; }
+  // 每段在整集里占的长度 = 这段画面的帧数 ÷ 24；声音、字幕都按这把尺子排
+  const frames = (f) => Math.max(1, Math.round(ffprobe(f).vdur * 24));
+  if (intro) { parts.push(intro); offset += frames(intro) / 24; }
   for (const seg of segmentsOf(W.storyboard, epNo)) {
     const f = join(dir, `${seg.id}.mp4`);
     if (!existsSync(f)) {
@@ -166,7 +169,7 @@ function cmdAssemble(argv) {
     }
     for (const l of lines) subs.push({ from: offset + l.from, to: offset + l.to, text: l.text });
     parts.push(f);
-    offset += dur;
+    offset += frames(f) / 24;
   }
   if (outro) parts.push(outro);
   const list = join(dir, `E${String(epNo).padStart(2, '0')}.concat.txt`);
@@ -176,11 +179,24 @@ function cmdAssemble(argv) {
   const stripEnd = LANGS[lang()].stripEnd;
   const tidy = (t) => (stripEnd ? t.replace(new RegExp(`[${stripEnd}]+$`), '') : t);
   writeFileSync(`${base}.srt`, subs.map((s, i) => `${i + 1}\n${srtTime(s.from)} --> ${srtTime(s.to)}\n${tidy(s.text)}\n`).join('\n'));
-  // 各段编码参数可能不完全一致，统一重编码再拼，避免 concat 花屏
-  execFileSync('ffmpeg', ['-y', '-v', 'error', '-f', 'concat', '-safe', '0', '-i', list,
+  // 拼接不看时间戳：段视频里音轨的时间戳常和实际采样数对不上（容器写 22.3 秒，解出来 22.229 秒），
+  // 按时间戳拼（concat 清单、concat 滤镜、aresample 补齐）都会让声音越往后越早。所以每段画面补/截到 n 帧，
+  // 声音按采样数补静音或截断到同样的 n/24 秒，两条各自首尾相接。片头片尾统一缩放到正片的画布，没声音的垫静音
+  const canvas = ffprobe(parts[intro ? 1 : 0]);
+  const ins = [], fc = [];
+  parts.forEach((p, i) => {
+    const n = frames(p), pr = ffprobe(p);
+    ins.push('-i', p);
+    fc.push(`[${i}:v]fps=24,scale=${canvas.width}:${canvas.height}:force_original_aspect_ratio=decrease,pad=${canvas.width}:${canvas.height}:-1:-1,setsar=1,format=yuv420p,setpts=PTS-STARTPTS,tpad=stop_mode=clone:stop_duration=1,trim=end_frame=${n}[v${i}]`);
+    const src = pr.audio ? `[${i}:a]` : `anullsrc=channel_layout=stereo:sample_rate=48000,`;
+    fc.push(`${src}aresample=48000,aformat=channel_layouts=stereo,asetpts=N/SR/TB,apad,atrim=end_sample=${n * 2000}[a${i}]`);
+  });
+  fc.push(parts.map((_, i) => `[v${i}]`).join('') + `concat=n=${parts.length}:v=1:a=0[v]`);
+  fc.push(parts.map((_, i) => `[a${i}]`).join('') + `concat=n=${parts.length}:v=0:a=1` + (loudnorm && !epSb.audio?.length ? ',loudnorm=I=-16:TP=-1.5:LRA=11' : '') + '[a]');
+  execFileSync('ffmpeg', ['-y', '-v', 'error', ...ins, '-filter_complex', fc.join(';'), '-map', '[v]', '-map', '[a]',
     '-c:v', 'libx264', '-crf', '18', '-preset', 'medium', '-pix_fmt', 'yuv420p',
     // loudnorm 会把采样率升到 192k，AAC 只能退到 96k，部分播放器会卡画面；固定 48k，并把索引放到文件头
-    ...(loudnorm && !epSb.audio?.length ? ['-af', 'loudnorm=I=-16:TP=-1.5:LRA=11'] : []), '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', `${base}.mp4`]);
+    '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', `${base}.mp4`]);
   if (epSb.audio?.length) mixAudio(work, base, epSb.audio, subs, loudnorm);
   checkAV(`${base}.mp4`);
   // 本机 ffmpeg 没编 libass，烧不了硬字幕：封一条 mov_text 软字幕轨（QuickTime / IINA 可开关），

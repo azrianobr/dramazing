@@ -142,11 +142,13 @@ python3 scripts/review.py --work $W --ep $EP                              # revi
 - The user gives feedback by shot ID (such as `06-2`). For rework, first check for a spare second take; generate again only if there is none. Then go back to step 9.
 - Cutting off a flaw at the end is cheaper than generating again: if the flaw appears late, after the dialogue is over, shorten the cut in `fix.json`.
 - `speed` is the speed-up factor for the cut. Picture and sound speed up together, and the pitch stays the same. For a vertical short, follow the pacing in section 5 of `writing.md`: ×1.4–2.0 for action-only shots.
-- **Check that sound and picture stay in sync.** `cut.py` and `assemble.mjs` compare the length of the audio and the video after each render, and stop if they differ by more than 0.25 seconds. If you do extra post-production yourself, check it too:
+- **Check that sound and picture stay in sync.** `cut.py` and `assemble.mjs` compare the length of the audio and the video after each render, and stop if they differ by more than 0.25 seconds. The total length cannot show a drift in the middle, so if you do extra post-production yourself, also check:
   1. Read the audio and video stream durations from `ffprobe`. Do not divide the frame count by 24; that is wrong for variable frame rate files.
-  2. Pick a few visual boundaries (a jump in brightness, a cut) and check that the sound lands on the same frame.
+  2. Find a few places where picture and sound change together, for example a line that starts on a cut, or a stamp that turns a light on. Take the frame by time (`ffmpeg -ss <seconds>`), not by frame number, and find the sound onset in the loudness envelope. The two must land within one frame.
 
   Matching subtitle times against a loudness envelope is not a check: both were laid out from the planned times, so a match only shows they agree with each other. That is how the first version of 加油 missed a 0.3 second drift.
+
+  **The joining trap.** In a segment file, the audio timestamps often do not match the actual sound: the container says 22.3 seconds, but only 22.229 seconds decode. Joining by timestamps (a concat list, even with `aresample` to fill gaps) makes later sound drift early or late. `assemble.mjs` pads or trims each segment's picture to n frames, pads or trims its sound by sample count to the same n/24 seconds, and joins the two tracks end to end separately. Do not fill picture gaps by rewriting timestamps from frame numbers and forcing a constant frame rate; frames get dropped. The fourth version of 加油 tried it and lost the last 276 frames.
 
 ### 11. Final cut
 
