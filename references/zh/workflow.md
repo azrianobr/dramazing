@@ -49,7 +49,7 @@ node scripts/frames.mjs batch --work $W
 
 - 提示「N 张参考图还没出」时，再跑一遍。
 - 重画已有的图加 `--redo`；只改一处用 `fix`：`frames.mjs fix --work $W --target frames/E01-03/f2.png --prompt <文件>`。原图自动当参考图 1，提示词只写要改的那一处，其余保持不变的句子由 `fix` 补上。
-- 挑机位（可选）：设定图或首帧出好后，`frames.mjs grid --work $W --from frames/E01-03/f1.png --name 楼道` 出一张 16:9 宫格图，放在 `_handoff/grid/楼道.png`。行是机位高度（默认平视、仰拍、俯拍），列是景别（默认远景、中景、特写、大特写），可用 `--rows`、`--cols` 换。挑好后改分镜的 `angle` 和 `size`，再重出那几切。每格只有约 418×314，只用来挑角度，不当首帧；不改任务单。
+- 挑机位（可选）：设定图或首帧出好后，`frames.mjs grid --work $W --from frames/E01-03/f1.png --name 楼道` 出一张 16:9 宫格图，放在 `_handoff/grid/楼道.png`。行是机位高度（默认平视、仰拍、俯拍），列是景别（默认远景、中景、特写、大特写），可用 `--rows`、`--cols` 换。挑好后改分镜的 `angle` 和 `size`，再重出那几切；想让出图照着某一格的角度画，用 `frames.mjs grid --work $W --name 楼道 --crop 2,3` 切出第 2 行第 3 列，当 `fix --ref` 或手动出图的参考。每格只有约 418×314，只用来挑角度，不当首帧；不改任务单。
 - 出图方式由 `--provider` 或 `project.json` 的 `images.provider` 决定：`manual`（默认，导出说明后用任何工具出图，再用 `place` 放回）、`cmd`（接你自己的命令行）、`codex`、`openai`（OpenAI 图像接口）。见 `adapters/image.md`。
 
 ### 3. 看图

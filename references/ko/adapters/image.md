@@ -81,9 +81,12 @@ node scripts/frames.mjs fix --work $W --target frames/E01-03/f2.png --prompt <�
 
 ```bash
 node scripts/frames.mjs grid --work $W --from frames/E01-03/f1.png --name corridor
+node scripts/frames.mjs grid --work $W --name corridor --crop 2,3
 ```
 
 장소 설정화나 첫 프레임을 참고 이미지 1로 삼아 16:9 격자 한 장을 뽑습니다. 같은 장면, 같은 인물에서 카메라 높이와 숏 크기만 바뀝니다. 끝 문장은 격자 전용 문장(몇 행 몇 열, 칸 사이 가는 흰 선, 글자 없음)으로 바뀝니다. `manual`이면 설명을 `_handoff/grid/<이름>.txt`로 내보냅니다. `openai`로 호환 서비스를 거쳐 실측했습니다(《大水》 사무실, 인물 2명, 1장).
+
+그림을 만들 때 `_handoff/grid/<이름>.json`에 행과 열 수, 각 행과 열의 뜻도 적습니다. `--crop 행,열`(1부터 셈)은 자르기만 하고 그림은 만들지 않습니다. 칸 사이 흰 선을 따라 그 칸을 잘라 `<이름>-r<행>c<열>.png`로 저장하고, 흰 선을 다 찾지 못하면 등분한 뒤 네 변을 2%씩 안쪽으로 줄입니다. `.json`이 없으면 3행 4열로 봅니다. 잘린 칸은 약 400×300이고 작품 화면비도 아니니 앵글 참고로만 씁니다.
 
 ## 도구를 바꿀 때 주의할 점
 

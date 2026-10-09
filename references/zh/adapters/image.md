@@ -79,9 +79,12 @@ node scripts/frames.mjs fix --work $W --target frames/E01-03/f2.png --prompt <�
 
 ```bash
 node scripts/frames.mjs grid --work $W --from frames/E01-03/f1.png --name 楼道
+node scripts/frames.mjs grid --work $W --name 楼道 --crop 2,3
 ```
 
 拿一张场景设定图或首帧当参考图 1，出一张 16:9 宫格图：同一场景、同样的人，只换机位高度和景别。末尾那句换成宫格专用的「几行几列、格间细白线、不加文字」。`manual` 时导出说明到 `_handoff/grid/<名字>.txt`。走 `openai` 经兼容服务实测过（《大水》办公区，两个人物，1 张）。
+
+出图时同时写下 `_handoff/grid/<名字>.json`，记几行几列、每行每列是什么。`--crop 行,列`（从 1 数）只切图、不出图：沿格间白线切出那一格，存成 `<名字>-r<行>c<列>.png`；白线没找全就等分切、四边往里收 2%。没有 `.json` 时按 3 行 4 列算。切出的格约 400×300，比例也不是作品画幅，只当机位参考。
 
 ## 换工具时注意
 

@@ -27,8 +27,9 @@ const USAGE = () => T(`frames.mjs — 出图
         单张重画：提示词只写要改的那一处。原图自动当参考图 1，提示词前后自动套上「只改…，其余保持原图不变」；
         --raw 不套、不自动挂原图。旧图改名为 <名>.v<N>.png
   grid  --work <作品目录> --from <参考图> --name <名字> [--rows 平视,仰拍,俯拍] [--cols 远景,中景,特写,大特写] [--provider …]
+  grid  --work <作品目录> --name <名字> --crop 行,列
         挑机位：同一场景按「行 = 机位高度、列 = 景别」出一张 16:9 宫格图，放到 _handoff/grid/<名字>.png。
-        每格很小，只用来挑角度，不当首帧；不改任务单
+        每格很小，只用来挑角度，不当首帧；不改任务单。--crop 行,列 把挑中的那一格切成 <名字>-r<行>c<列>.png，当机位参考
   status --work <作品目录>`,
 `frames.mjs — images
 
@@ -43,8 +44,9 @@ const USAGE = () => T(`frames.mjs — 出图
         Redraw one image: the prompt names the one thing to change. The original becomes reference 1 and the prompt is wrapped in
         "change only …, keep the rest as the original"; --raw skips both. The old image becomes <name>.v<N>.png
   grid  --work <project dir> --from <reference> --name <name> [--rows a,b,c] [--cols a,b,c,d] [--provider …]
+  grid  --work <project dir> --name <name> --crop row,col
         Choose angles: one 16:9 grid of the same scene, rows = camera height, columns = shot size, at _handoff/grid/<name>.png.
-        Cells are small: for choosing angles only, not a first frame. tasks.json is not touched
+        Cells are small: for choosing angles only, not a first frame. tasks.json is not touched. --crop row,col cuts the chosen cell to <name>-r<row>c<col>.png as an angle reference
   status --work <project dir>`,
 `frames.mjs — 이미지
 
@@ -59,8 +61,9 @@ const USAGE = () => T(`frames.mjs — 出图
         한 장 다시 그리기: 프롬프트에는 고칠 한 곳만 씁니다. 원본이 자동으로 참고 이미지 1이 되고, 프롬프트 앞뒤에
         「이것만 고침…, 나머지는 원본 그대로」를 붙입니다. --raw는 둘 다 하지 않습니다. 원본은 <이름>.v<N>.png로 바뀝니다
   grid  --work <작품 폴더> --from <참고 이미지> --name <이름> [--rows a,b,c] [--cols a,b,c,d] [--provider …]
+  grid  --work <작품 폴더> --name <이름> --crop 행,열
         앵글 고르기: 같은 장면을 「행 = 카메라 높이, 열 = 숏 크기」로 16:9 격자 한 장에 담아 _handoff/grid/<이름>.png에 둡니다.
-        칸이 작아 앵글 고르기용이며 첫 프레임으로 쓰지 않습니다. tasks.json은 건드리지 않습니다
+        칸이 작아 앵글 고르기용이며 첫 프레임으로 쓰지 않습니다. tasks.json은 건드리지 않습니다. --crop 행,열 은 고른 칸을 <이름>-r<행>c<열>.png로 잘라 앵글 참고로 씁니다
   status --work <작품 폴더>`);
 
 const flags = (argv, name) => argv.flatMap((a, i) => (a === name && argv[i + 1] ? [argv[i + 1]] : []));
@@ -375,6 +378,7 @@ async function cmdFix(argv) {
 async function cmdGrid(argv) {
   const work = resolve(flag(argv, '--work'));
   const W = await openWork(work);
+  if (flag(argv, '--crop')) return cropGrid(work, argv);
   const pv = provider(argv, W);
   const from = flag(argv, '--from') ?? die(T('缺 --from（参考图：场景设定图或已有首帧）', 'missing --from (reference: a scene sheet or an existing first frame)', '--from이 없습니다(참고 이미지: 장소 설정화나 이미 있는 첫 프레임)'));
   if (!existsSync(resolve(work, from))) die(T(`找不到 ${from}`, `not found: ${from}`, `찾을 수 없음: ${from}`));
@@ -386,6 +390,9 @@ async function cmdGrid(argv) {
   const style = (W.project.style ?? '').trim();
   const prompt = `${style ? `${style}\n\n` : ''}${IMG.grid(rows, cols)}`;
   const target = `_handoff/grid/${name}.png`;
+  // 记下行列含义，--crop 靠它知道几行几列
+  mkdirSync(join(work, '_handoff', 'grid'), { recursive: true });
+  writeFileSync(join(work, '_handoff', 'grid', `${name}.json`), JSON.stringify({ from, rows, cols }, null, 1) + '\n');
   // 参考图路径按作品目录算；作品目录外的图先复制进来，出图工具才读得到
   let ref = from;
   if (!resolve(work, from).startsWith(work + '/')) {
@@ -412,6 +419,69 @@ async function cmdGrid(argv) {
   console.log(T(`  每格约 ${cell}，只用来挑角度；挑好后把角度写进分镜的 angle 和 size`,
     `  each cell is about ${cell}: choose angles from it, then write them into the storyboard's angle and size`,
     `  칸마다 약 ${cell}: 앵글만 고르고, 고른 것은 콘티의 angle과 size에 적으세요`));
+}
+
+// 从宫格图切出一格（行、列从 1 数）：找格间的白线，找不到就等分再往里收一点，免得带进白线
+function cropGrid(work, argv) {
+  const name = flag(argv, '--name') ?? die(T('缺 --name', 'missing --name', '--name이 없습니다'));
+  const src = join(work, '_handoff', 'grid', `${name}.png`);
+  if (!existsSync(src)) die(T(`找不到 _handoff/grid/${name}.png，先出宫格图`, `not found: _handoff/grid/${name}.png; make the grid first`, `_handoff/grid/${name}.png 없음: 격자 그림을 먼저 만드세요`));
+  const side = join(work, '_handoff', 'grid', `${name}.json`);
+  let R = 3, C = 4;
+  if (existsSync(side)) { const j = readJson(side); R = j.rows.length; C = j.cols.length; }
+  else console.log(T(`· 没有 ${name}.json，按 3 行 4 列切`, `· no ${name}.json; assuming 3 rows × 4 columns`, `· ${name}.json 없음: 3행 4열로 자릅니다`));
+  const m = String(flag(argv, '--crop')).match(/^(\d+)[,，](\d+)$/);
+  if (!m) die(T('--crop 写成 行,列，比如 2,3', '--crop takes row,column, e.g. 2,3', '--crop은 행,열로 쓰세요. 예: 2,3'));
+  const r = +m[1], c = +m[2];
+  if (r < 1 || r > R || c < 1 || c > C) die(T(`--crop ${r},${c} 超出范围：这张图是 ${R} 行 ${C} 列`, `--crop ${r},${c} is out of range: this grid has ${R} rows and ${C} columns`, `--crop ${r},${c} 범위 밖: 이 그림은 ${R}행 ${C}열`));
+  const s = pngSize(src) ?? die(T('宫格图不是 PNG', 'the grid image is not a PNG', '격자 그림이 PNG가 아닙니다'));
+  const px = execFileSync('ffmpeg', ['-v', 'error', '-i', src, '-f', 'rawvideo', '-pix_fmt', 'gray', '-'], { maxBuffer: s.w * s.h + 1024 });
+  // 每一列、每一行像素的平均亮度；白线所在的那几列（行）接近纯白
+  const colMean = new Float64Array(s.w), rowMean = new Float64Array(s.h);
+  for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) { const v = px[y * s.w + x]; colMean[x] += v; rowMean[y] += v; }
+  for (let x = 0; x < s.w; x++) colMean[x] /= s.h;
+  for (let y = 0; y < s.h; y++) rowMean[y] /= s.w;
+  // 在每条应有的分隔线附近（±5%）找最靠近的白带，返回白带的 [起, 止]
+  const lines = (mean, len, n) => {
+    const out = [];
+    for (let k = 1; k < n; k++) {
+      const want = (len * k) / n, win = len * 0.05;
+      let best = null;
+      for (let i = Math.max(0, Math.floor(want - win)); i <= Math.min(len - 1, Math.ceil(want + win)); i++) {
+        if (mean[i] <= 240) continue;
+        let a = i, b = i;
+        while (a > 0 && mean[a - 1] > 240) a--;
+        while (b < len - 1 && mean[b + 1] > 240) b++;
+        if (!best || Math.abs((a + b) / 2 - want) < Math.abs((best[0] + best[1]) / 2 - want)) best = [a, b];
+        i = b;
+      }
+      if (!best) return null;
+      out.push(best);
+    }
+    return out;
+  };
+  const span = (mean, len, n, i) => {
+    const ls = lines(mean, len, n);
+    if (ls) {
+      // 外框也可能有白边：从图边往里跳过白带
+      let a0 = 0, b0 = len - 1;
+      while (a0 < len - 1 && mean[a0] > 240) a0++;
+      while (b0 > 0 && mean[b0] > 240) b0--;
+      const a = i === 1 ? a0 : ls[i - 2][1] + 1, b = i === n ? b0 : ls[i - 1][0] - 1;
+      return { a, b, found: true };
+    }
+    const w = len / n, inset = Math.round(w * 0.02);
+    return { a: Math.round(w * (i - 1)) + inset, b: Math.round(w * i) - 1 - inset, found: false };
+  };
+  const X = span(colMean, s.w, C, c), Y = span(rowMean, s.h, R, r);
+  const out = `_handoff/grid/${name}-r${r}c${c}.png`;
+  const cw = X.b - X.a + 1, ch = Y.b - Y.a + 1;
+  execFileSync('ffmpeg', ['-y', '-v', 'error', '-i', src, '-vf', `crop=${cw}:${ch}:${X.a}:${Y.a}`, join(work, out)], { stdio: 'ignore' });
+  const how = X.found && Y.found ? T('按白线切', 'cut along the white lines', '흰 선을 따라 자름') : T('没找全白线，按等分切并往里收 2%', 'white lines not all found; equal split with a 2% inset', '흰 선을 다 찾지 못해 2% 안쪽으로 등분');
+  console.log(`✓ ${out}  ${cw}×${ch}  (${how})`);
+  console.log(T('  这一格很小，只当机位参考：比如 frames.mjs fix --ref 它，或手动出图时一起上传',
+    '  the cell is small; use it only as a camera-angle reference, e.g. frames.mjs fix --ref it, or upload it with a manual brief',
+    '  칸이 작으니 앵글 참고로만 쓰세요. 예: frames.mjs fix --ref 로 넘기거나 수동 생성 때 함께 올리기'));
 }
 
 async function cmdStatus(argv) {

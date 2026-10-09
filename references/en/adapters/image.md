@@ -81,9 +81,12 @@ The original goes in as reference image 1. The prompt file names only the one th
 
 ```bash
 node scripts/frames.mjs grid --work $W --from frames/E01-03/f1.png --name corridor
+node scripts/frames.mjs grid --work $W --name corridor --crop 2,3
 ```
 
 Takes a scene sheet or a first frame as reference 1 and makes one 16:9 grid: the same scene and the same people, with only the camera height and shot size changing. The closing sentence is replaced by a grid-only one (rows and columns, thin white lines between panels, no text). With `manual` it exports a brief to `_handoff/grid/<name>.txt`. Tested through a compatible service with `openai` (the 《大水》 office, two people, one image).
+
+It also writes `_handoff/grid/<name>.json` with the row and column labels. `--crop row,col` (counting from 1) only cuts, it makes no image: it cuts that cell along the white lines and saves `<name>-r<row>c<col>.png`; if the lines are not all found it splits evenly with a 2% inset on each side. Without the `.json` it assumes 3 rows × 4 columns. A cell is about 400×300 and not in the work's aspect: use it only as an angle reference.
 
 ## When you switch tools
 
