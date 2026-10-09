@@ -14,6 +14,7 @@ const J = T('、', ', ', ', ');
 const ep = Number(flag(argv, '--ep', '1'));
 const err = [], warn = [];
 const SIZES = ['extreme-wide', 'wide', 'full', 'medium', 'medium-close', 'close', 'extreme-close'];
+const SIZE_NAMES = Object.entries(P.sizes).sort((a, b) => b[1].length - a[1].length);
 const CAMERAS = ['Static Shot', 'Push In', 'Pull Out', 'Pan', 'Tilt', 'Rack Focus', 'Tracking Shot', 'Handheld', 'Crane', 'POV'];
 const MEDIA = /\.(mp4|mov|m4v|webm|png|jpe?g|webp)$/i;
 const { w: CW, h: CH } = W.aspect;
@@ -111,6 +112,10 @@ for (const seg of segmentsOf(W.storyboard, ep)) {
     if (c.size === 'extreme-close' && spoken) warn.push(T(`${k}：大特写里有人说话，嘴在不在画面里都对不上口型，改特写或中近景`, `${k}: someone speaks in an extreme close-up; lip sync fails whether the mouth is in frame or not; use a close-up or medium close-up`, `${k}: 익스트림 클로즈업에서 대사가 있습니다. 입이 화면에 있든 없든 립싱크가 맞지 않습니다. 클로즈업이나 미디엄 클로즈업으로 바꾸세요`));
     // 景别会写进首帧提示词：大特写只拍一个局部，画面写了整张脸就是特写
     if (c.size === 'extreme-close' && P.wholeFace.test(c.frame ?? '')) warn.push(T(`${k}：标的是大特写（一个局部），画面写的却是整张脸；整张脸是特写，改 size 为 close`, `${k}: marked extreme-close (one detail) but the frame describes a whole face; a whole face is a close-up, set size to close`, `${k}: 익스트림 클로즈업(한 부분)인데 화면 설명은 얼굴 전체입니다. 얼굴 전체는 클로즈업이니 size를 close로 바꾸세요`));
+    // 画面描述开头写了景别名却和 size 不一样：景别句和描述在首帧提示词里会打架。名字按长的先比，「中近景」不会当成「中景」
+    const head = (c.frame ?? '').split(/[，。、；：,.;:]/)[0].trim().toLowerCase();
+    const named = SIZE_NAMES.find(([, n]) => head.startsWith(n.toLowerCase()));
+    if (named && SIZES.includes(c.size) && named[0] !== c.size) warn.push(T(`${k}：size 标的是「${P.sizes[c.size]}」，画面描述开头写的是「${named[1]}」；两句会一起写进首帧提示词，改成一致`, `${k}: size is "${P.sizes[c.size]}" but the frame text starts with "${named[1]}"; both go into the first-frame prompt, make them match`, `${k}: size는 "${P.sizes[c.size]}"인데 화면 설명은 "${named[1]}"(으)로 시작합니다. 둘 다 첫 프레임 프롬프트에 들어가니 맞추세요`));
     if (c.size === 'full' && spoken && c.camera !== 'Push In') warn.push(T(`${k}：全景里有人说话，脸偏小，口型和长相容易走样；改中景，或用推镜推到近处`, `${k}: someone speaks in a full shot; the face is small and lips and looks drift; use a medium shot or push in`, `${k}: 풀숏에서 대사가 있습니다. 얼굴이 작아 입 모양과 얼굴이 흔들립니다. 미디엄 숏으로 바꾸거나 푸시 인으로 다가가세요`));
     if (P.young.test(c.frame ?? '') && !P.adult.test(c.frame ?? '') && ['close', 'extreme-close', 'medium-close'].includes(c.size))
       warn.push(T(`${k}：近景里的年轻人物没写「成年」，可能被判成未成年人而不出片`, `${k}: a young character in a close shot is not described as an adult; the tool may flag them as a minor and refuse`, `${k}: 근접 숏의 젊은 인물에 "성인"이 없습니다. 미성년자로 판정되어 생성이 거부될 수 있습니다`));
