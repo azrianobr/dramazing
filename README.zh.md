@@ -70,7 +70,7 @@ dramazing 是一个 AI 助手用的 skill（[Agent Skills](https://agentskills.i
 
 ## 功能
 
-**出图。** 四种方式：手动（`manual`）、接你的命令行（`cmd`）、Codex CLI 内置出图（`codex`）、OpenAI 图像接口（`openai`，官方或兼容的服务，密钥放在环境变量 `DZ_IMAGES_KEY`）。首帧提示词自动带一句景别说明，写明画面裁到哪。改一张图用 `fix`：原图自动当参考图，只改你写的那一处。见 [`adapters/image.md`](references/zh/adapters/image.md)。
+**出图。** 四种方式：手动（`manual`）、接你的命令行（`cmd`）、Codex CLI 内置出图（`codex`）、OpenAI 图像接口（`openai`，官方或兼容的服务，密钥放在环境变量 `DZ_IMAGES_KEY`）。首帧提示词自动带一句景别说明，写明画面裁到哪；分镜写了 `angle` 的，再带一句机位。改一张图用 `fix`：原图自动当参考图，只改你写的那一处。见 [`adapters/image.md`](references/zh/adapters/image.md)。
 
 **画幅。** `project.json` 的 `aspect` 选横屏 16:9 或竖屏 9:16。首帧、提示词、预览、剪辑、字幕都跟着变，人物和场景设定图仍是 16:9。见 [`data-format.md`](references/zh/data-format.md)。
 
