@@ -150,7 +150,8 @@ for seg in a.segs or list(plan):
         if over <= 0: break
         if talk[i]: continue
         c = min(over, max(0, D[i] - 2.0)); D[i] -= c; over -= c
-    D = [round(x, 2) for x in D]
+    # 时长取整到帧格（1/24 秒）：截取点、淡出、shots.json 和实际出片用同一个长度，assemble 按它放字幕
+    D = [round(max(1, round(x * 24)) / 24, 4) for x in D]
     fc, ins, tmp = '', [], tempfile.mkdtemp()
     for i, f in enumerate(shots):
         sp = SP[i]; x = len([v for v in ins if v == '-i']); ins += media_in(f, IN[i] + D[i] * sp); fo = max(0, D[i] - 0.08)
@@ -189,11 +190,13 @@ for seg in a.segs or list(plan):
                    f"[q{i}][tt{i}]overlay=0:0:shortest=1:enable='between(t,{t0},{t1:.3f})'[r{i}];")
         else:
             fc += f'[q{i}]null[r{i}];'
-        fc += f'[r{i}]format=yuv420p[v{i}];'
+        # 每切画面补/截到正好 nf 帧、声音补/截到同样的 nf/24 秒再拼：提速镜头两条流各差几十毫秒，不钉住会在段内越积越多（《大水》第 1 段末尾声音早约 0.1 秒）
+        nf = round(D[i] * 24)
+        fc += f'[r{i}]format=yuv420p,tpad=stop_mode=clone:stop_duration=1,trim=end_frame={nf},setpts=PTS-STARTPTS[v{i}];'
         if has_audio(f):
-            fc += f'[{x}:a]atrim={a0}:{a1},asetpts=PTS-STARTPTS,aresample=48000,' + (f'atempo={sp},' if sp != 1 else '') + f'afade=t=out:st={fo}:d=0.08[a{i}];'
+            fc += f'[{x}:a]atrim={a0}:{a1},asetpts=PTS-STARTPTS,aresample=48000,' + (f'atempo={sp},' if sp != 1 else '') + f'afade=t=out:st={fo}:d=0.08,apad,atrim=end_sample={nf * 2000},asetpts=PTS-STARTPTS[a{i}];'
         else:  # 录屏、截图没有声音：垫一段同样长的静音，concat 才拼得上
-            fc += f'anullsrc=channel_layout=stereo:sample_rate=48000,atrim=0:{D[i]},asetpts=PTS-STARTPTS[a{i}];'
+            fc += f'anullsrc=channel_layout=stereo:sample_rate=48000,atrim=end_sample={nf * 2000},asetpts=PTS-STARTPTS[a{i}];'
     k = len(shots)
     fc += ''.join(f'[v{i}][a{i}]' for i in range(k)) + f'concat=n={k}:v=1:a=1[v][a];[a]loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000[ao]'
     out = f'{W}/{seg}.mp4'
