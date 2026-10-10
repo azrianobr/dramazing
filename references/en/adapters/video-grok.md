@@ -38,6 +38,7 @@ The download button spins, nothing lands after several minutes, or a 0-byte file
 2. Click download once and check that the button starts spinning. If it does not, the click did not register; click again.
 3. Once it spins, wait 5 to 8 minutes. If nothing has landed, reload this page, pause the video and click again. After a reload the download often finishes at once.
 4. Move a 0-byte file away before downloading again, or the next file lands with a `(1)` name.
+5. The button does nothing at all (no spinner, nothing lands; 各论各的 E01-01/s1 rework): fetch the video from a script in that page. Read the `<video>` element's address, `fetch` it with credentials, and save it as a download named with the shot number (`grok-E01-01-s1.mp4`) so `ingest.sh` picks it up from the folder. Fetching that address with curl from a terminal returns 403. Check the length with `ffprobe` afterwards.
 
 ## Recording usage
 

@@ -62,6 +62,7 @@ Follow the rules below when you write. Each one comes from a real problem in vid
 - **When someone speaks to a person off-screen, `eyeline` gives only the direction.** "Off-screen, frame right"; do not say who that person is.
 - **No character names in hand close-ups.** Write "a hand", not "her hand".
 - **Use the last frame for continuous action.** When the action of two cuts must connect (standing up, handing something over), the next cut's first frame is the frame at the previous cut's cut point, not the storyboard frame.
+- **Handing something across, shoot over the shoulder.** Shoot from behind the receiver, with the giver facing the camera and pushing the object toward the camera until it is in front of the receiver. If you film the giver head-on and only write "pushes it to the person opposite", the video model cannot draw a push toward the camera and sends it to the table edge or the frame edge (各论各的 E01-03/s1, first two takes). The first frame can reuse an over-the-shoulder frame from the same scene.
 - **State what small props are doing.** Loose or tied up, where they are, whether anyone touches them.
 - **Text to be read never faces the camera.** The text is overlaid in the edit, so the generated cut says "the note always shows its back to the camera". Otherwise the model draws a line of garbled text.
 - **Use a static camera wherever possible, and give each cut one continuous chain of action.** In 加油, 13 of the 14 cuts were static, and each was generated in one attempt.
