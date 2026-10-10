@@ -146,6 +146,8 @@ for (const k of ['intro', 'outro']) {
   if (f && !/\.(mp4|mov|m4v)$/i.test(f)) err.push(T(`分镜的 ${k} 要是视频文件：${f}`, `storyboard ${k} must be a video file: ${f}`, `콘티의 ${k}는 동영상 파일이어야 합니다: ${f}`));
   else if (f && !existsSync(join(W.work, f))) warn.push(T(`分镜的 ${k} 素材 ${f} 还没放进作品目录，拼整集会停`, `storyboard ${k} file ${f} is not in the work dir yet; assemble will stop`, `콘티의 ${k} 소재 ${f}이(가) 아직 작품 폴더에 없습니다. 합치기가 멈춥니다`));
 }
+const fadeOut = W.storyboard.episodes?.find((e) => e.ep === ep)?.fadeOut;
+if (fadeOut != null && !(typeof fadeOut === 'number' && fadeOut >= 0 && fadeOut <= 5)) err.push(T(`分镜的 fadeOut 要是 0–5 之间的秒数：${fadeOut}`, `storyboard fadeOut must be seconds between 0 and 5: ${fadeOut}`, `콘티의 fadeOut은 0–5 사이의 초여야 합니다: ${fadeOut}`));
 for (const a of W.storyboard.episodes?.find((e) => e.ep === ep)?.audio ?? []) {
   if (!a.file) err.push(T('分镜的 audio 每条都要写 file', 'every storyboard audio entry needs a file', '콘티의 audio 항목마다 file이 필요합니다'));
   else if (!existsSync(join(W.work, a.file))) warn.push(T(`分镜的 audio 素材 ${a.file} 还没放进作品目录，拼整集会停`, `storyboard audio file ${a.file} is not in the work dir yet; assemble will stop`, `콘티의 audio 소재 ${a.file}이(가) 아직 작품 폴더에 없습니다. 합치기가 멈춥니다`));
