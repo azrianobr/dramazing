@@ -4,7 +4,8 @@
 手工修正写在 <dir>/fix.json：{"E01-06": {"skip": [2], "fix": {"1": 4.0}, "in": {"3": 1.25}, "extra": {"5": 4.5}}}
   skip=不用的镜头号，fix=强制时长（秒），in=从原片第几秒开始取（默认 0，动作来得晚时用），extra=分镜外追加的镜头（号: 时长，接在段尾），
   speed=加速系数（号: 1.2；画面和声音同一个系数，口型不错位，音高不变）
---rate 4.0：有台词的镜头按实测语速自动加速到每秒约 4.0 字（只加不减，系数上限 1.3，再快人物动作就假）；fix.json 的 speed 优先
+--rate 4.0：有台词的镜头按实测语速自动加速到每秒约 4.0 字（只加不减，系数上限 1.3，再快人物动作就假）；fix.json 的 speed 优先。
+  写了 fix（强制时长）的镜头照样自动加速，fix 是加速后的成片秒数
 project.json 写了 cutTail（秒）时，有台词的镜头按「台词说完 + cutTail」切，不再至少留到分镜时长（台词后人物干站着会显得拖）。
 画布按 project.json 的 aspect（不写是 16:9，长边 1920）。插入镜头（cut.insert）直接取作品目录里的素材，按分镜时长、insert.fit 放进画布；
 贴屏（cut.screen 写了 file 和 corners）把素材按四个角贴到镜头里的屏幕上。素材没有声音时垫静音。
@@ -117,6 +118,12 @@ for seg in a.segs or list(plan):
         f = src_of(seg, n); shots.append(f); nums.append(n); IN.append(inp.get(n, 0)); length = dur(f) - IN[-1]
         sp = spd.get(n, 1.0)
         if n in fixd:
+            # 强制时长也照常按 --rate 自动加速（fix.json 写了 speed 时用 speed），不然改时长会悄悄把加速丢掉
+            if n not in spd and a.rate and has_lines(f'{seg}/s{n}') and not insert_of(CUTS[seg][i]):
+                st, e, txt = speech_end(f, IN[-1]); r = rate_of(f'{seg}/s{n}', st, e)
+                if r: sp = round(min(SPMAX, max(1.0, a.rate / r)), 2)
+                print(T(f'  {seg}/s{n} 强制 {fixd[n]}s「{txt.strip()}」', f'  {seg}/s{n} fixed {fixd[n]}s "{txt.strip()}"', f'  {seg}/s{n} 고정 {fixd[n]}초 「{txt.strip()}」') + rate_note(f'{seg}/s{n}', st, e)
+                      + (T(f'，加速 ×{sp}', f', speed ×{sp}', f', 가속 ×{sp}') if sp != 1 else ''))
             D.append(fixd[n]); talk.append(True); SP.append(sp); continue
         if insert_of(CUTS[seg][i]):  # 插入镜头按分镜时长，不参与扣时间
             D.append(min(p, length)); talk.append(True); SP.append(1.0); continue

@@ -138,7 +138,7 @@ python3 scripts/review.py --work $W --ep $EP                              # revi
 ```
 
 - `cut.py` uses whisper to find when the dialogue ends, and always keeps at least that much.
-- Write manual cut points in `video/fix.json`: `{"E01-06": {"fix": {"1": 4.0}, "skip": [2], "in": {"3": 1.25}, "speed": {"4": 1.6}}}`. Shots in `fix` are not shortened. `in` is the second of the raw clip to start from: if an action comes later than the prompt asked (a lamp that goes out a second late), take the later part instead of generating again.
+- Write manual cut points in `video/fix.json`: `{"E01-06": {"fix": {"1": 4.0}, "skip": [2], "in": {"3": 1.25}, "speed": {"4": 1.6}}}`. Shots in `fix` are not shortened; `fix` is the length after speed-up, and the cut is still sped up by `--rate`. To pin the factor, set it in `speed`. `in` is the second of the raw clip to start from: if an action comes later than the prompt asked (a lamp that goes out a second late), take the later part instead of generating again.
 - When you check sampled frames, always look at the full frame. Do not crop to the faces.
 - The user gives feedback by shot ID (such as `06-2`). For rework, first check for a spare second take; generate again only if there is none. Then go back to step 9.
 - Cutting off a flaw at the end is cheaper than generating again: if the flaw appears late, after the dialogue is over, shorten the cut in `fix.json`.

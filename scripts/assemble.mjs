@@ -70,7 +70,7 @@ function speechPieces(file) {
 
 // 配乐与音效（分镜里这一集的 audio）：每条按集时间轴 at 秒放进去，from/dur 取素材的一段，
 // gain 调音量（dB），fadeIn/fadeOut 淡入淡出；duck 给负 dB，有字幕（台词）的时段自动压低，前后各留一点缓坡
-function mixAudio(work, base, entries, subs, loudnorm) {
+function mixAudio(work, base, entries, subs, loudnorm, fade = '') {
   const inputs = [];
   const chains = [];
   entries.forEach((e, i) => {
@@ -97,7 +97,7 @@ function mixAudio(work, base, entries, subs, loudnorm) {
     }
     chains.push(`${c}[m${i}]`);
   });
-  const mix = `[0:a]aformat=sample_rates=48000:channel_layouts=stereo[p];[p]${entries.map((_, i) => `[m${i}]`).join('')}amix=inputs=${entries.length + 1}:duration=first:normalize=0${loudnorm ? ',loudnorm=I=-16:TP=-1.5:LRA=11' : ''}[a]`;
+  const mix = `[0:a]aformat=sample_rates=48000:channel_layouts=stereo[p];[p]${entries.map((_, i) => `[m${i}]`).join('')}amix=inputs=${entries.length + 1}:duration=first:normalize=0${loudnorm ? ',loudnorm=I=-16:TP=-1.5:LRA=11' : ''}${fade}[a]`;
   const tmp = `${base}.mixing.mp4`;
   execFileSync('ffmpeg', ['-y', '-v', 'error', '-i', `${base}.mp4`, ...inputs, '-filter_complex', [...chains, mix].join(';'),
     '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', tmp]);
@@ -151,10 +151,14 @@ function cmdAssemble(argv) {
     const lines = [];
     seg.cuts.forEach((c, ci) => {
       let t = starts[ci];
+      const cutEnd = Math.min(starts[ci + 1] ?? dur, dur);
       for (const b of scene.beats.filter((x) => x.n >= c.beats[0] && x.n <= c.beats[1])) {
-        // 实际片长可能比分镜短（远程整段生成），字幕不越过本段结尾
-        const end = Math.min(t + b.seconds, starts[ci + 1] ?? dur, dur);
-        if (b.say && t < dur) lines.push({ from: t, to: end, text: speakable(b.say), win: [starts[ci], Math.min(starts[ci + 1] ?? dur, dur)] });
+        // 实际片长可能比分镜短（远程整段生成），字幕不越过本段结尾。
+        // 剪辑把这一切剪得比节拍短时，后面的句子按节拍排会排到切尾之后（结束早于开始，封软字幕会报错），
+        // 这时把起点收进这一切的最后 1 秒；--align 会再按实际说话时间对齐
+        const from = Math.max(starts[ci], Math.min(t, cutEnd - 1));
+        const end = Math.max(Math.min(t + b.seconds, cutEnd), Math.min(from + 1, cutEnd));
+        if (b.say && from < dur) lines.push({ from, to: end, text: speakable(b.say), win: [starts[ci], cutEnd] });
         t += b.seconds;
       }
     });
@@ -172,6 +176,11 @@ function cmdAssemble(argv) {
     offset += frames(f) / 24;
   }
   if (outro) parts.push(outro);
+  // 集尾淡出（分镜这一集的 fadeOut，秒）：画面和声音一起在最后这么多秒淡到黑、淡到无声；配乐也一起淡
+  const total = parts.reduce((s, p) => s + frames(p) / 24, 0);
+  const fo = Math.min(Number(epSb.fadeOut ?? 0), total);
+  const vfade = fo > 0 ? `,fade=t=out:st=${(total - fo).toFixed(3)}:d=${fo}` : '';
+  const afade = fo > 0 ? `,afade=t=out:st=${(total - fo).toFixed(3)}:d=${fo}` : '';
   const list = join(dir, `E${String(epNo).padStart(2, '0')}.concat.txt`);
   writeFileSync(list, parts.map((p) => `file '${p.replace(/'/g, "'\\''")}'`).join('\n'));
   const base = join(dir, `E${String(epNo).padStart(2, '0')}`);
@@ -191,13 +200,13 @@ function cmdAssemble(argv) {
     const src = pr.audio ? `[${i}:a]` : `anullsrc=channel_layout=stereo:sample_rate=48000,`;
     fc.push(`${src}aresample=48000,aformat=channel_layouts=stereo,asetpts=N/SR/TB,apad,atrim=end_sample=${n * 2000}[a${i}]`);
   });
-  fc.push(parts.map((_, i) => `[v${i}]`).join('') + `concat=n=${parts.length}:v=1:a=0[v]`);
-  fc.push(parts.map((_, i) => `[a${i}]`).join('') + `concat=n=${parts.length}:v=0:a=1` + (loudnorm && !epSb.audio?.length ? ',loudnorm=I=-16:TP=-1.5:LRA=11' : '') + '[a]');
+  fc.push(parts.map((_, i) => `[v${i}]`).join('') + `concat=n=${parts.length}:v=1:a=0${vfade}[v]`);
+  fc.push(parts.map((_, i) => `[a${i}]`).join('') + `concat=n=${parts.length}:v=0:a=1` + (loudnorm && !epSb.audio?.length ? ',loudnorm=I=-16:TP=-1.5:LRA=11' : '') + (epSb.audio?.length ? '' : afade) + '[a]');
   execFileSync('ffmpeg', ['-y', '-v', 'error', ...ins, '-filter_complex', fc.join(';'), '-map', '[v]', '-map', '[a]',
     '-c:v', 'libx264', '-crf', '18', '-preset', 'medium', '-pix_fmt', 'yuv420p',
     // loudnorm 会把采样率升到 192k，AAC 只能退到 96k，部分播放器会卡画面；固定 48k，并把索引放到文件头
     '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', `${base}.mp4`]);
-  if (epSb.audio?.length) mixAudio(work, base, epSb.audio, subs, loudnorm);
+  if (epSb.audio?.length) mixAudio(work, base, epSb.audio, subs, loudnorm, afade);
   checkAV(`${base}.mp4`);
   // 本机 ffmpeg 没编 libass，烧不了硬字幕：封一条 mov_text 软字幕轨（QuickTime / IINA 可开关），
   // 要硬字幕时换带 libass 的 ffmpeg 再用 subtitles 滤镜
