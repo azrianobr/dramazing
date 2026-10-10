@@ -10,7 +10,7 @@
       "name": "dramazing",
       "source": "./",
       "description": "Turn a short story (Chinese, English or Korean) into an episodic AI drama: script, storyboard, first frames, video, subtitles.",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "license": "Apache-2.0"
     }
   ]
