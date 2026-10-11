@@ -141,6 +141,12 @@ python3 scripts/review.py --work $W --ep $EP                              # revi
 - Write manual cut points in `video/fix.json`: `{"E01-06": {"fix": {"1": 4.0}, "skip": [2], "in": {"3": 1.25}, "speed": {"4": 1.6}}}`. Shots in `fix` are not shortened; `fix` is the length after speed-up, and the cut is still sped up by `--rate`. To pin the factor, set it in `speed`. `in` is the second of the raw clip to start from: if an action comes later than the prompt asked (a lamp that goes out a second late), take the later part instead of generating again.
 - When you check sampled frames, always look at the full frame. Do not crop to the faces.
 - The user gives feedback by shot ID (such as `06-2`). For rework, first check for a spare second take; generate again only if there is none. Then go back to step 9.
+- **Adding cuts mid-production** (after a viewing calls for more setup or a faster pace): first add the new cuts to `storyboard.json`, then shift the later cut numbers with `renumber.mjs` instead of renaming files by hand. It renumbers the first frames, the source clips, `fix.json`, `prompts.json` and `shots.json` together; if `prompts.json` and `shots.json` keep the old numbers, `cut.py` matches lines to the wrong shots and the edit comes out the wrong length (真的). Afterwards, follow its prompt to rebuild the task list and fill in the new prompts. To drop a cut, put its number in `skip` in `fix.json`; no renumbering needed.
+
+  ```bash
+  node scripts/renumber.mjs --work $W --seg E01-03 --insert 2 --count 2 --dry   # list the changes first
+  node scripts/renumber.mjs --work $W --seg E01-03 --insert 2 --count 2         # old cut 2 onward moves up by 2
+  ```
 - Cutting off a flaw at the end is cheaper than generating again: if the flaw appears late, after the dialogue is over, shorten the cut in `fix.json`.
 - `speed` is the speed-up factor for the cut. Picture and sound speed up together, and the pitch stays the same. For a vertical short, follow the pacing in section 5 of `writing.md`: ×1.4–2.0 for action-only shots.
 - **Check that sound and picture stay in sync.** `cut.py` and `assemble.mjs` compare the length of the audio and the video after each render, and stop if they differ by more than 0.25 seconds. The total length cannot show a drift in the middle, so if you do extra post-production yourself, also check:

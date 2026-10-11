@@ -5,14 +5,16 @@ from PIL import Image, ImageFilter, ImageFont, ImageOps
 
 LANGS = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'lang', 'langs.json'), encoding='utf-8'))
 _story, _rate, _loaded, _aspect, _tail, _subfont = 'zh', None, False, '16:9', None, None
+_maxspeed, _minshot = 1.3, 2.0
 
 
 def load(work):
     """读作品的 project.json，定下故事语言；返回 project"""
-    global _story, _rate, _loaded, _aspect, _tail, _subfont
+    global _story, _rate, _loaded, _aspect, _tail, _subfont, _maxspeed, _minshot
     p = json.load(open(os.path.join(work, 'project.json'), encoding='utf-8'))
     _story, _rate, _loaded, _aspect = p.get('language', 'zh'), p.get('speechRate'), True, p.get('aspect', '16:9')
     _tail = p.get('cutTail')
+    _maxspeed, _minshot = p.get('maxSpeed', 1.3), p.get('minShot', 2.0)
     _subfont = p.get('subFont') and os.path.join(work, p['subFont'])  # 相对 project.json 所在目录；绝对路径原样用
     if _story not in LANGS: raise SystemExit(f'project.json language "{_story}": {" / ".join(LANGS)}')
     canvas()  # aspect 写错就在这里停
@@ -69,6 +71,14 @@ def wrap(draw, text, fnt, width):
 def cut_tail():
     """project.cutTail：有台词的镜头在台词说完后再留几秒就切（不写 = 至少留到分镜时长）"""
     return _tail
+
+def max_speed():
+    """project.maxSpeed：--rate 自动加速的系数上限（不写 = 1.3；超快节奏的片子可以放到 1.5 左右）"""
+    return _maxspeed
+
+def min_shot():
+    """project.minShot：剪辑后每个镜头最短几秒（成片秒数，不写 = 2.0）"""
+    return _minshot
 
 def canvas():
     """成片画布（宽, 高），和 lib.mjs 的 parseAspect 同一算法：project.aspect 写成 宽:高，长边 1920，短边取偶数"""

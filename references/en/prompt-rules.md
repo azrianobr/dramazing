@@ -19,7 +19,7 @@ Every prompt that `video-prompts.mjs` generates follows this order (`grok` and `
 7. Dialogue (the delivery described in English, the line itself in the story language).
 8. Key constraints.
 9. Number of people on screen.
-10. Ending: no subtitles, no text, no music.
+10. Ending: no subtitles, no text, no music. In Grok prompts for shots with dialogue, this sentence moves to the very front; at the end, Grok still burns in subtitles (各论各的, 真的).
 
 Everything is on one line, with no line breaks: pressing Enter in a web input box submits it immediately.
 
@@ -27,6 +27,8 @@ Everything is on one line, with no line breaks: pressing Enter in a web input bo
 
 - **Forbid actions directly; never name a forbidden object.** "Stays seated, never stands up" and "keeps their back to the camera the whole time, never turns around" work. "No bamboo hat" brings in a bamboo hat; write "this is the only person in the frame" instead.
 - **Replace names with appearance phrases.** Grok does not know character names. Write an appearance phrase in `alias` in `project.json`.
+- **Video tools ignore pronunciation notes; reword hard words.** Characters with more than one reading, or rare words, get read wrong. Writing "劫 is read jié" in the prompt does nothing: 「我是来抢劫的」 was still read jiè. Changing it to 「我是来打劫的」 was read right the first time (真的 E01-03/s1). Swap in a common word in the script; do not rely on pronunciation notes.
+- **Write the order of line and action as "first …, then …", with the approximate second.** Given only an action and a line, the video tool says the line while doing the action, and the line often comes too early. For "walks to the door, then calls out", write "first walks to the door; at about second 3 the shopkeeper calls out" (真的 E01-01/s3 rework).
 - **No dashes in dialogue.** A Chinese dash gets read out as 「一」 ("one"), so always use commas in dialogue and subtitles. For English and Korean, the generator replaces dashes with comma pauses.
 - **A long line in a long shot: say it is spoken in one breath.** When a 10-second shot has a single long line with commas, the video model spreads it out and pauses a second or two at a comma; the "no long pauses" the generator adds does not stop it. In the action, write "says the whole line in one breath, no pause or breath at the commas, finished within the first N seconds", with N = characters ÷ 5 per second for Chinese (各论各的 E01-01/s1: 26 characters, N = 5; pause 1.9 s → 0.4 s, line done in 4.7 s).
 - **Put delivery notes after the line, marked as not to be spoken.** In brackets before the line, they get read out as dialogue (in *Dukou* E03-11-1 the character said 「抹了把汗」, "wipes his sweat", aloud). In the script, `tone` is only the tone of voice; write actions as their own beat.

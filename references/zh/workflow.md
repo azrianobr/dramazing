@@ -139,6 +139,12 @@ python3 scripts/review.py --work $W --ep $EP                              # 审�
 - 手工剪点写进 `video/fix.json`：`{"E01-06": {"fix": {"1": 4.0}, "skip": [2], "in": {"3": 1.25}, "speed": {"4": 1.6}}}`。`fix` 的镜头不会被压缩；`fix` 是加速后的成片秒数，这一切照样按 `--rate` 自动加速，要固定系数就在 `speed` 里写。`in` 是从原片第几秒开始取：动作来得比提示词写的晚（比如灯晚了 1 秒才灭），就从后面取，不用重出。
 - 抽帧检查一律看完整画面，不裁到人脸。
 - 用户按编号（如 `06-2`）提意见。返工先看有没有备用的第二条，没有再重出，然后回到第 9 步。
+- **中途要加镜头**（看片后要补交代、补节奏）：先把新镜头写进 `storyboard.json`，再用 `renumber.mjs` 把后面的镜头号整体后移，不要手工改名。它会一起改首帧、原片、`fix.json`、`prompts.json`、`shots.json` 的编号；漏改 `prompts.json`、`shots.json` 时，`cut.py` 会按旧编号认台词，剪出来的长度不对（《真的》）。改完照它的提示重建任务单、补提示词。要去掉一个镜头，在 `fix.json` 的 `skip` 里写它的号，不用改号。
+
+  ```bash
+  node scripts/renumber.mjs --work $W --seg E01-03 --insert 2 --count 2 --dry   # 先看要改哪些
+  node scripts/renumber.mjs --work $W --seg E01-03 --insert 2 --count 2         # 原第 2 切起顺延 2 个号
+  ```
 - 剪掉后段的瑕疵比重出便宜：瑕疵出现得晚、台词已经说完时，在 `fix.json` 里把这一切剪短。
 - `speed` 是这一切的提速系数，画面和声音一起加速，音高不变。竖屏短片按 `writing.md` 第 5 节的节奏写：纯动作镜头 ×1.4–2.0。
 - **核对音画同步。** `cut.py` 和 `assemble.mjs` 出片后会比对音轨和画面的长度，差超过 0.25 秒就停。只比总长抓不住中途的错位，自己另做后期时还要核对：

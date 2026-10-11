@@ -154,6 +154,9 @@ for (const a of W.storyboard.episodes?.find((e) => e.ep === ep)?.audio ?? []) {
   if (a.duck != null && a.duck > 0) err.push(T(`分镜的 audio ${a.file} 的 duck 要写负数（压低多少 dB）`, `storyboard audio ${a.file}: duck must be negative (dB to lower)`, `콘티의 audio ${a.file}: duck은 음수(dB)여야 합니다`));
 }
 if (subFont && !existsSync(join(W.work, subFont))) err.push(T(`project.json 的 subFont 指向的字体文件不存在：${subFont}`, `project.json subFont points to a missing font file: ${subFont}`, `project.json의 subFont 글꼴 파일이 없습니다: ${subFont}`));
+const { maxSpeed, minShot } = W.project;
+if (maxSpeed != null && !(typeof maxSpeed === 'number' && maxSpeed >= 1 && maxSpeed <= 2)) err.push(T(`project.json 的 maxSpeed 要是 1–2 的数（自动加速的系数上限）：${maxSpeed}`, `project.json maxSpeed must be a number from 1 to 2 (cap on automatic speed-up): ${maxSpeed}`, `project.json의 maxSpeed는 1–2 사이 수(자동 가속 배율 상한)여야 합니다: ${maxSpeed}`));
+if (minShot != null && !(typeof minShot === 'number' && minShot >= 0.5 && minShot <= 5)) err.push(T(`project.json 的 minShot 要是 0.5–5 的数（每个镜头最短秒数）：${minShot}`, `project.json minShot must be a number from 0.5 to 5 (shortest shot, in seconds): ${minShot}`, `project.json의 minShot은 0.5–5 사이 수(숏 최소 길이, 초)여야 합니다: ${minShot}`));
 const subSize = W.project.subSize;
 if (subSize != null && !(Number.isInteger(subSize) && subSize >= 24 && subSize <= 120)) err.push(T(`project.json 的 subSize 要是 24–120 的整数（字幕字号，像素）：${subSize}`, `project.json subSize must be an integer from 24 to 120 (subtitle size in pixels): ${subSize}`, `project.json의 subSize는 24–120 사이 정수(자막 크기, 픽셀)여야 합니다: ${subSize}`));
 if (!existsSync(join(W.work, 'story.txt'))) warn.push(T('作品目录里没有 story.txt（原文），复盘和改编时没法对照', 'no story.txt (the source text) in the work dir; reviews and adaptation have nothing to check against', '작품 폴더에 story.txt(원문)가 없습니다. 회고와 각색 때 대조할 수 없습니다'));

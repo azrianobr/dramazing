@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """把视频工具出的镜头（Grok 6/10 秒、其他工具 5/10 秒等）按分镜时长剪短、拼成段：有台词的镜头至少留到台词说完（whisper 测），
-多出来的时间从无台词镜头里扣（每个镜头最少 2 秒）。镜头原片在 <dir>/E02-03/s1.mp4（ingest.sh 收进来的）。
+多出来的时间从无台词镜头里扣（每个镜头最少 2 秒，project.json 的 minShot 可改）。镜头原片在 <dir>/E02-03/s1.mp4（ingest.sh 收进来的）。
 手工修正写在 <dir>/fix.json：{"E01-06": {"skip": [2], "fix": {"1": 4.0}, "in": {"3": 1.25}, "extra": {"5": 4.5}}}
   skip=不用的镜头号，fix=强制时长（秒），in=从原片第几秒开始取（默认 0，动作来得晚时用），extra=分镜外追加的镜头（号: 时长，接在段尾），
   speed=加速系数（号: 1.2；画面和声音同一个系数，口型不错位，音高不变）
---rate 4.0：有台词的镜头按实测语速自动加速到每秒约 4.0 字（只加不减，系数上限 1.3，再快人物动作就假）；fix.json 的 speed 优先。
+--rate 4.0：有台词的镜头按实测语速自动加速到每秒约 4.0 字（只加不减，系数上限 1.3，再快人物动作就假；project.json 的 maxSpeed 可改）；fix.json 的 speed 优先。
   写了 fix（强制时长）的镜头照样自动加速，fix 是加速后的成片秒数
 project.json 写了 cutTail（秒）时，有台词的镜头按「台词说完 + cutTail」切，不再至少留到分镜时长（台词后人物干站着会显得拖）。
 画布按 project.json 的 aspect（不写是 16:9，长边 1920）。插入镜头（cut.insert）直接取作品目录里的素材，按分镜时长、insert.fit 放进画布；
@@ -15,11 +15,11 @@ project.json 写了 cutTail（秒）时，有台词的镜头按「台词说完 +
 import argparse, json, math, os, re, subprocess, sys, tempfile
 from PIL import Image, ImageDraw
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from dzlang import load, L, T, units, canvas, cut_tail, insert_of, cover_of, title_of, title_image, ffmpeg_fit, IMAGE_EXT
+from dzlang import load, L, T, units, canvas, cut_tail, max_speed, min_shot, insert_of, cover_of, title_of, title_image, ffmpeg_fit, IMAGE_EXT
 ap = argparse.ArgumentParser(); ap.add_argument('--work', required=True); ap.add_argument('--ep', type=int, default=1)
 ap.add_argument('--dir', default='video'); ap.add_argument('--rate', type=float, default=0); ap.add_argument('segs', nargs='*'); a = ap.parse_args()
-SPMAX = 1.3
 WORK = os.path.abspath(a.work); W = os.path.join(WORK, a.dir); load(WORK); CW, CH = canvas()
+SPMAX, MINSHOT = max_speed(), min_shot()
 WD = os.path.expanduser(os.environ.get('WHISPER_MODELS', '~/models/whisper'))
 ep = next(e for e in json.load(open(f'{WORK}/storyboard.json'))['episodes'] if e['ep'] == a.ep)
 plan = {s['id']: [c['seconds'] for c in s['cuts']] for s in ep['segments']}
@@ -133,7 +133,7 @@ for seg in a.segs or list(plan):
             st, e, txt = speech_end(f, IN[-1]); r = rate_of(f'{seg}/s{n}', st, e)
             if n not in spd and a.rate and r: sp = round(min(SPMAX, max(1.0, a.rate / r)), 2)
             # 以下 d 是原片秒数，加速后的成片时长 = d / sp
-            if e and cut_tail() is not None: d = max(2.0 * sp, min(length - 0.05, e + cut_tail() * sp))  # 台词说完留 cutTail 秒就切，不等分镜时长
+            if e and cut_tail() is not None: d = max(MINSHOT * sp, min(length - 0.05, e + cut_tail() * sp))  # 台词说完留 cutTail 秒就切，不等分镜时长
             else: d = max(p * sp if sp == 1 else e + 0.35 * sp, min(length - 0.05, e + 0.35 * sp)) if e else p * sp
             print(T(f'  {seg}/s{n} 台词到 {e:.1f}s「{txt.strip()}」', f'  {seg}/s{n} speech ends at {e:.1f}s "{txt.strip()}"', f'  {seg}/s{n} 대사 끝 {e:.1f}초 「{txt.strip()}」') + rate_note(f'{seg}/s{n}', st, e)
                   + (T(f'，加速 ×{sp}', f', speed ×{sp}', f', 가속 ×{sp}') if sp != 1 else ''))
@@ -156,7 +156,7 @@ for seg in a.segs or list(plan):
     for i in sorted(range(len(D)), key=lambda i: -D[i]):
         if over <= 0: break
         if talk[i]: continue
-        c = min(over, max(0, D[i] - 2.0)); D[i] -= c; over -= c
+        c = min(over, max(0, D[i] - MINSHOT)); D[i] -= c; over -= c
     # 时长取整到帧格（1/24 秒）：截取点、淡出、shots.json 和实际出片用同一个长度，assemble 按它放字幕
     D = [round(max(1, round(x * 24)) / 24, 4) for x in D]
     fc, ins, tmp = '', [], tempfile.mkdtemp()
