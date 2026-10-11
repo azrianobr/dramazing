@@ -85,7 +85,7 @@ dramazing은 AI 어시스턴트용 skill입니다([Agent Skills](https://agentsk
 
 **편집.** `cutTail`은 [`data-format.md`](references/ko/data-format.md), `fix.json`은 [`workflow.md`](references/ko/workflow.md), 속도를 얼마나 올릴지는 [`writing.md`](references/ko/writing.md) 5절 참고.
 - `cutTail`: 대사가 끝나면 바로 잘라서, 인물이 6초나 10초 영상이 끝날 때까지 서 있지 않습니다.
-- 대사 숏은 목표 말 속도에 맞춰 자동으로 빨라집니다(`cut.py --rate`, 상한 ×1.3). 컷 하나의 시작점과 속도는 `fix.json`에 씁니다.
+- 대사 숏은 목표 말 속도에 맞춰 자동으로 빨라집니다(`cut.py --rate`, 상한 ×1.3, `project.json`의 `maxSpeed`로 조정). 컷 하나의 시작점과 속도는 `fix.json`에 씁니다.
 - 출력 뒤에 음성과 영상 길이를 비교해, 0.25초 넘게 차이 나면 오류로 멈춥니다.
 
 **자막.** `project.json`의 `subFont`와 `subSize`로 글꼴과 크기를 정합니다. 중국어 자막이 두 줄이 되면 가운데에 가장 가까운 문장 부호에서 나누고, 문장 끝 마침표는 빠집니다. 대사는 음성 인식으로 각자의 컷에 맞춰집니다.
@@ -128,7 +128,7 @@ SKILL.md              skill 진입점(영어. SKILL.zh.md, SKILL.ko.md는 사람
 .claude-plugin/       Claude Code 플러그인·마켓플레이스 매니페스트
 references/zh|en|ko/  과정, 작성 규칙, 데이터 형식, 프롬프트와 카메라 움직임 규칙, 회고 템플릿
   adapters/           이미지 생성, Grok 영상 생성, 그 밖의 영상 도구
-scripts/              검증, 이미지 생성, 프롬프트, 미리보기, 영상 수집, 편집, 이어 붙이기, 검수, 자막
+scripts/              검증, 이미지 생성, 프롬프트, 미리보기, 영상 수집, 번호 변경, 편집, 이어 붙이기, 검수, 자막
   targets/            영상 프롬프트의 도구별 작성법: grok, generic
   lang/               이야기 언어별 매개변수와 프롬프트 고정 문장
 assets/               로고(밝은 / 어두운 테마), 아이콘, README 예시 이미지, 소셜 미리보기
