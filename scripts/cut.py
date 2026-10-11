@@ -15,7 +15,7 @@ project.json 写了 cutTail（秒）时，有台词的镜头按「台词说完 +
 import argparse, json, math, os, re, subprocess, sys, tempfile
 from PIL import Image, ImageDraw
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from dzlang import load, L, T, units, canvas, cut_tail, max_speed, min_shot, insert_of, cover_of, title_of, title_image, ffmpeg_fit, IMAGE_EXT
+from dzlang import load, L, T, units, canvas, cut_tail, max_speed, min_shot, insert_of, cover_of, title_of, title_image, chat_frames, ffmpeg_fit, IMAGE_EXT
 ap = argparse.ArgumentParser(); ap.add_argument('--work', required=True); ap.add_argument('--ep', type=int, default=1)
 ap.add_argument('--dir', default='video'); ap.add_argument('--rate', type=float, default=0); ap.add_argument('segs', nargs='*'); a = ap.parse_args()
 WORK = os.path.abspath(a.work); W = os.path.join(WORK, a.dir); load(WORK); CW, CH = canvas()
@@ -124,6 +124,11 @@ for seg in a.segs or list(plan):
                 if r: sp = round(min(SPMAX, max(1.0, a.rate / r)), 2)
                 print(T(f'  {seg}/s{n} 强制 {fixd[n]}s「{txt.strip()}」', f'  {seg}/s{n} fixed {fixd[n]}s "{txt.strip()}"', f'  {seg}/s{n} 고정 {fixd[n]}초 「{txt.strip()}」') + rate_note(f'{seg}/s{n}', st, e)
                       + (T(f'，加速 ×{sp}', f', speed ×{sp}', f', 가속 ×{sp}') if sp != 1 else ''))
+            # 入点 + 时长×倍速超出原片时，后面会用最后一帧补齐，成片里就是一段定格（《换回来》E01-03/s1 卡了 0.3 秒）
+            if fixd[n] * sp > length + 0.02:
+                print(T(f'  ⚠ {seg}/s{n} 原片不够：从 {IN[-1]}s 起只剩 {length:.2f}s，要用 {fixd[n] * sp:.2f}s，末尾会定格 {fixd[n] - length / sp:.2f}s；把 in 提前或把 fix 改短',
+                        f'  ⚠ {seg}/s{n} source too short: {length:.2f}s left after {IN[-1]}s, needs {fixd[n] * sp:.2f}s; the last {fixd[n] - length / sp:.2f}s will freeze. Move "in" earlier or shorten "fix"',
+                        f'  ⚠ {seg}/s{n} 원본 부족: {IN[-1]}초부터 {length:.2f}초 남음, {fixd[n] * sp:.2f}초 필요; 끝 {fixd[n] - length / sp:.2f}초가 멈춤. in을 앞당기거나 fix를 줄이세요'))
             D.append(fixd[n]); talk.append(True); SP.append(sp); continue
         if insert_of(CUTS[seg][i]):  # 插入镜头按分镜时长，不参与扣时间
             D.append(min(p, length)); talk.append(True); SP.append(1.0); continue
@@ -189,8 +194,17 @@ for seg in a.segs or list(plan):
             fc += f'[pc{i}]null[q{i}];'
         tt = title_of(cut)
         if tt and tt['at'] < D[i] - 0.3:
-            # 花字：画成透明 PNG，淡入淡出叠在这一切上；剪辑把这一切剪短了就跟着提前收
+            # 花字的起止：剪辑把这一切剪短了就跟着提前收
             t0, t1 = tt['at'], min(tt['at'] + tt['seconds'], D[i])
+        if tt and tt['at'] < D[i] - 0.3 and tt.get('style') == 'chat':
+            # 聊天气泡：逐帧画好（弹出、输入中、出字、淡出都在帧里），按时间叠上去
+            nfr = max(1, round((t1 - t0) * 24))
+            for k, im in enumerate(chat_frames(tt, CW, CH, nfr)): im.save(f'{tmp}/chat{i}_{k:04d}.png')
+            y = len([v for v in ins if v == '-i']); ins += ['-framerate', '24', '-i', f'{tmp}/chat{i}_%04d.png']
+            fc += (f'[{y}:v]format=rgba,setpts=PTS-STARTPTS+{t0}/TB[tt{i}];'
+                   f"[q{i}][tt{i}]overlay=0:0:eof_action=pass:enable='between(t,{t0},{t1:.3f})'[r{i}];")
+        elif tt and tt['at'] < D[i] - 0.3:
+            # 普通花字：画成透明 PNG，淡入淡出叠在这一切上
             tp = f'{tmp}/title{i}.png'; title_image(tt, CW, CH).save(tp)
             y = len([v for v in ins if v == '-i']); ins += ['-loop', '1', '-framerate', '24', '-t', f'{D[i]:.3f}', '-i', tp]
             fc += (f'[{y}:v]format=rgba,fade=t=in:st={t0}:d=0.15:alpha=1,fade=t=out:st={max(t0, t1 - 0.2):.3f}:d=0.2:alpha=1[tt{i}];'
@@ -205,7 +219,9 @@ for seg in a.segs or list(plan):
         else:  # 录屏、截图没有声音：垫一段同样长的静音，concat 才拼得上
             fc += f'anullsrc=channel_layout=stereo:sample_rate=48000,atrim=end_sample={nf * 2000},asetpts=PTS-STARTPTS[a{i}];'
     k = len(shots)
-    fc += ''.join(f'[v{i}][a{i}]' for i in range(k)) + f'concat=n={k}:v=1:a=1[v][a];[a]loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000[ao]'
+    # 整段没有台词就不做 loudnorm：只有环境声时它会把 -60 dB 的底噪拉到对白音量（《换回来》E01-02 被放大约 40 dB）
+    norm = 'loudnorm=I=-16:TP=-1.5:LRA=11,'
+    fc += ''.join(f'[v{i}][a{i}]' for i in range(k)) + f'concat=n={k}:v=1:a=1[v][a];[a]' + (norm if any(has_lines(f'{seg}/s{n}') for n in nums) else '') + 'aresample=48000[ao]'
     out = f'{W}/{seg}.mp4'
     subprocess.run(['ffmpeg', '-v', 'error', '-y', *ins, '-filter_complex', fc, '-map', '[v]', '-map', '[ao]', '-c:v', 'libx264',
                     '-crf', '16', '-preset', os.environ.get('X264_PRESET', 'slow'), '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', out], check=True)

@@ -4,16 +4,16 @@ import json, os, re
 from PIL import Image, ImageFilter, ImageFont, ImageOps
 
 LANGS = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'lang', 'langs.json'), encoding='utf-8'))
-_story, _rate, _loaded, _aspect, _tail, _subfont = 'zh', None, False, '16:9', None, None
+_story, _rate, _loaded, _aspect, _tail, _subfont, _work = 'zh', None, False, '16:9', None, None, '.'
 _maxspeed, _minshot = 1.3, 2.0
 
 
 def load(work):
     """读作品的 project.json，定下故事语言；返回 project"""
-    global _story, _rate, _loaded, _aspect, _tail, _subfont, _maxspeed, _minshot
+    global _story, _rate, _loaded, _aspect, _tail, _subfont, _maxspeed, _minshot, _work
     p = json.load(open(os.path.join(work, 'project.json'), encoding='utf-8'))
     _story, _rate, _loaded, _aspect = p.get('language', 'zh'), p.get('speechRate'), True, p.get('aspect', '16:9')
-    _tail = p.get('cutTail')
+    _tail, _work = p.get('cutTail'), work
     _maxspeed, _minshot = p.get('maxSpeed', 1.3), p.get('minShot', 2.0)
     _subfont = p.get('subFont') and os.path.join(work, p['subFont'])  # 相对 project.json 所在目录；绝对路径原样用
     if _story not in LANGS: raise SystemExit(f'project.json language "{_story}": {" / ".join(LANGS)}')
@@ -101,6 +101,70 @@ def cover_of(cut):
     v = cut.get('cover')
     if v is None: return None
     return {'at': 1.0, 'fit': 'blur', **({'file': v} if isinstance(v, str) else v)}
+
+
+def chat_frames(t, w, h, n, fps=24):
+    """聊天气泡花字（title.style = "chat"）：n 帧 w×h 透明图。气泡尾巴尖在 (x, y)（画面比例），tail 朝 left / right。
+    先弹出（0.2 秒回弹）显示「正在输入」三个点，0.5 秒起展开成文字，最后 0.15 秒淡出。白底黑字，带淡阴影。
+    字体：title.font > 环境变量 CHAT_FONT > TITLE_FONT > 字幕字体（路径，.ttc 可写成 路径:序号）"""
+    import math
+    from PIL import ImageDraw
+    spec = (t.get('font') and os.path.join(_work, t['font'])) or os.environ.get('CHAT_FONT') or os.environ.get('TITLE_FONT') or sub_font_path()
+    path, idx = (spec.rsplit(':', 1) if spec and re.search(r':\d+$', spec) else (spec, 0))
+    S = 3  # 先按 3 倍画再缩小，圆角才不毛
+    base = min(w, h); fs = round(base * 0.075)
+    f = ImageFont.truetype(path, fs * S, index=int(idx)) if path else ImageFont.truetype(L()['font'], fs * S, index=L().get('fontIndex', 0))
+    tb = ImageDraw.Draw(Image.new('RGBA', (1, 1))).textbbox((0, 0), t['text'], font=f)
+    padx, pady = round(fs * 0.62) * S, round(fs * 0.48) * S
+    bh = max(tb[3] - tb[1], fs * S) + pady * 2
+    full_w = tb[2] - tb[0] + padx * 2; dots_w = round(fs * 2.6) * S
+    tail_w = round(fs * 0.42) * S; left = t.get('tail', 'left') == 'left'
+    cache = {}
+
+    def bubble(bw, text_a, dot_phase):
+        key = (bw, round(text_a, 2), round(dot_phase, 2) if text_a < 1 else 0)
+        if key in cache: return cache[key]
+        W, H = bw + tail_w + 24 * S, bh + 24 * S
+        im = Image.new('RGBA', (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
+        x0 = tail_w if left else 0; y0 = 0
+        ty = y0 + bh * 0.62  # 尾巴在气泡下半部
+        d.rounded_rectangle((x0, y0, x0 + bw, y0 + bh), radius=round(bh * 0.32), fill=(255, 255, 255, 255))
+        tip = (0, ty + fs * 0.25 * S) if left else (x0 + bw + tail_w, ty + fs * 0.25 * S)
+        edge = x0 + 2 * S if left else x0 + bw - 2 * S
+        d.polygon([tip, (edge, ty - fs * 0.32 * S), (edge, ty + fs * 0.12 * S)], fill=(255, 255, 255, 255))
+        if text_a < 1:  # 三个点，依次一闪一闪
+            r = round(fs * 0.14) * S; cx = x0 + bw / 2; cy = y0 + bh / 2
+            for k in range(3):
+                a = 0.35 + 0.65 * max(0, math.sin((dot_phase - k * 0.18) * math.pi * 2.2)) if text_a == 0 else 1 - text_a
+                c = round(150 - 60 * a); px = cx + (k - 1) * r * 3.2
+                d.ellipse((px - r, cy - r, px + r, cy + r), fill=(c, c, c, round(255 * (1 - text_a))))
+        if text_a > 0:
+            layer = Image.new('RGBA', im.size, (0, 0, 0, 0))
+            ImageDraw.Draw(layer).text((x0 + (bw - (tb[2] - tb[0])) / 2 - tb[0], y0 + (bh - (tb[3] - tb[1])) / 2 - tb[1]), t['text'], font=f, fill=(24, 24, 24, round(255 * text_a)))
+            im.alpha_composite(layer)
+        # 阴影
+        sh = Image.new('RGBA', im.size, (0, 0, 0, 0)); sh.putalpha(im.getchannel('A').point(lambda v: v * 0.28))
+        sh = sh.filter(ImageFilter.GaussianBlur(6 * S)); out = Image.new('RGBA', im.size, (0, 0, 0, 0))
+        out.alpha_composite(sh, (0, 4 * S)); out.alpha_composite(im)
+        out = out.resize((W // S, H // S), Image.LANCZOS)
+        anchor = (tip[0] / S, tip[1] / S)
+        cache[key] = (out, anchor); return cache[key]
+
+    ease_back = lambda u: 1 + 2.7 * (u - 1) ** 3 + 1.7 * (u - 1) ** 2
+    tipx, tipy = t.get('x', 0.62) * w, t['y'] * h
+    frames = []
+    for i in range(n):
+        s = i / fps
+        sc = 0.2 + 0.8 * ease_back(min(1, s / 0.2))
+        g = min(1, max(0, (s - 0.5) / 0.12)); g = g * g * (3 - 2 * g)
+        bw = round((dots_w + (full_w - dots_w) * g) / S) * S
+        img, (ax, ay) = bubble(bw, g, s)
+        fade = min(1, max(0, (n - 1 - i) / (0.15 * fps)))
+        if sc != 1: img = img.resize((max(1, round(img.width * sc)), max(1, round(img.height * sc))), Image.LANCZOS); ax, ay = ax * sc, ay * sc
+        if fade < 1: img = img.copy(); img.putalpha(img.getchannel('A').point(lambda v: v * fade))
+        fr = Image.new('RGBA', (w, h), (0, 0, 0, 0)); fr.alpha_composite(img, (max(0, round(tipx - ax)), max(0, round(tipy - ay))))
+        frames.append(fr)
+    return frames
 
 
 IMAGE_EXT = ('.png', '.jpg', '.jpeg', '.webp')
