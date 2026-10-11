@@ -12,7 +12,7 @@ This skill includes no browser automation scripts. Follow the Grok / xAI terms o
 3. Paste the whole `prompt` of this shot from `video/prompts.json` into the input box.
 4. Choose the settings:
    - Resolution 1080p.
-   - Duration from this shot's `seconds`: 6 or 10 seconds.
+   - Duration from this shot's `seconds`: 6, 10 or 15 seconds (the 15-second option exists from 10-11).
    - Aspect ratio of the work: 16:9, or 9:16 for vertical works.
 5. Submit. A 6-second shot takes about a minute and a half; a 10-second shot takes a little longer.
 6. When the video is ready, download it with the page's download button. The file is named after the conversation (`grok-video-<conversation id>.mp4`); take it in with `ingest.sh $W --file <file> E01-03-s1`. Note the shot ID and the conversation id from the address bar when you submit, so the downloads can be matched later.
@@ -29,6 +29,12 @@ You can open 2 or 3 tabs in parallel, with one submission at a time per tab.
 - **Downloads are 1920×1088.** "Upscale" gives 1904×1072. The editing scripts scale and crop everything to the work's canvas (1920×1080 for 16:9), so no manual work is needed. Vertical download sizes have not been measured yet.
 - **If a submission never produces a video and shows no error,** the first frame was most likely blocked by moderation, usually because a character looks like a minor. Do not resubmit in different ways to get around moderation. First find what is wrong with the first frame (childlike look, expression, freckles), redraw it following `prompt-rules.md`, and tell the user.
 - **"No text of any kind" does not stop burned-in subtitles.** In a shot with dialogue, Grok sometimes burns the line into the picture as a subtitle (加油 E01-04/s6). When you ingest, look at the bottom third of every video. To avoid generating again, cover it with a gradient patch made from clean frames before and after the subtitle; make the patch about 20 pixels larger on each side so it hides the edge of the subtitle box. Keep a copy of the original. Grok ignores this sentence most often when it sits at the end of the prompt: for shots with dialogue, `video-prompts.mjs` now puts it first in Grok prompts (clean in both samples, 各论各的 and 真的). If you rewrite a prompt by hand, keep it at the front.
+
+## Keyframe mode and upscaling
+
+- **Keyframe mode**: click the "+" to the left of the input box and choose keyframes. It has three slots: first frame, middle frame, last frame. The middle frame sits at its default position. Dragging a thumbnail scrambles the order of the whole set. The highest resolution is 720p. The last frame locks the composition, not the faces. See `one-take.md` (夜馆) for how to use it.
+- **"Upscale → 1080p"** (升级): the "Upscale" menu on the video page. It takes about 30 seconds and adds a file `generated_video_1080_hd.mp4` (1904×1072). It only enlarges the picture. Frame count and motion stay the same, so cut points set on the 720p video work unchanged. For keyframe-mode videos, finish the 720p version first and upscale only after it is final.
+- **"Extend"** (扩展): not tested.
 
 ## Stalled downloads
 

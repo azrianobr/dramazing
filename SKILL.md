@@ -51,6 +51,7 @@ Read them as needed, not all at once. `<language>` in the paths is `zh`, `en` or
 | `writing.md` | When writing `project.json`, the script and the storyboard |
 | `data-format.md` | Field reference for the three JSON files |
 | `prompt-rules.md` | When reviewing prompts and designing camera moves |
+| `one-take.md` | When making a one-take "introduce each person, then pull back to the wide" shot (Grok keyframe mode) |
 | `adapters/image.md` | When choosing how to make images or switching image tools |
 | `adapters/video-grok.md` | When generating video on the Grok website and recording usage |
 | `adapters/video-other.md` | When generating video with a tool other than Grok |

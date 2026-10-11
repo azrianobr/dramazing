@@ -96,13 +96,15 @@ When a character walks toward the camera, state whether the camera waits in plac
 - **Point of view (POV).** Set `move.who` to whose eyes these are. Only that person's hands and sleeves may appear in the frame, and they cannot speak, because the audience cannot see their mouth.
 - **Two phases.** `move.then = { camera, trigger, ... }` is written as "Phase one: …. When [trigger], phase two: …". Use it only for 10-second shots. The second move must have a trigger.
 
+**One take** (several people introduced one by one, ending on a wide shot) goes beyond one camera move per shot. It has its own method; see `one-take.md`. Key points: make the camera the subject, not the people. Do not write turns or footsteps.
+
 **Untested camera moves** (two phases): the first time you use one, make a trial shot of that shot, and generate the batch only after it passes. The generator's preflight reminds you. Crane and POV have passed on Grok.
 
 ### Moves we do not use
 
 - Drone / FPV: needs a route to fly through, so it does not work indoors or in tight spaces. It also breaks the mood of a period drama.
 - Camera roll: too showy for restrained storytelling.
-- Dolly zoom (Hitchcock zoom): hard for AI, and it needs a depth reference such as a corridor.
-- Dutch angle: a static tilted composition, not a camera move. If you want it, write it in the first-frame description.
+- Dolly zoom (Hitchcock zoom): hard for AI, and it needs a depth reference such as a corridor. 夜馆 tried to fake it by enlarging pull-out footage frame by frame. The user's verdict: 「整体看就不协调」 ("looks off as a whole").
+- Dutch angle: a static tilted composition, not a camera move. The image service cannot draw a tilt. Rotate the first frame with a script after drawing, then enlarge it to crop off the black corners (夜馆).
 
 The camera-move section draws on AdrianPunk's *AI Video Camera-Movement Dictionary* ([part 1](https://x.com/adrianpunk115/status/2104172387575222768), [part 2](https://x.com/adrianpunk115/status/2104523576020017575)). This is our own summary, reorganized by our test results; see the links for the original.
