@@ -77,7 +77,7 @@ Writing rules (all tested on 夜馆):
 
 ## Step 3: Generate on Grok
 
-Keyframe mode, as of the 10-11 interface:
+Keyframe mode, as of the 10-11 interface (on 10-12 the entry and the upload steps changed; see "Keyframe mode and upscaling" in `adapters/video-grok.md`):
 
 1. Open Imagine. Click the "+" to the left of the input box and choose keyframes. The interface has three slots: first frame, middle frame, last frame.
 2. Upload in order: k1 as the first frame, one middle frame, k5 as the last frame. JPGs of about 300–450 KB.

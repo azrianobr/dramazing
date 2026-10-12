@@ -35,6 +35,7 @@ Everything is on one line, with no line breaks: pressing Enter in a web input bo
 - **For the speaker, write "opens their mouth on every word".** With only "lips in sync", a tone such as "low voice" turns into a voiceover with a still mouth (E06-07-2).
 - **Say whose voice an off-screen voice is.** With only "an off-screen reply", Grok borrows the voice of the person in the frame (光坐着 E01-02/s9: the off-screen boss's 「好嘞」 measured 178 Hz, the young man in the frame 175 Hz; it sounded like him). Write age, build, timbre and distance, and say it is completely different from the person in the frame: "a heavy-set boss in his fifties, far away in the back kitchen, hoarse voice, completely different from the young man's voice".
 - **In inner-voice shots, the speaker faces the camera with their mouth closed.** If someone else is in the frame, or the speaker has their back to the camera, it looks like they are talking to someone.
+- **After a prop leaves the hand, say the hand is empty and there is only one.** "There is only one fan in the whole shot; after she throws it, both her hands are empty." Without this, Grok draws another fan in her hand (狐月 x1, first take).
 - **State the physical state of small props.** "Loose, rolling at the bottom of the paper bag, none falling out". Otherwise they look glued to the hand (E02, the roasted beans).
 - **For running and walking, write "normal speed, not slow motion".**
 - **For period objects, state the period and the material.** "An old wooden boat with an awning"; otherwise you get a speedboat.
@@ -47,10 +48,13 @@ Everything is on one line, with no line breaks: pressing Enter in a web input bo
 - **State that a young woman is an adult.** A frightened expression, freckles or an upturned face make a character look childlike. Grok then judges that "the image shows a minor" and produces no video, without any error. In both the sheet and the first frame, write "an adult woman in her early twenties, with a restrained expression" (E04-14-2).
 - **No names in hand / prop close-ups.** With a name, Grok draws the whole person, sometimes two of them. The generator writes "only hands, sleeves and props in the frame; the owner of the hands stays off-screen" (E06-01-1).
 - **When the eyeline target is off-screen, give only the direction.** Write "looks off-screen, frame right", not who that person is. With "the young woman off-screen", Grok draws her into the frame during a push-in (E05-03-1 gained an extra little girl).
-- **Faces in wide shots get redrawn.** Do not use a wide shot when someone speaks; make the first frame a medium shot or a medium close-up.
+- **Faces in wide shots get redrawn.** Do not use a wide shot when someone speaks; make the first frame a medium shot or a medium close-up. The same holds for the first frame of a push-in: when the person fills only a fifth of the frame, Grok redraws the face during the push (狐月 vertical f1). Make the person about two thirds of the frame height, and let the face leave the frame during the push instead of growing.
 - **When two people sit apart, a single shot must not show the other one in the foreground.** If the first frame shows even a corner of the other person's table, half a shoulder or a few strands of hair, Grok pulls the whole person and table into the frame, and they look as if they sit together (光坐着 E01-02/s1, s3, s6, s7: four times). Draw the other side of the first frame as an empty aisle, and write in the limits "the aisle on the other side stays empty the whole time, no second person".
 - **Do not write emotions as physical reactions.** "Face flushed" or "red-faced" becomes two red blotches on the cheeks, and retakes do not remove them (光坐着 E01-03/s1, twice). Write what the brows, eyes and mouth do: frowns, glares, bites her lower lip; then add "natural skin tone, no blush".
 - **If a shot has someone turn to show their face, do not use a back view as the first frame.** A back view has no face and no front of the clothes, so when the person turns, Grok makes them up: the face is not hers, and the front of the wrap dress became a cowl neck (光坐着 E01-03/s1). Draw the first frame side-on, showing the profile and the front of the clothes.
+- **Do not write "spins" or "turns the body around".** When a person turns half a circle in the air, Grok draws the far side as a front too, so the body has two fronts (狐月 s13). Write "the body keeps the same facing throughout; only the arms swing". To show rotation, let a prop or the sleeves turn, not the body.
+- **Attach light effects to props, not to bodies or tails.** A light trail swung from a tail was drawn as a second tail (狐月 vertical s6); a light arc swung from a fan came out as light. For fire on a tail, write only "a small tuft of flame at the tail tip, no light trail".
+- **Describe an unusual eye by its exact shape, and attach a reference of the eye.** "Slit pupils" alone gave round pupils (狐月 vertical s3). Write "the pupil is a thin vertical black slit, like a cat's or a fox's, not a round pupil", and attach the eye close-up cropped from the character sheet. It came out right the first time.
 
 ## Camera moves
 
@@ -101,6 +105,8 @@ When a character walks toward the camera, state whether the camera waits in plac
 - **Two phases.** `move.then = { camera, trigger, ... }` is written as "Phase one: …. When [trigger], phase two: …". Use it only for 10-second shots. The second move must have a trigger.
 
 **One take** (several people introduced one by one, ending on a wide shot) goes beyond one camera move per shot. It has its own method; see `one-take.md`. Key points: make the camera the subject, not the people. Do not write turns or footsteps.
+
+**Action showcase** (no plot, the subject keeps moving, shots joined by occluders, transformations done inside keyframe shots): see `showcase.md`.
 
 **Untested camera moves** (two phases): the first time you use one, make a trial shot of that shot, and generate the batch only after it passes. The generator's preflight reminds you. Crane and POV have passed on Grok.
 

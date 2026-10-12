@@ -47,6 +47,7 @@
 | `data-format.md` | JSON 세 파일의 필드 설명 |
 | `prompt-rules.md` | 프롬프트를 검토하거나 카메라 움직임을 설계할 때 |
 | `one-take.md` | "한 명씩 등장시킨 뒤 전경으로 빠지는" 원테이크를 만들 때(Grok 키프레임 모드) |
+| `showcase.md` | 스토리 없는 액션 쇼케이스를 만들 때: 이동하는 숏, 가림막 전환, Grok 키프레임 모드로 변신 |
 | `adapters/image.md` | 이미지 생성 방식을 고르거나 이미지 도구를 바꿀 때 |
 | `adapters/video-grok.md` | Grok 웹에서 영상을 생성하고 사용량을 기록할 때 |
 | `adapters/video-other.md` | Grok이 아닌 도구로 영상을 생성할 때 |

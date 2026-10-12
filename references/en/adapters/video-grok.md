@@ -24,6 +24,7 @@ You can open 2 or 3 tabs in parallel, with one submission at a time per tab.
 - **1080p is available only with a first frame alone, no reference images.** With reference images attached, only 720p is left.
 - **Do not click "Optimize prompt"** (the wand icon next to the sound button; labelled 优化提示词 in the Chinese UI). It rewrites the whole prompt: it invents props that are not in the first frame, and it turns "performance note, never spoken aloud" into wording the model may read out. If you click it by mistake, click "Restore original prompt" in the same place, then check that the text in the input box matches `prompt`.
 - **Keep the sound button on** ("video audio"). With it off, the video has no dialogue.
+- **The duration setting is shared between tabs.** Set one tab to 10 seconds and the other tab is at 10 seconds too (狐月 s5, s7). Check the duration before every submit.
 - **If the upload stalls** (the thumbnail is greyed out and the send button does not respond), refresh the page and upload again. After a reconnect, an extra image may appear in the input box and the resolution drops to 720p; again, refresh and upload only one image.
 - **One submission may produce two videos.** The page has no setting for the number. When there is a second one, note it as a spare; for rework, check the spare first.
 - **Downloads are 1920×1088.** "Upscale" gives 1904×1072. The editing scripts scale and crop everything to the work's canvas (1920×1080 for 16:9), so no manual work is needed. Vertical download sizes have not been measured yet.
@@ -32,7 +33,8 @@ You can open 2 or 3 tabs in parallel, with one submission at a time per tab.
 
 ## Keyframe mode and upscaling
 
-- **Keyframe mode**: click the "+" to the left of the input box and choose keyframes. It has three slots: first frame, middle frame, last frame. The middle frame sits at its default position. Dragging a thumbnail scrambles the order of the whole set. The highest resolution is 720p. The last frame locks the composition, not the faces. See `one-take.md` (夜馆) for how to use it.
+- **Keyframe mode**: it has three slots: first frame, middle frame, last frame. The middle frame sits at its default position (3.0 seconds in a 6-second clip, about 7.3 seconds in a 15-second clip). Dragging a thumbnail scrambles the order of the whole set. The highest resolution is 720p. The last frame locks the composition, not the faces. See `one-take.md` (夜馆) and `showcase.md` (狐月 transformations) for how to use it.
+  - Interface as of 10-12: the entry is the icon next to "Video", no longer under "+". Uploaded images default to the "reference" role. Click each thumbnail and set it to first, middle or last frame in its menu, or click the empty slot after the first frame before uploading. It is right when arrows appear between the three images and the middle frame shows its time. Clicking a thumbnail inserts an "Image N" tag into the input box; select all and replace it when you paste the prompt.
 - **"Upscale → 1080p"** (升级): the "Upscale" menu on the video page. It takes about 30 seconds and adds a file `generated_video_1080_hd.mp4` (1904×1072). It only enlarges the picture. Frame count and motion stay the same, so cut points set on the 720p video work unchanged. For keyframe-mode videos, finish the 720p version first and upscale only after it is final.
 - **"Extend"** (扩展): not tested.
 
@@ -55,6 +57,7 @@ The download button spins, nothing lands after several minutes, or a 0-byte file
    5. Download one video at a time, never in parallel.
 
    After this, both videos downloaded at the first try. If one request still has no response after 90 seconds, the problem is on Grok's side: stop and try again a few minutes later.
+8. If the page-script `fetch` keeps failing, go back to Grok's own download button on the page. On 狐月, the s13 retake failed twice by script and downloaded at once with the page button. The menu next to the button has "Delete video"; do not click it.
 
 ## Recording usage
 
