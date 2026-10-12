@@ -47,6 +47,7 @@
 | `data-format.md` | 三份 JSON 的字段说明 |
 | `prompt-rules.md` | 过提示词、设计运镜时 |
 | `one-take.md` | 做「逐个亮相再拉全景」的一镜到底时（Grok 关键帧模式） |
+| `showcase.md` | 做没有剧情的炫技动作片时：移动镜头、遮挡转场、用 Grok 关键帧模式变身 |
 | `adapters/image.md` | 选出图方式、换出图工具时 |
 | `adapters/video-grok.md` | 在 Grok 网页出片、记用量时 |
 | `adapters/video-other.md` | 用 Grok 以外的工具出片时 |

@@ -73,7 +73,7 @@ Camera: one unbroken Steadicam take. Never dissolve, never cross-fade, never cut
 
 ## 第 3 步：在 Grok 上出片
 
-关键帧模式的操作（10-11 的界面）：
+关键帧模式的操作（10-11 的界面；10-12 入口和上传方式变了，见 `adapters/video-grok.md`「关键帧模式和升级」）：
 
 1. 打开 Imagine，点输入框左边的「+」，选关键帧。界面上有三个槽：首帧、中间帧、尾帧。
 2. 依次上传：首帧 k1，中间帧一张，尾帧 k5。JPG 约 300–450 KB。

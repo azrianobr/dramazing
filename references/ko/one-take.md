@@ -77,7 +77,7 @@ Camera: one unbroken Steadicam take. Never dissolve, never cross-fade, never cut
 
 ## 3단계: Grok에서 영상 만들기
 
-키프레임 모드 조작(10-11 기준 화면):
+키프레임 모드 조작(10-11 기준 화면. 10-12에 입구와 올리는 방법이 바뀌었습니다. `adapters/video-grok.md`의 「키프레임 모드와 업그레이드」를 보세요):
 
 1. Imagine을 열고, 입력창 왼쪽의 「+」를 눌러 키프레임을 고릅니다. 화면에 칸이 세 개 있습니다: 첫 프레임, 중간 프레임, 마지막 프레임.
 2. 차례로 올립니다: 첫 프레임 k1, 중간 프레임 한 장, 마지막 프레임 k5. JPG 약 300~450 KB.
