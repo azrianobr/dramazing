@@ -47,6 +47,14 @@ The download button spins, nothing lands after several minutes, or a 0-byte file
 5. The button does nothing at all (no spinner, nothing lands; 各论各的 E01-01/s1 rework): fetch the video from a script in that page. Read the `<video>` element's address, `fetch` it with credentials, and save it as a download named with the shot number (`grok-E01-01-s1.mp4`) so `ingest.sh` picks it up from the folder. Fetching that address with curl from a terminal returns 403. Check the length with `ffprobe` afterwards.
    - Give the file name a prefix for this batch (such as `zd1011b-E01-01-s1.mp4`) and change it for each batch. The download folder may hold an old file with the same name from another work; `ingest.sh` moves files, so picking up the wrong one overwrites the old file (真的).
 6. The script's `fetch` never returns: switch to another tab that has Grok open and `fetch` the same video address there. This happened 3 times on 真的; each time the other tab downloaded it at once.
+7. Switching tabs, reloading and the download button all fail, and even old videos that downloaded before will not come down: hung requests have used up the browser's connections to Grok's file server. Each parallel retry hangs a few more, so it gets worse (光坐着 E01-02/s7: seven or eight requests hung across two tabs). In this order:
+   1. Navigate the other Grok tab to a different page; its hung requests are dropped.
+   2. Reload the current page and remove the source of every `<video>` on it, so the players stop streaming.
+   3. Wait about 30 seconds without sending anything.
+   4. Send one `fetch`. Before `.blob()`, store the status code and `content-length` in a page variable, so you can tell "no response at all" from "the data stopped halfway".
+   5. Download one video at a time, never in parallel.
+
+   After this, both videos downloaded at the first try. If one request still has no response after 90 seconds, the problem is on Grok's side: stop and try again a few minutes later.
 
 ## Recording usage
 

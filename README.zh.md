@@ -85,7 +85,7 @@ dramazing 是一个 AI 助手用的 skill（[Agent Skills](https://agentskills.i
 
 **剪辑。** `cutTail` 见 [`data-format.md`](references/zh/data-format.md)，`fix.json` 见 [`workflow.md`](references/zh/workflow.md)，提速多少见 [`writing.md`](references/zh/writing.md) 第 5 节：
 - `cutTail`：台词说完就剪，人物不会站着等到 6 秒或 10 秒的片子放完。
-- 有台词的镜头按语速自动提速（`cut.py --rate`，上限 ×1.3，可用 `project.json` 的 `maxSpeed` 调）；单切的入点和提速写在 `fix.json` 里。
+- 有台词的镜头按语速自动提速（`cut.py --rate`，上限 ×1.3，可用 `project.json` 的 `maxSpeed` 调；定稿的语速存成 `project.json` 的 `cutRate`，重剪不会漏）；单切的入点和提速写在 `fix.json` 里。
 - 出片后比对音轨和画面的长度，差超过 0.25 秒就停下报错。
 
 **字幕。** `project.json` 的 `subFont` 和 `subSize` 指定字体和字号。中文字幕折两行时在最靠中间的标点处断开，句末句号自动去掉。台词按语音识别对齐到各自的镜头里。

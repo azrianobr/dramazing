@@ -85,7 +85,7 @@ Only the "Codex for images + Grok for video" combination has made complete works
 
 **Cutting.** `cutTail` is in [`data-format.md`](references/en/data-format.md), `fix.json` in [`workflow.md`](references/en/workflow.md), and how much to speed up in section 5 of [`writing.md`](references/en/writing.md):
 - `cutTail`: a dialogue shot ends shortly after its line, so characters do not stand idle until the 6 or 10 second clip runs out.
-- Dialogue shots speed up toward a target speaking rate (`cut.py --rate`, up to ×1.3, or `maxSpeed` in `project.json`). The in point and speed of a single cut go in `fix.json`.
+- Dialogue shots speed up toward a target speaking rate (`cut.py --rate`, up to ×1.3, or `maxSpeed` in `project.json`; save the final rate as `cutRate` there so recuts match). The in point and speed of a single cut go in `fix.json`.
 - After writing, the audio and video lengths are compared; a difference over 0.25 seconds stops with an error.
 
 **Subtitles.** `subFont` and `subSize` in `project.json` set the font and size. A two-line Chinese subtitle breaks at the punctuation mark nearest the middle, and the sentence-final full stop is dropped. Each line is aligned by speech recognition to its own cut.

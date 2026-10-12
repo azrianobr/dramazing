@@ -34,6 +34,7 @@ Follow the rules below when you write. Each one comes from a real problem in vid
 - **Mark inner voice with `inner: true`.** In an inner-voice shot, either show the speaker's face with their mouth closed, or keep them out of the frame.
 - **Introduce every entrance.** The first time a character appears in a scene, an earlier beat must show how they got there.
 - **Beats follow from each other.** Two beats next to each other must join as "because … so …": because he sees the note is in his own handwriting, he snorts. After you write, read the script again with every unspoken "and then" replaced by "because … so". Where it does not join, add the cause or cut the beat.
+- **When a twist lands, give the person it lands on a reaction.** The audience must see that what she expected and what happened differ: she thought he would pay for her, then he has her thrown out, so she needs a beat of surprise before she acts. If she just complies calmly, the twist does not land (光坐着, user feedback).
 - **Keep beats consistent with the scene's cast.** If you write the sound of a punting pole, the person punting must be in this scene's `cast`.
 - **Dialogue length sets the running time.** Chinese runs at about 3 characters/second, plus 1 second of lead-in, so a 20-character line takes about 7.7 seconds. Speech rates for English and Korean are in `scripts/lang/langs.json`; `validate.mjs` calculates by the story language.
 
@@ -42,6 +43,7 @@ Follow the rules below when you write. Each one comes from a real problem in vid
 ### Before you write
 
 - **Check against the end of the previous episode.** Is each person standing or sitting, where are they, what are they holding, is each prop open or closed? This episode starts exactly where the last one ended.
+- **Fix a floor plan of the location first.** Doors, windows, the kitchen or counter, each table and each person: where they are and which way they face. Put it in the scene setting or in the first segment's `blocking`. Derive every later "toward frame left / right" from it. 光坐着 had no floor plan; the storyboard said "toward the kitchen on frame right", but that side was the window, and in the video he shouted for the boss out of the window.
 - **Write `blocking` first for each segment.** Where each person is at the start of the segment, their pose, which way they face, and the state of each prop. Every cut's first frame follows it.
 - **First list what this episode will not give to the video model.** Video models get the following wrong, and handing them over only leads to repeated generations:
   - **Text the audience must read** (on a note, a screen, a gauge): draw no text in the first frame or the video; overlay it in the edit, for example with a `title`.
@@ -53,6 +55,7 @@ Follow the rules below when you write. Each one comes from a real problem in vid
 ### Each cut
 
 - **One cut is one video generation.** 6 or 10 seconds. When the dialogue runs longer than the storyboard allows, editing keeps enough time for the dialogue.
+- **What one person says in one breath goes in one cut.** Split over two cuts, the two videos differ in pace, tone and pauses, and the join does not flow (光坐着 E01-02/s3, s4). If it fits in 10 seconds, merge it into one cut and put the old second cut in `skip` in `fix.json`.
 - **Answer three questions before choosing a shot size.** What must this cut make readable: a detail, a whole movement, an exchange between two people, one person's reaction, or where someone is? What would one size wider pull attention toward, and what would one size tighter lose? Will it still read on a phone screen? Then pick from the size table in `data-format.md`.
 - **Choose the camera height together with the shot size, and write it in `angle`.** Eye level is neutral and steady, and is the default; a low angle makes a person look commanding or powerful, and adds tension; a high angle makes a person look small, vulnerable or controlled, and also shows the space. `angle` goes into both the first-frame prompt and the video prompt. For a hero's entrance, for example, use a low angle. If you are unsure, make a 12-panel grid with `frames.mjs grid` and pick from it; see `workflow.md` step 2.
 - **No wide shots for cuts with dialogue or a face that must be recognized.** The face is too small, and the video model will redraw it.

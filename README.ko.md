@@ -85,7 +85,7 @@ dramazing은 AI 어시스턴트용 skill입니다([Agent Skills](https://agentsk
 
 **편집.** `cutTail`은 [`data-format.md`](references/ko/data-format.md), `fix.json`은 [`workflow.md`](references/ko/workflow.md), 속도를 얼마나 올릴지는 [`writing.md`](references/ko/writing.md) 5절 참고.
 - `cutTail`: 대사가 끝나면 바로 잘라서, 인물이 6초나 10초 영상이 끝날 때까지 서 있지 않습니다.
-- 대사 숏은 목표 말 속도에 맞춰 자동으로 빨라집니다(`cut.py --rate`, 상한 ×1.3, `project.json`의 `maxSpeed`로 조정). 컷 하나의 시작점과 속도는 `fix.json`에 씁니다.
+- 대사 숏은 목표 말 속도에 맞춰 자동으로 빨라집니다(`cut.py --rate`, 상한 ×1.3, `project.json`의 `maxSpeed`로 조정. 최종 말 속도는 `project.json`의 `cutRate`로 저장하면 다시 편집할 때 빠지지 않음). 컷 하나의 시작점과 속도는 `fix.json`에 씁니다.
 - 출력 뒤에 음성과 영상 길이를 비교해, 0.25초 넘게 차이 나면 오류로 멈춥니다.
 
 **자막.** `project.json`의 `subFont`와 `subSize`로 글꼴과 크기를 정합니다. 중국어 자막이 두 줄이 되면 가운데에 가장 가까운 문장 부호에서 나누고, 문장 끝 마침표는 빠집니다. 대사는 음성 인식으로 각자의 컷에 맞춰집니다.

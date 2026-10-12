@@ -5,6 +5,7 @@
   skip=不用的镜头号，fix=强制时长（秒），in=从原片第几秒开始取（默认 0，动作来得晚时用），extra=分镜外追加的镜头（号: 时长，接在段尾），
   speed=加速系数（号: 1.2；画面和声音同一个系数，口型不错位，音高不变）
 --rate 4.0：有台词的镜头按实测语速自动加速到每秒约 4.0 字（只加不减，系数上限 1.3，再快人物动作就假；project.json 的 maxSpeed 可改）；fix.json 的 speed 优先。
+  不写 --rate 时用 project.json 的 cutRate（定稿的语速存进项目，重剪不会漏）；--rate 0 = 这次不自动加速
   写了 fix（强制时长）的镜头照样自动加速，fix 是加速后的成片秒数
 project.json 写了 cutTail（秒）时，有台词的镜头按「台词说完 + cutTail」切，不再至少留到分镜时长（台词后人物干站着会显得拖）。
 画布按 project.json 的 aspect（不写是 16:9，长边 1920）。插入镜头（cut.insert）直接取作品目录里的素材，按分镜时长、insert.fit 放进画布；
@@ -15,11 +16,13 @@ project.json 写了 cutTail（秒）时，有台词的镜头按「台词说完 +
 import argparse, json, math, os, re, subprocess, sys, tempfile
 from PIL import Image, ImageDraw
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from dzlang import load, L, T, units, canvas, cut_tail, max_speed, min_shot, insert_of, cover_of, title_of, title_image, chat_frames, ffmpeg_fit, IMAGE_EXT
+from dzlang import load, L, T, units, canvas, cut_tail, max_speed, min_shot, cut_rate, insert_of, cover_of, title_of, title_image, chat_frames, ffmpeg_fit, IMAGE_EXT
 ap = argparse.ArgumentParser(); ap.add_argument('--work', required=True); ap.add_argument('--ep', type=int, default=1)
-ap.add_argument('--dir', default='video'); ap.add_argument('--rate', type=float, default=0); ap.add_argument('segs', nargs='*'); a = ap.parse_args()
+ap.add_argument('--dir', default='video'); ap.add_argument('--rate', type=float, default=None); ap.add_argument('segs', nargs='*'); a = ap.parse_args()
 WORK = os.path.abspath(a.work); W = os.path.join(WORK, a.dir); load(WORK); CW, CH = canvas()
 SPMAX, MINSHOT = max_speed(), min_shot()
+RATE = a.rate if a.rate is not None else (cut_rate() or 0)
+if a.rate is None and RATE: print(T(f'自动加速：用 project.json 的 cutRate {RATE}', f'auto speed-up: cutRate {RATE} from project.json', f'자동 가속: project.json의 cutRate {RATE}'))
 WD = os.path.expanduser(os.environ.get('WHISPER_MODELS', '~/models/whisper'))
 ep = next(e for e in json.load(open(f'{WORK}/storyboard.json'))['episodes'] if e['ep'] == a.ep)
 plan = {s['id']: [c['seconds'] for c in s['cuts']] for s in ep['segments']}
@@ -87,6 +90,8 @@ def screen_of(seg, n):
     cuts = CUTS[seg]
     return cuts[n - 1].get('screen') if n <= len(cuts) else None
 
+NORM = 'loudnorm=I=-16:TP=-1.5:LRA=11,'
+
 def media_in(f, seconds):
     """ffmpeg 输入参数：图片循环成 seconds 秒的视频"""
     return ['-loop', '1', '-framerate', '24', '-t', f'{seconds:.3f}', '-i', f] if f.lower().endswith(IMAGE_EXT) else ['-i', f]
@@ -119,9 +124,9 @@ for seg in a.segs or list(plan):
         sp = spd.get(n, 1.0)
         if n in fixd:
             # 强制时长也照常按 --rate 自动加速（fix.json 写了 speed 时用 speed），不然改时长会悄悄把加速丢掉
-            if n not in spd and a.rate and has_lines(f'{seg}/s{n}') and not insert_of(CUTS[seg][i]):
+            if n not in spd and RATE and has_lines(f'{seg}/s{n}') and not insert_of(CUTS[seg][i]):
                 st, e, txt = speech_end(f, IN[-1]); r = rate_of(f'{seg}/s{n}', st, e)
-                if r: sp = round(min(SPMAX, max(1.0, a.rate / r)), 2)
+                if r: sp = round(min(SPMAX, max(1.0, RATE / r)), 2)
                 print(T(f'  {seg}/s{n} 强制 {fixd[n]}s「{txt.strip()}」', f'  {seg}/s{n} fixed {fixd[n]}s "{txt.strip()}"', f'  {seg}/s{n} 고정 {fixd[n]}초 「{txt.strip()}」') + rate_note(f'{seg}/s{n}', st, e)
                       + (T(f'，加速 ×{sp}', f', speed ×{sp}', f', 가속 ×{sp}') if sp != 1 else ''))
             # 入点 + 时长×倍速超出原片时，后面会用最后一帧补齐，成片里就是一段定格（《换回来》E01-03/s1 卡了 0.3 秒）
@@ -136,7 +141,7 @@ for seg in a.segs or list(plan):
         d = p
         if has:
             st, e, txt = speech_end(f, IN[-1]); r = rate_of(f'{seg}/s{n}', st, e)
-            if n not in spd and a.rate and r: sp = round(min(SPMAX, max(1.0, a.rate / r)), 2)
+            if n not in spd and RATE and r: sp = round(min(SPMAX, max(1.0, RATE / r)), 2)
             # 以下 d 是原片秒数，加速后的成片时长 = d / sp
             if e and cut_tail() is not None: d = max(MINSHOT * sp, min(length - 0.05, e + cut_tail() * sp))  # 台词说完留 cutTail 秒就切，不等分镜时长
             else: d = max(p * sp if sp == 1 else e + 0.35 * sp, min(length - 0.05, e + 0.35 * sp)) if e else p * sp
@@ -215,13 +220,14 @@ for seg in a.segs or list(plan):
         nf = round(D[i] * 24)
         fc += f'[r{i}]format=yuv420p,tpad=stop_mode=clone:stop_duration=1,trim=end_frame={nf},setpts=PTS-STARTPTS[v{i}];'
         if has_audio(f):
-            fc += f'[{x}:a]atrim={a0}:{a1},asetpts=PTS-STARTPTS,aresample=48000,' + (f'atempo={sp},' if sp != 1 else '') + f'afade=t=out:st={fo}:d=0.08,apad,atrim=end_sample={nf * 2000},asetpts=PTS-STARTPTS[a{i}];'
+            # 只给有台词的切做 loudnorm，而且在整条原片上量（6 秒带说话，量得稳），再截取；没台词的切保持原音量
+            # 以前整段一起做：段里只要有一句短台词，其它切的近乎静音就被一起拉高约 30 dB（《光坐着》开头的雨声）
+            ln = (NORM + 'aresample=48000,') if has_lines(f'{seg}/s{nums[i]}') else ''
+            fc += f'[{x}:a]{ln}atrim={a0}:{a1},asetpts=PTS-STARTPTS,aresample=48000,' + (f'atempo={sp},' if sp != 1 else '') + f'afade=t=out:st={fo}:d=0.08,apad,atrim=end_sample={nf * 2000},asetpts=PTS-STARTPTS[a{i}];'
         else:  # 录屏、截图没有声音：垫一段同样长的静音，concat 才拼得上
             fc += f'anullsrc=channel_layout=stereo:sample_rate=48000,atrim=end_sample={nf * 2000},asetpts=PTS-STARTPTS[a{i}];'
     k = len(shots)
-    # 整段没有台词就不做 loudnorm：只有环境声时它会把 -60 dB 的底噪拉到对白音量（《换回来》E01-02 被放大约 40 dB）
-    norm = 'loudnorm=I=-16:TP=-1.5:LRA=11,'
-    fc += ''.join(f'[v{i}][a{i}]' for i in range(k)) + f'concat=n={k}:v=1:a=1[v][a];[a]' + (norm if any(has_lines(f'{seg}/s{n}') for n in nums) else '') + 'aresample=48000[ao]'
+    fc += ''.join(f'[v{i}][a{i}]' for i in range(k)) + f'concat=n={k}:v=1:a=1[v][a];[a]aresample=48000[ao]'
     out = f'{W}/{seg}.mp4'
     subprocess.run(['ffmpeg', '-v', 'error', '-y', *ins, '-filter_complex', fc, '-map', '[v]', '-map', '[ao]', '-c:v', 'libx264',
                     '-crf', '16', '-preset', os.environ.get('X264_PRESET', 'slow'), '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', out], check=True)
