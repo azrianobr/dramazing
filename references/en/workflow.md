@@ -165,6 +165,12 @@ node scripts/assemble.mjs --work $W --ep $EP --loudnorm --align
 
 This burns in the subtitles and writes `video/E0N.final.mp4` and `video/E0N.srt`. Sample a few frames to check subtitle position and text.
 
+**Cover:** save a separate `封面.png` and upload it on its own when publishing. It must do two things:
+- The expression looks good. Make a contact sheet of thumbnails first, and pick from close shots, not wide shots.
+- It is recognizable as this film at a glance. Put the film's signature in the frame: the key prop, the location, the relation between the two people. A good-looking face close-up alone will look like the same actor's other films (the second cover of 光坐着 was almost the same as 各论各的's).
+
+If no extracted frame works, draw one with the setting sheets as references (`frames.mjs fix --raw`, with `--ref` for the location, character and prop sheets). For a defocused background, `fix` that image again as the original, writing "shallow depth of field on the background, keep the foreground unchanged"; do not blur it in post.
+
 ### 12. Clean up and write the retrospective
 
 After the user approves, delete the raw shots and intermediate files. Keep only the final cut, subtitles and generation logs. Then write a retrospective from `retro-template.md`: record only what differs from the previous episode, and why. If a rule changed, update these reference docs.
