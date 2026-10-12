@@ -154,7 +154,8 @@ for (const a of W.storyboard.episodes?.find((e) => e.ep === ep)?.audio ?? []) {
   if (a.duck != null && a.duck > 0) err.push(T(`分镜的 audio ${a.file} 的 duck 要写负数（压低多少 dB）`, `storyboard audio ${a.file}: duck must be negative (dB to lower)`, `콘티의 audio ${a.file}: duck은 음수(dB)여야 합니다`));
 }
 if (subFont && !existsSync(join(W.work, subFont))) err.push(T(`project.json 的 subFont 指向的字体文件不存在：${subFont}`, `project.json subFont points to a missing font file: ${subFont}`, `project.json의 subFont 글꼴 파일이 없습니다: ${subFont}`));
-const { maxSpeed, minShot } = W.project;
+const { maxSpeed, minShot, cutRate } = W.project;
+if (cutRate != null && !(typeof cutRate === 'number' && cutRate > 0 && cutRate <= 12)) err.push(T(`project.json 的 cutRate 要是 0–12 的数（剪辑自动加速的目标语速，每秒字数或词数）：${cutRate}`, `project.json cutRate must be a number above 0, up to 12 (target speaking rate for the automatic speed-up, units per second): ${cutRate}`, `project.json의 cutRate는 0 초과 12 이하의 수(편집 자동 가속의 목표 말 속도, 초당 글자 수나 단어 수)여야 합니다: ${cutRate}`));
 if (maxSpeed != null && !(typeof maxSpeed === 'number' && maxSpeed >= 1 && maxSpeed <= 2)) err.push(T(`project.json 的 maxSpeed 要是 1–2 的数（自动加速的系数上限）：${maxSpeed}`, `project.json maxSpeed must be a number from 1 to 2 (cap on automatic speed-up): ${maxSpeed}`, `project.json의 maxSpeed는 1–2 사이 수(자동 가속 배율 상한)여야 합니다: ${maxSpeed}`));
 if (minShot != null && !(typeof minShot === 'number' && minShot >= 0.5 && minShot <= 5)) err.push(T(`project.json 的 minShot 要是 0.5–5 的数（每个镜头最短秒数）：${minShot}`, `project.json minShot must be a number from 0.5 to 5 (shortest shot, in seconds): ${minShot}`, `project.json의 minShot은 0.5–5 사이 수(숏 최소 길이, 초)여야 합니다: ${minShot}`));
 const subSize = W.project.subSize;

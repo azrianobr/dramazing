@@ -5,16 +5,16 @@ from PIL import Image, ImageFilter, ImageFont, ImageOps
 
 LANGS = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'lang', 'langs.json'), encoding='utf-8'))
 _story, _rate, _loaded, _aspect, _tail, _subfont, _work = 'zh', None, False, '16:9', None, None, '.'
-_maxspeed, _minshot = 1.3, 2.0
+_maxspeed, _minshot, _cutrate = 1.3, 2.0, None
 
 
 def load(work):
     """读作品的 project.json，定下故事语言；返回 project"""
-    global _story, _rate, _loaded, _aspect, _tail, _subfont, _maxspeed, _minshot, _work
+    global _story, _rate, _loaded, _aspect, _tail, _subfont, _maxspeed, _minshot, _cutrate, _work
     p = json.load(open(os.path.join(work, 'project.json'), encoding='utf-8'))
     _story, _rate, _loaded, _aspect = p.get('language', 'zh'), p.get('speechRate'), True, p.get('aspect', '16:9')
     _tail, _work = p.get('cutTail'), work
-    _maxspeed, _minshot = p.get('maxSpeed', 1.3), p.get('minShot', 2.0)
+    _maxspeed, _minshot, _cutrate = p.get('maxSpeed', 1.3), p.get('minShot', 2.0), p.get('cutRate')
     _subfont = p.get('subFont') and os.path.join(work, p['subFont'])  # 相对 project.json 所在目录；绝对路径原样用
     if _story not in LANGS: raise SystemExit(f'project.json language "{_story}": {" / ".join(LANGS)}')
     canvas()  # aspect 写错就在这里停
@@ -75,6 +75,10 @@ def cut_tail():
 def max_speed():
     """project.maxSpeed：--rate 自动加速的系数上限（不写 = 1.3；超快节奏的片子可以放到 1.5 左右）"""
     return _maxspeed
+
+def cut_rate():
+    """project.cutRate：cut.py 自动加速的目标语速（每秒字数 / 词数），命令行 --rate 优先；不写 = 不自动加速"""
+    return _cutrate
 
 def min_shot():
     """project.minShot：剪辑后每个镜头最短几秒（成片秒数，不写 = 2.0）"""
