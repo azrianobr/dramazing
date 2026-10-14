@@ -62,6 +62,8 @@ Look at the full frame of every image, not just the faces. Common problems:
 - A character looks childlike.
 - The background does not fit the period or region.
 - A prop's state does not match `blocking`.
+- Hands and feet: count each person's hands, and check that left and right feet and hands are the right way round. Sitting poses go wrong most often (老地方 E01-01/f7 had three hands, found only after the final cut).
+- Styling details: check nail polish, rings and jewellery against the character sheet. First frames drop them, and the video follows (老地方: 3 of 20 images drew the nails bare, 4 rounds of rework).
 
 ### 4. Narrative preview (Gate 1)
 
@@ -148,6 +150,7 @@ python3 scripts/review.py --work $W --ep $EP                              # revi
   node scripts/renumber.mjs --work $W --seg E01-03 --insert 2 --count 2         # old cut 2 onward moves up by 2
   ```
 - Cutting off a flaw at the end is cheaper than generating again: if the flaw appears late, after the dialogue is over, shorten the cut in `fix.json`.
+- **Cut long pauses inside a line, and hide the join under an insert.** `cut.py` can only trim the head and tail. First cut the pause out of the raw clip with ffmpeg (keep about 0.25 seconds; cut picture and sound together and re-encode), saving the original to `_bak/video/`; then use the storyboard's `cover` to put the join inside an insert, and put the old standalone insert in `skip` (老地方 01-2: a 1.6-second pause hidden under the wedding-ring close-up).
 - `speed` is the speed-up factor for the cut. Picture and sound speed up together, and the pitch stays the same. For a vertical short, follow the pacing in section 5 of `writing.md`: ×1.4–2.0 for action-only shots.
 - **Check that sound and picture stay in sync.** `cut.py` and `assemble.mjs` compare the length of the audio and the video after each render, and stop if they differ by more than 0.25 seconds. The total length cannot show a drift in the middle, so if you do extra post-production yourself, also check:
   1. Read the audio and video stream durations from `ffprobe`. Do not divide the frame count by 24; that is wrong for variable frame rate files.
@@ -164,6 +167,13 @@ node scripts/assemble.mjs --work $W --ep $EP --loudnorm --align
 ```
 
 This burns in the subtitles and writes `video/E0N.final.mp4` and `video/E0N.srt`. Sample a few frames to check subtitle position and text.
+
+When the ending has a `fadeOut`, add 0.5 seconds of pure black after the fade to black (the user asked: "don't forget the fade to a black screen"):
+
+```bash
+ffmpeg -i video/E0N.final.mp4 -vf "tpad=stop_mode=add:stop_duration=0.5:color=black" -af apad -shortest \
+  -c:v libx264 -crf 16 -preset slow -c:a aac -b:a 192k -movflags +faststart 成片/片名.mp4
+```
 
 **Cover:** save a separate `封面.png` and upload it on its own when publishing. It must do two things:
 - The expression looks good. Make a contact sheet of thumbnails first, and pick from close shots, not wide shots.

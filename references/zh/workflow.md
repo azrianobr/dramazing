@@ -60,6 +60,8 @@ node scripts/frames.mjs batch --work $W
 - 人物显得稚气。
 - 背景不符合年代和地域。
 - 道具状态和 `blocking` 不一致。
+- 手和脚：数每个人有几只手，左右脚、左右手对不对。坐姿最容易出错（《老地方》E01-01/f7 三只手，定稿后才发现）。
+- 定妆细节：对照设定图核指甲油、戒指、首饰。首帧会漏，视频照着演（《老地方》20 张里 3 张指甲画成裸色，返工 4 次）。
 
 ### 4. 叙事预览（关口 1）
 
@@ -146,6 +148,7 @@ python3 scripts/review.py --work $W --ep $EP                              # 审�
   node scripts/renumber.mjs --work $W --seg E01-03 --insert 2 --count 2         # 原第 2 切起顺延 2 个号
   ```
 - 剪掉后段的瑕疵比重出便宜：瑕疵出现得晚、台词已经说完时，在 `fix.json` 里把这一切剪短。
+- **句中长停顿剪掉，用插入镜头盖住接口。** `cut.py` 只能掐头去尾。先用 ffmpeg 把原片里的停顿剪掉（留约 0.25 秒，画面和声音一起剪，重新编码），原片另存到 `_bak/video/`；再用分镜的 `cover` 把接口盖在一个插入镜头里，原来单独的插入镜头写进 `skip`（《老地方》01-2：1.6 秒停顿盖在婚戒特写里）。
 - `speed` 是这一切的提速系数，画面和声音一起加速，音高不变。竖屏短片按 `writing.md` 第 5 节的节奏写：纯动作镜头 ×1.4–2.0。
 - **核对音画同步。** `cut.py` 和 `assemble.mjs` 出片后会比对音轨和画面的长度，差超过 0.25 秒就停。只比总长抓不住中途的错位，自己另做后期时还要核对：
   1. 看 `ffprobe` 给的音轨和画面的 stream 时长。不要用帧数除以 24，变帧率的片子会算错。
@@ -162,6 +165,13 @@ node scripts/assemble.mjs --work $W --ep $EP --loudnorm --align
 ```
 
 烧硬字幕，输出 `video/E0N.final.mp4` 和 `video/E0N.srt`。抽几帧检查字幕位置和文字。
+
+片尾有 `fadeOut` 时，淡到黑后再补 0.5 秒纯黑（用户要求「别忘了黑屏淡出」）：
+
+```bash
+ffmpeg -i video/E0N.final.mp4 -vf "tpad=stop_mode=add:stop_duration=0.5:color=black" -af apad -shortest \
+  -c:v libx264 -crf 16 -preset slow -c:a aac -b:a 192k -movflags +faststart 成片/片名.mp4
+```
 
 **封面**另存一张 `封面.png`，发布时单独上传。要做到两点：
 - 表情好看。截帧前先排一张缩略图总览，在近景里挑，不在全景里挑。
