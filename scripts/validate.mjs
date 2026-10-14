@@ -58,6 +58,7 @@ for (const seg of segmentsOf(W.storyboard, ep)) {
       // 花字：剪辑时画成透明图层叠在这一切上，叙事预览也画出来
       if (typeof tt.text !== 'string' || !tt.text.trim()) err.push(T(`${k}：title 没写 text`, `${k}: title has no text`, `${k}: title에 text가 없습니다`));
       else if ([...tt.text].length > (CW < CH ? 6 : 10)) warn.push(T(`${k}：花字「${tt.text}」偏长，${CW < CH ? '竖屏' : '横屏'}一行放不下就会缩小字号`, `${k}: title "${tt.text}" is long; it shrinks to fit one line`, `${k}: 화면 글자 "${tt.text}"이(가) 깁니다. 한 줄에 맞게 글자가 작아집니다`));
+      for (const f of ['bg', 'color']) if (tt[f] !== undefined && !/^#[0-9a-fA-F]{6}$/.test(tt[f])) err.push(T(`${k}：title.${f} 要写成 #RRGGBB：${tt[f]}`, `${k}: title.${f} must be #RRGGBB: ${tt[f]}`, `${k}: title.${f}는 #RRGGBB 형식이어야 합니다: ${tt[f]}`));
       if (tt.sub !== undefined && typeof tt.sub !== 'string') err.push(T(`${k}：title.sub 要写成文字`, `${k}: title.sub must be text`, `${k}: title.sub는 글자여야 합니다`));
       if (!TITLE_POS.includes(tt.pos)) err.push(T(`${k}：title.pos「${tt.pos}」不认识，可选 ${TITLE_POS.join(' / ')}`, `${k}: unknown title.pos "${tt.pos}"; choose ${TITLE_POS.join(' / ')}`, `${k}: 알 수 없는 title.pos "${tt.pos}". 선택: ${TITLE_POS.join(' / ')}`));
       if (!(tt.y >= 0.05 && tt.y <= 0.9)) err.push(T(`${k}：title.y ${tt.y} 要在 0.05–0.9 之间（画面高度的比例，花字中线的位置）`, `${k}: title.y ${tt.y} must be 0.05–0.9 (fraction of the frame height, centre line of the title)`, `${k}: title.y ${tt.y}는 0.05–0.9 사이여야 합니다(화면 높이 비율)`));

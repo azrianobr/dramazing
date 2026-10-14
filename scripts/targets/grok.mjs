@@ -10,7 +10,9 @@ export default {
     // 弱写法「No subtitles, no text」实测会被无视：台词多的镜头 Grok 自己烧中文字幕、在衣服上加字（智汇分账通 E03，2026-10）
     const tail = project.video?.tail || 'No subtitles, no captions, no text or lettering anywhere in the frame, nothing printed on clothing, no music.';
     // 有台词的镜头把这句挪到最前面：放在句尾时 Grok 仍会烧字幕，挪到开头两次都干净（《各论各的》《真的》，2026-10）
-    const parts = shot.lines?.length ? [tail, head, ...body(shot, ctx)] : [head, ...body(shot, ctx), tail];
+    // 只写英文时，《老地方》仍有 3 条台词镜头烧了中文字幕；最前面再加一句本地语言的，重出都干净（2026-10）
+    const lead = ctx.phrases?.noSubs ? [ctx.phrases.noSubs, tail] : [tail];
+    const parts = shot.lines?.length ? [...lead, head, ...body(shot, ctx)] : [head, ...body(shot, ctx), tail];
     return parts.join(' '); // 不用换行：页面输入框里回车会直接提交
   },
 };

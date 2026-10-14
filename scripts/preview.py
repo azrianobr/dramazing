@@ -7,7 +7,7 @@
 import argparse, json, os, shutil, subprocess, sys, tempfile
 from PIL import Image, ImageDraw
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from dzlang import load as load_project, L, T, font, wrap, speak_seconds, canvas, insert_of, title_of, title_image, fit_image, IMAGE_EXT
+from dzlang import load as load_project, L, T, font, wrap, speak_seconds, canvas, insert_of, title_of, title_image, chat_frames, fit_image, IMAGE_EXT
 ap = argparse.ArgumentParser(); ap.add_argument('--work', required=True); ap.add_argument('--ep', type=int, default=1)
 ap.add_argument('--dir', default='video'); a = ap.parse_args()
 WORK = os.path.abspath(a.work); OUT = os.path.join(WORK, a.dir); os.makedirs(OUT, exist_ok=True)
@@ -54,7 +54,10 @@ for seg in segs:
         tt = title_of(c)
         if tt:  # 花字照剪辑的样子画上去，预览里就能看到名字卡的位置
             im = (im if im is not None else Image.new('RGB', (CW, CH), (20, 20, 20))).convert('RGBA')
-            im.alpha_composite(title_image(tt, CW, CH)); im = im.convert('RGB')
+            if tt.get('style') == 'chat':  # 聊天气泡取文字已经展开、还没淡出的那一帧
+                n = max(2, round(tt.get('seconds', 2) * 24)); ov = chat_frames(tt, CW, CH, n)[min(n - 5, 24)]
+            else: ov = title_image(tt, CW, CH)
+            im.alpha_composite(ov); im = im.convert('RGB')
         card(p, im, label, text)
         items.append((p, round(sec, 2))); total += sec
 lst = f'{tmp}/list.txt'
