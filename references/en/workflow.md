@@ -168,12 +168,7 @@ node scripts/assemble.mjs --work $W --ep $EP --loudnorm --align
 
 This burns in the subtitles and writes `video/E0N.final.mp4` and `video/E0N.srt`. Sample a few frames to check subtitle position and text.
 
-When the ending has a `fadeOut`, add 0.5 seconds of pure black after the fade to black (the user asked: "don't forget the fade to a black screen"):
-
-```bash
-ffmpeg -i video/E0N.final.mp4 -vf "tpad=stop_mode=add:stop_duration=0.5:color=black" -af apad -shortest \
-  -c:v libx264 -crf 16 -preset slow -c:a aac -b:a 192k -movflags +faststart 成片/片名.mp4
-```
+When the ending has a `fadeOut`, set `"tailBlack": 0.5` on the episode in the storyboard: after the fade to black, 0.5 seconds of pure black and silence follow (the user asked: "don't forget the fade to a black screen"). `assemble.mjs` builds it into the episode and the hard-subtitled copy carries it, so no separate ffmpeg run is needed.
 
 **Cover:** save a separate `封面.png` and upload it on its own when publishing. It must do two things:
 - The expression looks good. Make a contact sheet of thumbnails first, and pick from close shots, not wide shots.
