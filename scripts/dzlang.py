@@ -109,7 +109,7 @@ def cover_of(cut):
 
 def chat_frames(t, w, h, n, fps=24):
     """聊天气泡花字（title.style = "chat"）：n 帧 w×h 透明图。气泡尾巴尖在 (x, y)（画面比例），tail 朝 left / right。
-    先弹出（0.2 秒回弹）显示「正在输入」三个点，0.5 秒起展开成文字，最后 0.15 秒淡出。白底黑字，带淡阴影。
+    先弹出（0.2 秒回弹）显示「正在输入」三个点，0.5 秒起展开成文字，最后 0.15 秒淡出。默认白底黑字，bg / color 写 #RRGGBB 可改，带淡阴影。
     字体：title.font > 环境变量 CHAT_FONT > TITLE_FONT > 字幕字体（路径，.ttc 可写成 路径:序号）"""
     import math
     from PIL import ImageDraw
@@ -123,6 +123,8 @@ def chat_frames(t, w, h, n, fps=24):
     bh = max(tb[3] - tb[1], fs * S) + pady * 2
     full_w = tb[2] - tb[0] + padx * 2; dots_w = round(fs * 2.6) * S
     tail_w = round(fs * 0.42) * S; left = t.get('tail', 'left') == 'left'
+    hexc = lambda v, dv: tuple(int((v or dv).lstrip('#')[k:k + 2], 16) for k in (0, 2, 4))
+    BG, FG = hexc(t.get('bg'), '#FFFFFF'), hexc(t.get('color'), '#181818')  # 气泡底色、字色
     cache = {}
 
     def bubble(bw, text_a, dot_phase):
@@ -132,10 +134,10 @@ def chat_frames(t, w, h, n, fps=24):
         im = Image.new('RGBA', (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
         x0 = tail_w if left else 0; y0 = 0
         ty = y0 + bh * 0.62  # 尾巴在气泡下半部
-        d.rounded_rectangle((x0, y0, x0 + bw, y0 + bh), radius=round(bh * 0.32), fill=(255, 255, 255, 255))
+        d.rounded_rectangle((x0, y0, x0 + bw, y0 + bh), radius=round(bh * 0.32), fill=BG + (255,))
         tip = (0, ty + fs * 0.25 * S) if left else (x0 + bw + tail_w, ty + fs * 0.25 * S)
         edge = x0 + 2 * S if left else x0 + bw - 2 * S
-        d.polygon([tip, (edge, ty - fs * 0.32 * S), (edge, ty + fs * 0.12 * S)], fill=(255, 255, 255, 255))
+        d.polygon([tip, (edge, ty - fs * 0.32 * S), (edge, ty + fs * 0.12 * S)], fill=BG + (255,))
         if text_a < 1:  # 三个点，依次一闪一闪
             r = round(fs * 0.14) * S; cx = x0 + bw / 2; cy = y0 + bh / 2
             for k in range(3):
@@ -144,7 +146,7 @@ def chat_frames(t, w, h, n, fps=24):
                 d.ellipse((px - r, cy - r, px + r, cy + r), fill=(c, c, c, round(255 * (1 - text_a))))
         if text_a > 0:
             layer = Image.new('RGBA', im.size, (0, 0, 0, 0))
-            ImageDraw.Draw(layer).text((x0 + (bw - (tb[2] - tb[0])) / 2 - tb[0], y0 + (bh - (tb[3] - tb[1])) / 2 - tb[1]), t['text'], font=f, fill=(24, 24, 24, round(255 * text_a)))
+            ImageDraw.Draw(layer).text((x0 + (bw - (tb[2] - tb[0])) / 2 - tb[0], y0 + (bh - (tb[3] - tb[1])) / 2 - tb[1]), t['text'], font=f, fill=FG + (round(255 * text_a),))
             im.alpha_composite(layer)
         # 阴影
         sh = Image.new('RGBA', im.size, (0, 0, 0, 0)); sh.putalpha(im.getchannel('A').point(lambda v: v * 0.28))
