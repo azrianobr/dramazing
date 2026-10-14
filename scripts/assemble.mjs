@@ -181,6 +181,10 @@ function cmdAssemble(argv) {
   const fo = Math.min(Number(epSb.fadeOut ?? 0), total);
   const vfade = fo > 0 ? `,fade=t=out:st=${(total - fo).toFixed(3)}:d=${fo}` : '';
   const afade = fo > 0 ? `,afade=t=out:st=${(total - fo).toFixed(3)}:d=${fo}` : '';
+  // 片尾纯黑（分镜这一集的 tailBlack，秒）：淡出之后再接这么多秒的黑屏、静音，结尾不会停在淡出的最后一帧上
+  const tb = Number(epSb.tailBlack ?? 0);
+  const vtail = tb > 0 ? `,tpad=stop_mode=add:stop_duration=${tb}:color=black` : '';
+  const atail = tb > 0 ? `,apad,atrim=end=${(total + tb).toFixed(4)}` : '';
   const list = join(dir, `E${String(epNo).padStart(2, '0')}.concat.txt`);
   writeFileSync(list, parts.map((p) => `file '${p.replace(/'/g, "'\\''")}'`).join('\n'));
   const base = join(dir, `E${String(epNo).padStart(2, '0')}`);
@@ -200,8 +204,8 @@ function cmdAssemble(argv) {
     const src = pr.audio ? `[${i}:a]` : `anullsrc=channel_layout=stereo:sample_rate=48000,`;
     fc.push(`${src}aresample=48000,aformat=channel_layouts=stereo,asetpts=N/SR/TB,apad,atrim=end_sample=${n * 2000}[a${i}]`);
   });
-  fc.push(parts.map((_, i) => `[v${i}]`).join('') + `concat=n=${parts.length}:v=1:a=0${vfade}[v]`);
-  fc.push(parts.map((_, i) => `[a${i}]`).join('') + `concat=n=${parts.length}:v=0:a=1` + (loudnorm && !epSb.audio?.length ? ',loudnorm=I=-16:TP=-1.5:LRA=11' : '') + (epSb.audio?.length ? '' : afade) + '[a]');
+  fc.push(parts.map((_, i) => `[v${i}]`).join('') + `concat=n=${parts.length}:v=1:a=0${vfade}${vtail}[v]`);
+  fc.push(parts.map((_, i) => `[a${i}]`).join('') + `concat=n=${parts.length}:v=0:a=1` + (loudnorm && !epSb.audio?.length ? ',loudnorm=I=-16:TP=-1.5:LRA=11' : '') + (epSb.audio?.length ? '' : afade) + atail + '[a]');
   execFileSync('ffmpeg', ['-y', '-v', 'error', ...ins, '-filter_complex', fc.join(';'), '-map', '[v]', '-map', '[a]',
     '-c:v', 'libx264', '-crf', '18', '-preset', 'medium', '-pix_fmt', 'yuv420p',
     // loudnorm 会把采样率升到 192k，AAC 只能退到 96k，部分播放器会卡画面；固定 48k，并把索引放到文件头

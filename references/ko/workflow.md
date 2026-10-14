@@ -168,12 +168,7 @@ node scripts/assemble.mjs --work $W --ep $EP --loudnorm --align
 
 하드 자막을 입혀 `video/E0N.final.mp4`와 `video/E0N.srt`를 출력합니다. 프레임을 몇 장 뽑아 자막 위치와 글자를 확인합니다.
 
-끝에 `fadeOut`이 있으면, 검게 사라진 뒤 순수한 검은 화면을 0.5초 더 붙입니다(사용자 요청: 「검은 화면 페이드아웃 잊지 마」):
-
-```bash
-ffmpeg -i video/E0N.final.mp4 -vf "tpad=stop_mode=add:stop_duration=0.5:color=black" -af apad -shortest \
-  -c:v libx264 -crf 16 -preset slow -c:a aac -b:a 192k -movflags +faststart 成片/片名.mp4
-```
+끝에 `fadeOut`이 있으면 콘티의 해당 회차에 `"tailBlack": 0.5`를 씁니다. 검게 사라진 뒤 순수한 검은 화면과 무음이 0.5초 이어집니다(사용자 요청: 「검은 화면 페이드아웃 잊지 마」). `assemble.mjs`가 회차에 붙이고 하드 자막본에도 그대로 들어가므로 ffmpeg를 따로 돌리지 않아도 됩니다.
 
 **표지**는 `封面.png`로 따로 저장해, 게시할 때 따로 올립니다. 두 가지를 갖춰야 합니다:
 - 표정이 좋아야 합니다. 먼저 썸네일 모음을 만들어 보고, 롱숏이 아니라 가까운 숏에서 고릅니다.

@@ -166,12 +166,7 @@ node scripts/assemble.mjs --work $W --ep $EP --loudnorm --align
 
 烧硬字幕，输出 `video/E0N.final.mp4` 和 `video/E0N.srt`。抽几帧检查字幕位置和文字。
 
-片尾有 `fadeOut` 时，淡到黑后再补 0.5 秒纯黑（用户要求「别忘了黑屏淡出」）：
-
-```bash
-ffmpeg -i video/E0N.final.mp4 -vf "tpad=stop_mode=add:stop_duration=0.5:color=black" -af apad -shortest \
-  -c:v libx264 -crf 16 -preset slow -c:a aac -b:a 192k -movflags +faststart 成片/片名.mp4
-```
+片尾有 `fadeOut` 时，在分镜这一集写 `"tailBlack": 0.5`，淡到黑后再接 0.5 秒纯黑、静音（用户要求「别忘了黑屏淡出」）。`assemble.mjs` 会把它拼进整集，硬字幕版跟着带上，不用另跑 ffmpeg。
 
 **封面**另存一张 `封面.png`，发布时单独上传。要做到两点：
 - 表情好看。截帧前先排一张缩略图总览，在近景里挑，不在全景里挑。
