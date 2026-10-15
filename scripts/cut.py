@@ -12,6 +12,8 @@ project.json 写了 cutTail（秒）时，有台词的镜头按「台词说完 +
 贴屏（cut.screen 写了 file 和 corners）把素材按四个角贴到镜头里的屏幕上。素材没有声音时垫静音。
 盖画面（cut.cover）：这一切的人物镜头照常剪、声音照常用，从第 cover.at 秒起画面换成录屏，盖完再回到人物（台词说到一半切到录屏）；
 这一切至少留到 at + 录屏时长，原片不够长就把录屏截短
+转场（cut.transition = {"type": "dissolve" | "fadewhite" | "fadeblack", "seconds": 0.3}）：进入这一切时用叠化、闪白或黑场，
+转场以剪点为中心，前后各借原片的一半时长，所以剪点和段长不变；段首那一切的转场留一截「引入」给 assemble.mjs 和上一段接
 用法：cut.py --work <作品目录> --ep 1 [--dir video] [E01-02 E01-03 ...]（不写段号 = 整集）"""
 import argparse, json, math, os, re, subprocess, sys, tempfile
 from PIL import Image, ImageDraw
@@ -27,6 +29,22 @@ WD = os.path.expanduser(os.environ.get('WHISPER_MODELS', '~/models/whisper'))
 ep = next(e for e in json.load(open(f'{WORK}/storyboard.json'))['episodes'] if e['ep'] == a.ep)
 plan = {s['id']: [c['seconds'] for c in s['cuts']] for s in ep['segments']}
 CUTS = {s['id']: s['cuts'] for s in ep['segments']}
+SEGS = [s['id'] for s in ep['segments']]
+XF = ('dissolve', 'fadewhite', 'fadeblack')
+def trans_of(c):
+    t = c.get('transition') if isinstance(c, dict) else None
+    return t if t and t.get('type') in XF and t.get('seconds', 0) > 0 else None
+def half(t):
+    """转场一半的时长，取整到帧格（至少 1 帧）：前一切多留这么长、后一切提前这么长"""
+    return max(1, round(t['seconds'] * 12)) / 24 if t else 0.0
+def kept_trans(seg):
+    """这一段每个保留下来的切的「进入转场」：被 skip 的切上写的转场挪到下一个保留的切"""
+    sk, out, carry = FIX.get(seg, {}).get('skip', []), {}, None
+    for i, c in enumerate(CUTS[seg]):
+        t = trans_of(c) or carry
+        if i + 1 in sk: carry = t; continue
+        out[i + 1], carry = t, None
+    return out
 P = json.load(open(f'{W}/prompts.json'))
 FIX = json.load(open(f'{W}/fix.json')) if os.path.exists(f'{W}/fix.json') else {}
 # 哪个镜头有台词：优先看 video-prompts 写的 shots.json；旧作品没有它，就在提示词里找带引号的台词
@@ -169,18 +187,32 @@ for seg in a.segs or list(plan):
         c = min(over, max(0, D[i] - MINSHOT)); D[i] -= c; over -= c
     # 时长取整到帧格（1/24 秒）：截取点、淡出、shots.json 和实际出片用同一个长度，assemble 按它放字幕
     D = [round(max(1, round(x * 24)) / 24, 4) for x in D]
+    # 转场：PRE = 这一切前面多借的秒数（和上一切叠在一起），POST = 后面多借的秒数。段首的 PRE、段尾的 POST 是和相邻段的接缝，留给 assemble.mjs
+    kt = kept_trans(seg); si = SEGS.index(seg)
+    TR = [kt.get(n) if n <= len(CUTS[seg]) else None for n in nums]
+    if si == 0: TR[0] = None  # 全集第一切前面没有东西可叠
+    PRE = [half(t) for t in TR]
+    nxt = next((t for t in kept_trans(SEGS[si + 1]).values()), None) if si + 1 < len(SEGS) else None
+    POST = PRE[1:] + [half(nxt)]
+    bad = [nums[i] for i in range(len(shots)) if IN[i] - PRE[i] * SP[i] < -0.001]
+    if bad:
+        print(T(f'✗ {seg} 镜头 {bad} 的转场要往前借原片，但入点前面不够：把 fix.json 的 in 往后挪，或把转场改短',
+                f'✗ {seg} shots {bad}: the transition borrows footage before the in-point and there is not enough; move "in" later in fix.json or shorten the transition',
+                f'✗ {seg} 숏 {bad}: 전환이 시작점 앞의 원본을 빌리는데 부족합니다. fix.json의 in을 뒤로 옮기거나 전환을 줄이세요')); sys.exit(1)
     fc, ins, tmp = '', [], tempfile.mkdtemp()
     for i, f in enumerate(shots):
-        sp = SP[i]; x = len([v for v in ins if v == '-i']); ins += media_in(f, IN[i] + D[i] * sp); fo = max(0, D[i] - 0.08)
-        a0, a1 = IN[i], round(IN[i] + D[i] * sp, 3)
+        sp = SP[i]; pre, post = PRE[i], POST[i]; Li = pre + D[i] + post
+        x = len([v for v in ins if v == '-i']); ins += media_in(f, IN[i] + (D[i] + post) * sp)
+        fo = max(0, pre + D[i] - 0.08)  # 后面接转场的切不淡出声音，交给 acrossfade
+        a0, a1 = round(IN[i] - pre * sp, 3), round(IN[i] + (D[i] + post) * sp, 3)
         cut = CUTS[seg][nums[i] - 1] if nums[i] <= len(CUTS[seg]) else {}
         ins_c = insert_of(cut)
         fc += f'[{x}:v]trim={a0}:{a1},setpts=(PTS-STARTPTS)/{sp},fps=24[t{i}];' + ffmpeg_fit(CW, CH, ins_c['fit'] if ins_c else 'crop', f't{i}', f'p{i}') + ';'
         cv = None if ins_c else cover_of(cut)
-        if cv: cv = {**cv, 'at': round(cv['at'] / sp, 3)}
-        if cv and cv['at'] < D[i] - 0.3:
+        if cv: cv = {**cv, 'at': round(cv['at'] / sp + pre, 3)}
+        if cv and cv['at'] < pre + D[i] - 0.3:
             # 盖画面：录屏按 fit 放进画布，时间轴挪到第 at 秒，盖在人物镜头上；声音不动
-            cf = os.path.join(WORK, cv['file']); cl = round(min(cv.get('seconds', dur(cf)), D[i] - cv['at']), 3)
+            cf = os.path.join(WORK, cv['file']); cl = round(min(cv.get('seconds', dur(cf)), pre + D[i] - cv['at']), 3)
             y = len([v for v in ins if v == '-i']); ins += media_in(cf, cl)
             fc += (f'[{y}:v]trim=0:{cl},setpts=PTS-STARTPTS,fps=24[cv{i}];' + ffmpeg_fit(CW, CH, cv['fit'], f'cv{i}', f'cf{i}') + ';'
                    f"[cf{i}]setpts=PTS+{cv['at']}/TB[cs{i}];[p{i}][cs{i}]overlay=0:0:eof_action=pass:enable='between(t,{cv['at']},{cv['at'] + cl:.3f})'[pc{i}];")
@@ -191,8 +223,8 @@ for seg in a.segs or list(plan):
             # 贴屏：素材拉成画布大小，透视变换到四个角（ffmpeg 的顺序是左上、右上、左下、右下），四边形外用遮罩挖掉
             (x0, y0), (x1, y1), (x2, y2), (x3, y3) = sc['corners']
             sf = os.path.join(WORK, sc['file']); m = f'{tmp}/mask{i}.png'; screen_mask(sc['corners'], m)
-            y = len([v for v in ins if v == '-i']); ins += media_in(sf, D[i]) + ['-loop', '1', '-framerate', '24', '-t', f'{D[i]:.3f}', '-i', m]
-            fc += (f'[{y}:v]trim=0:{D[i]},setpts=PTS-STARTPTS,fps=24,tpad=stop_mode=clone:stop_duration={D[i]},trim=0:{D[i]},'
+            y = len([v for v in ins if v == '-i']); ins += media_in(sf, Li) + ['-loop', '1', '-framerate', '24', '-t', f'{Li:.3f}', '-i', m]
+            fc += (f'[{y}:v]trim=0:{Li},setpts=PTS-STARTPTS,fps=24,tpad=stop_mode=clone:stop_duration={Li},trim=0:{Li},'
                    f'scale={CW}:{CH},setsar=1,format=rgba,perspective={x0}:{y0}:{x1}:{y1}:{x3}:{y3}:{x2}:{y2}:sense=destination[s{i}];'
                    f'[{y + 1}:v]format=gray[m{i}];[s{i}][m{i}]alphamerge[sm{i}];[pc{i}][sm{i}]overlay=0:0:shortest=1[q{i}];')
         else:
@@ -200,7 +232,7 @@ for seg in a.segs or list(plan):
         tt = title_of(cut)
         if tt and tt['at'] < D[i] - 0.3:
             # 花字的起止：剪辑把这一切剪短了就跟着提前收
-            t0, t1 = tt['at'], min(tt['at'] + tt['seconds'], D[i])
+            t0, t1 = pre + tt['at'], pre + min(tt['at'] + tt['seconds'], D[i])
         if tt and tt['at'] < D[i] - 0.3 and tt.get('style') == 'chat':
             # 聊天气泡：逐帧画好（弹出、输入中、出字、淡出都在帧里），按时间叠上去
             nfr = max(1, round((t1 - t0) * 24))
@@ -211,27 +243,44 @@ for seg in a.segs or list(plan):
         elif tt and tt['at'] < D[i] - 0.3:
             # 普通花字：画成透明 PNG，淡入淡出叠在这一切上
             tp = f'{tmp}/title{i}.png'; title_image(tt, CW, CH).save(tp)
-            y = len([v for v in ins if v == '-i']); ins += ['-loop', '1', '-framerate', '24', '-t', f'{D[i]:.3f}', '-i', tp]
+            y = len([v for v in ins if v == '-i']); ins += ['-loop', '1', '-framerate', '24', '-t', f'{Li:.3f}', '-i', tp]
             fc += (f'[{y}:v]format=rgba,fade=t=in:st={t0}:d=0.15:alpha=1,fade=t=out:st={max(t0, t1 - 0.2):.3f}:d=0.2:alpha=1[tt{i}];'
                    f"[q{i}][tt{i}]overlay=0:0:shortest=1:enable='between(t,{t0},{t1:.3f})'[r{i}];")
         else:
             fc += f'[q{i}]null[r{i}];'
         # 每切画面补/截到正好 nf 帧、声音补/截到同样的 nf/24 秒再拼：提速镜头两条流各差几十毫秒，不钉住会在段内越积越多（《大水》第 1 段末尾声音早约 0.1 秒）
-        nf = round(D[i] * 24)
+        nf = round(Li * 24)
         fc += f'[r{i}]format=yuv420p,tpad=stop_mode=clone:stop_duration=1,trim=end_frame={nf},setpts=PTS-STARTPTS[v{i}];'
         if has_audio(f):
             # 只给有台词的切做 loudnorm，而且在整条原片上量（6 秒带说话，量得稳），再截取；没台词的切保持原音量
             # 以前整段一起做：段里只要有一句短台词，其它切的近乎静音就被一起拉高约 30 dB（《光坐着》开头的雨声）
             ln = (NORM + 'aresample=48000,') if has_lines(f'{seg}/s{nums[i]}') else ''
-            fc += f'[{x}:a]{ln}atrim={a0}:{a1},asetpts=PTS-STARTPTS,aresample=48000,' + (f'atempo={sp},' if sp != 1 else '') + f'afade=t=out:st={fo}:d=0.08,apad,atrim=end_sample={nf * 2000},asetpts=PTS-STARTPTS[a{i}];'
+            fc += f'[{x}:a]{ln}atrim={a0}:{a1},asetpts=PTS-STARTPTS,aresample=48000,' + (f'atempo={sp},' if sp != 1 else '') + (f'afade=t=out:st={fo}:d=0.08,' if not post else '') + f'apad,atrim=end_sample={nf * 2000},asetpts=PTS-STARTPTS[a{i}];'
         else:  # 录屏、截图没有声音：垫一段同样长的静音，concat 才拼得上
             fc += f'anullsrc=channel_layout=stereo:sample_rate=48000,atrim=end_sample={nf * 2000},asetpts=PTS-STARTPTS[a{i}];'
     k = len(shots)
-    fc += ''.join(f'[v{i}][a{i}]' for i in range(k)) + f'concat=n={k}:v=1:a=1[v][a];[a]aresample=48000[ao]'
+    if not any(PRE[1:]):
+        fc += ''.join(f'[v{i}][a{i}]' for i in range(k)) + f'concat=n={k}:v=1:a=1[v][a];[a]aresample=48000[ao]'
+    else:
+        # 段内有转场：一切一切往上接，转场处 xfade + acrossfade（同样长，两条流一起缩短），其余照常首尾相接
+        lv, la, run = 'w0', 'a0', round((PRE[0] + D[0] + POST[0]) * 24) / 24
+        fc += ''.join(f'[v{i}]settb=AVTB[w{i}];' for i in range(k))
+        for i in range(1, k):
+            Li = round((PRE[i] + D[i] + POST[i]) * 24) / 24
+            if PRE[i]:
+                d = 2 * PRE[i]; off = run - d
+                fc += f"[{lv}][w{i}]xfade=transition={TR[i]['type']}:duration={d:.4f}:offset={off:.4f}[xv{i}];[{la}][a{i}]acrossfade=d={d:.4f}[xa{i}];"
+                run = off + Li
+            else:
+                fc += f'[{lv}][{la}][w{i}][a{i}]concat=n=2:v=1:a=1[xv{i}][xa{i}];'; run += Li
+            lv, la = f'xv{i}', f'xa{i}'
+        fc += f'[{lv}]null[v];[{la}]aresample=48000[ao]'
     out = f'{W}/{seg}.mp4'
     subprocess.run(['ffmpeg', '-v', 'error', '-y', *ins, '-filter_complex', fc, '-map', '[v]', '-map', '[ao]', '-c:v', 'libx264',
                     '-crf', '16', '-preset', os.environ.get('X264_PRESET', 'slow'), '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', out], check=True)
     check_av(out)
-    json.dump([{'shot': n, 'dur': d, **({'in': i} if i else {}), **({'speed': s} if s != 1 else {}), **({'src': os.path.relpath(f, WORK)} if n <= len(CUTS[seg]) and insert_of(CUTS[seg][n - 1]) else {})}
-               for n, d, i, f, s in zip(nums, D, IN, shots, SP)], open(f'{W}/{seg}.shots.json', 'w'))
+    # pre/post：这一切前后多借的秒数；段首的 pre、段尾的 post 是给 assemble.mjs 接相邻段的「引入」「引出」，tr 是进入这一切的转场
+    json.dump([{'shot': n, 'dur': d, **({'in': i} if i else {}), **({'speed': s} if s != 1 else {}), **({'src': os.path.relpath(f, WORK)} if n <= len(CUTS[seg]) and insert_of(CUTS[seg][n - 1]) else {}),
+                **({'pre': pr, 'tr': {'type': t['type'], 'seconds': 2 * pr}} if pr else {}), **({'post': po} if po else {})}
+               for n, d, i, f, s, pr, po, t in zip(nums, D, IN, shots, SP, PRE, POST, TR)], open(f'{W}/{seg}.shots.json', 'w'))
     print(T(f'✓ {seg} 镜头 {D} → {dur(out):.1f}s（分镜 {sum(plan[seg])}s）', f'✓ {seg} shots {D} → {dur(out):.1f}s (storyboard {sum(plan[seg])}s)', f'✓ {seg} 숏 {D} → {dur(out):.1f}초 (콘티 {sum(plan[seg])}초)'))
