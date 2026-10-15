@@ -67,6 +67,23 @@ Results on 狐月: transformation 1's first take had an extra fan, and one retak
 
 `cut.py` cuts from `storyboard.json`, and this kind of film has no script or storyboard JSON. 狐月 uses a cut list, `docs/cut.tsv`, one segment per row: shot, in point, out point, note. A shot can have several rows: s13 uses only 0–2.0 and 5.0–6.0 seconds, cutting out the courtyard Grok jumped to in between. The script `works/狐月/docs/hy_cut.py` cuts by the list at original speed, scales and crops everything to 1920×1080, and fades out over the last 0.5 seconds.
 
+## Mood montage: still images, real texture, cuts on a grid
+
+Source: 雨停 (10-15). The finished film is `works/雨停/成片/雨停.mp4`: 9:16, 25.25 seconds, 18 shots, one part for each of three actors, no sound at all; the user adds the song on the platform. It is the opposite of the action film above: people barely move, and texture, close-ups and cut points carry it.
+
+- **Copy the style, not the shots.** The user: "what I want is the style of the original video, not a frame-by-frame copy." When breaking down a reference film, note its techniques (open on a silhouette in a wide shot, face and detail close-ups intercut, 0.75–2.25 seconds per shot, red only for red lips and roses, transitions going from hard to soft) and design the shot content yourself. When reporting, list the newly added images separately.
+- **Write "real street footage" as the style, not "MV" or "mood".** The first version's style said "emotional MV style", and the scene image came out as CG: splashes like glass sculptures, ripples as neat concentric circles. Once the scene image is CG, every first frame and every clip follows it. Change it to "live-action footage, film grain, not CG", then spell out the water's physical state: puddles thin and slightly murky, reflections broken up by raindrops, rain streaks fine and irregular.
+- **Grok cannot draw a real big splash.** A shoe stepping in water, a shaken umbrella, a flower dropping into water: however detailed the prompt, the splash is always a sheet of transparent "glass water curtain", and in slow motion it looks even more like crystal. Switch to water it draws convincingly: ripples, drips from the umbrella's edge, things floating on the surface, small pits made by raindrops. Never write slow motion for water shots.
+- **The opening silhouette must be a silhouette in the first frame.** With her face lit in the first frame, Grok had her walk toward the camera, and 3 seconds later her face had become someone else's. Draw the first frame as a full-body backlit black silhouette and use only the first 1.5–2 seconds in the edit, not the part where she comes closer and her face shows.
+- **A top-down umbrella gets "broken through".** Shooting a person under an umbrella from directly overhead, after about 1.2 seconds Grok has her lift her head from under the umbrella to look at the camera, drawing her body in front of the canopy so that the umbrella looks as if a large piece is missing. Use only the first 1 second of such shots, or write "her face is never visible from start to end; the umbrella canopy stays whole throughout".
+- **Cut on a 0.75-second grid.** The user gave no BPM, so use only 0.75, 1.5, 2.25 and 3 seconds, with every cut point on a multiple of 0.75. When a slow song is added, shifting the whole thing a little lines it up roughly with the beat. The cut list is in `docs/cut.tsv`, and transitions between parts (flash to white, match cut) also fall on the grid.
+- **Use few dissolves.** The user saw the 0.4–0.6-second dissolves in part 3, said "it doesn't look good", and accepted it only after they were all changed to hard cuts. Dissolving between shots where people barely move looks like two photos smeared together. Keep dissolves to 0.3 seconds at most, or use them only on seams with motion or an occluder; hard cuts are the default.
+- **Two seams the user accepted.** The umbrella canopy fills the frame, then a flash to white into the next part; a water drop falls from the awning, hard cut to the drop landing in a puddle and spreading out (match cut). For the match cut, line up where the drop is in frame across the two shots, and cut on the frame where the drop has just left frame and just entered it.
+- **Write each part's scene opening separately.** Part 3 is the riverside after the rain stops. Its prompt opened with the whole film's "rainy street", and Grok drew rain streaks again. Open each part's prompt with that part's weather.
+- **Hard-code "no red" in the rainy-night restrictions.** Grok likes to add red neon signs to rainy-night backgrounds. Make the first restriction "no signs, neon lights or text anywhere along the street", written once in Chinese and once in English.
+- **Editing script.** `works/雨停/docs/yt_cut.py` cuts by `docs/cut.tsv` at original speed, joins hard cuts directly, does dissolves and flashes to white with ffmpeg `xfade`, fades to black at the end and adds 0.5 seconds of black, and attaches a silent audio track (CapCut and the platform tend to fail on files with no audio track).
+- **Check the part that is actually cut in, frame by frame.** A good first frame does not mean the 1 second that is cut in is good: the face change in the opening and the gap in the umbrella were both in the cut-in segment, not in the first frame. For each segment cut out at its cut points, look at a frame every 0.25 seconds.
+
 ## Tried and rejected
 
 | Approach | Result |
@@ -75,9 +92,11 @@ Results on 狐月: transformation 1's first take had an extra fan, and one retak
 | Transformations as hard cuts: the previous shot fills the frame, the next first frame shows the new form | The user: "we agreed to use camera moves, to show off — where is it?" |
 | Keyframe transformation with the moon in the centre of the middle frame and the subject already past the middle in the first frame | The fox turned round and flew backwards |
 | Writing "spins" for the person | The far side was a front too, so the body had two fronts |
+| Style written as "emotional MV", splash shots written in slow motion (雨停) | Water like glass and crystal. The user: "the water's texture is too poor, it doesn't look like real water" |
+| 0.4–0.6-second dissolves between still portraits (雨停) | The user: "the dissolves don't look good" |
 
 ## Not tested
 
 - Ordinary seams (not keyframe) where the next first frame is drawn as a handover frame with the occluder clearing. On 狐月 all ordinary seams cut straight from a filled frame.
 - Keyframe transformations of 10 or 15 seconds.
-- A vertical 9:16 showcase. The vertical version of 狐月 was made in the wrong direction and is no basis for comparison.
+- A vertical 9:16 action showcase. The vertical version of 狐月 was made in the wrong direction; 雨停 is vertical, but its people barely move, so it is no basis for comparison for action films.
