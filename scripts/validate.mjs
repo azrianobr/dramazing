@@ -45,6 +45,7 @@ for (const sc of scenes) {
 // 每场的节拍要被分镜按顺序完整覆盖，不重不漏
 const covered = new Map(scenes.map((s) => [s.index, []]));
 let total = 0;
+let firstCut = true;
 for (const seg of segmentsOf(W.storyboard, ep)) {
   const sc = scenes[seg.scene - 1];
   if (!sc) { err.push(T(`${seg.id}：scene ${seg.scene} 在剧本第 ${ep} 集里不存在`, `${seg.id}: scene ${seg.scene} does not exist in episode ${ep} of the script`, `${seg.id}: 대본 ${ep}화에 scene ${seg.scene}이(가) 없습니다`)); continue; }
@@ -53,6 +54,14 @@ for (const seg of segmentsOf(W.storyboard, ep)) {
     total += c.seconds;
     if (!Array.isArray(c.beats) || c.beats.length !== 2 || c.beats[0] > c.beats[1]) { err.push(T(`${k}：beats 要写成 [起, 止]`, `${k}: beats must be [from, to]`, `${k}: beats는 [시작, 끝]으로 쓰세요`)); return; }
     covered.get(sc.index).push([...c.beats, k]);
+    // 转场：进入这一切时叠化 / 闪白 / 黑场，cut.py 和 assemble.mjs 以剪点为中心做
+    if (c.transition !== undefined) {
+      const tr = c.transition;
+      if (!['dissolve', 'fadewhite', 'fadeblack'].includes(tr?.type)) err.push(T(`${k}：transition.type「${tr?.type}」不认识，可选 dissolve / fadewhite / fadeblack`, `${k}: unknown transition.type "${tr?.type}"; choose dissolve / fadewhite / fadeblack`, `${k}: 알 수 없는 transition.type "${tr?.type}". 선택: dissolve / fadewhite / fadeblack`));
+      if (!(tr?.seconds >= 0.1 && tr?.seconds <= 1.5)) err.push(T(`${k}：transition.seconds 要在 0.1–1.5 秒之间：${tr?.seconds}`, `${k}: transition.seconds must be 0.1–1.5: ${tr?.seconds}`, `${k}: transition.seconds는 0.1–1.5초여야 합니다: ${tr?.seconds}`));
+      if (firstCut) warn.push(T(`${k}：全集第一切前面没有镜头，transition 不起作用`, `${k}: nothing comes before the first cut of the episode; its transition is ignored`, `${k}: 에피소드 첫 컷 앞에는 숏이 없어 transition이 무시됩니다`));
+    }
+    firstCut = false;
     const tt = titleOf(c);
     if (tt) {
       // 花字：剪辑时画成透明图层叠在这一切上，叙事预览也画出来
@@ -150,6 +159,8 @@ for (const k of ['intro', 'outro']) {
 const fadeOut = W.storyboard.episodes?.find((e) => e.ep === ep)?.fadeOut;
 if (fadeOut != null && !(typeof fadeOut === 'number' && fadeOut >= 0 && fadeOut <= 5)) err.push(T(`分镜的 fadeOut 要是 0–5 之间的秒数：${fadeOut}`, `storyboard fadeOut must be seconds between 0 and 5: ${fadeOut}`, `콘티의 fadeOut은 0–5 사이의 초여야 합니다: ${fadeOut}`));
 const tailBlack = W.storyboard.episodes?.find((e) => e.ep === ep)?.tailBlack;
+const mute = W.storyboard.episodes?.find((e) => e.ep === ep)?.mute;
+if (mute != null && typeof mute !== 'boolean') err.push(T(`分镜的 mute 要写 true 或 false：${mute}`, `storyboard mute must be true or false: ${mute}`, `콘티의 mute는 true 또는 false여야 합니다: ${mute}`));
 if (tailBlack != null && !(typeof tailBlack === 'number' && tailBlack >= 0 && tailBlack <= 3)) err.push(T(`分镜的 tailBlack 要是 0–3 之间的秒数：${tailBlack}`, `storyboard tailBlack must be seconds between 0 and 3: ${tailBlack}`, `콘티의 tailBlack은 0–3 사이의 초여야 합니다: ${tailBlack}`));
 for (const a of W.storyboard.episodes?.find((e) => e.ep === ep)?.audio ?? []) {
   if (!a.file) err.push(T('分镜的 audio 每条都要写 file', 'every storyboard audio entry needs a file', '콘티의 audio 항목마다 file이 필요합니다'));

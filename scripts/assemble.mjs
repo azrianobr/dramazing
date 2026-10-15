@@ -38,13 +38,21 @@ function checkAV(file) {
 
 // 每切在段内的起点：有 cut.py 的 <段>.shots.json 就用实际剪接时长（台词说完才切，常比分镜长），
 // 被 skip 的切起点并到下一个镜头；没有就用分镜时长
+// 段首段尾的转场接缝（cut.py 写在 shots.json 里）：pre = 段首多出的「引入」秒数和进入这一段的转场，post = 段尾多出的「引出」秒数
+function segEdges(dir, seg) {
+  const f = join(dir, `${seg.id}.shots.json`);
+  if (!existsSync(f)) return { pre: 0, post: 0, tr: null };
+  const shots = JSON.parse(readFileSync(f, 'utf8'));
+  return { pre: shots[0]?.pre ?? 0, post: shots.at(-1)?.post ?? 0, tr: shots[0]?.tr ?? null };
+}
+
 function cutStartsActual(dir, seg) {
   const plan = cutStarts(seg.cuts);
   const f = join(dir, `${seg.id}.shots.json`);
   if (!existsSync(f)) return plan;
   const shots = JSON.parse(readFileSync(f, 'utf8'));
   const at = new Map();
-  let t = 0;
+  let t = shots[0]?.pre ?? 0;
   for (const s of shots) { at.set(s.shot, t); t += s.dur; }
   const starts = [];
   for (let i = seg.cuts.length - 1; i >= 0; i--) starts[i] = at.get(i + 1) ?? (starts[i + 1] ?? t);
@@ -137,7 +145,9 @@ function cmdAssemble(argv) {
   }
   // 每段在整集里占的长度 = 这段画面的帧数 ÷ 24；声音、字幕都按这把尺子排
   const frames = (f) => Math.max(1, Math.round(ffprobe(f).vdur * 24));
-  if (intro) { parts.push(intro); offset += frames(intro) / 24; }
+  // edges：每个部分首尾和相邻部分叠在一起的秒数（转场），片头片尾没有
+  const edges = [];
+  if (intro) { parts.push(intro); edges.push({ pre: 0, post: 0, tr: null }); offset += frames(intro) / 24; }
   for (const seg of segmentsOf(W.storyboard, epNo)) {
     const f = join(dir, `${seg.id}.mp4`);
     if (!existsSync(f)) {
@@ -145,6 +155,7 @@ function cmdAssemble(argv) {
       process.exit(1);
     }
     const dur = ffprobe(f).duration;
+    const eg = segEdges(dir, seg);
     // 台词时间：同一切内按节拍秒数顺排，切起点来自分镜结构
     const scene = scenes[seg.scene - 1];
     const starts = cutStartsActual(dir, seg);
@@ -171,13 +182,17 @@ function cmdAssemble(argv) {
       });
       console.log(T(`  ${seg.id} 对齐 ${hit}/${lines.length} 句${hit < lines.length ? '（未识别的按分镜节拍）' : ''}`, `  ${seg.id} aligned ${hit}/${lines.length} lines${hit < lines.length ? ' (the rest follow the storyboard beats)' : ''}`, `  ${seg.id} 정렬 ${hit}/${lines.length}줄${hit < lines.length ? ' (나머지는 콘티 비트 기준)' : ''}`));
     }
-    for (const l of lines) subs.push({ from: offset + l.from, to: offset + l.to, text: l.text });
+    // 段文件开头多了 pre 秒的引入，字幕往前挪同样多；整集时间轴按「剪点到剪点」走，引入引出和相邻段叠在一起，不占时长
+    for (const l of lines) subs.push({ from: offset + l.from - eg.pre, to: offset + l.to - eg.pre, text: l.text });
     parts.push(f);
-    offset += frames(f) / 24;
+    edges.push(eg);
+    offset += frames(f) / 24 - eg.pre - eg.post;
   }
-  if (outro) parts.push(outro);
+  if (outro) { parts.push(outro); edges.push({ pre: 0, post: 0, tr: null }); }
+  // 段与段之间的转场：后一段有引入、前一段有引出时，两段叠 pre + post 秒做 xfade / acrossfade
+  const joinAt = edges.map((e, i) => (i > 0 && e.tr && e.pre > 0 && edges[i - 1].post > 0 ? e.pre + edges[i - 1].post : 0));
   // 集尾淡出（分镜这一集的 fadeOut，秒）：画面和声音一起在最后这么多秒淡到黑、淡到无声；配乐也一起淡
-  const total = parts.reduce((s, p) => s + frames(p) / 24, 0);
+  const total = parts.reduce((s, p) => s + frames(p) / 24, 0) - joinAt.reduce((a, b) => a + b, 0);
   const fo = Math.min(Number(epSb.fadeOut ?? 0), total);
   const vfade = fo > 0 ? `,fade=t=out:st=${(total - fo).toFixed(3)}:d=${fo}` : '';
   const afade = fo > 0 ? `,afade=t=out:st=${(total - fo).toFixed(3)}:d=${fo}` : '';
@@ -201,17 +216,45 @@ function cmdAssemble(argv) {
     const n = frames(p), pr = ffprobe(p);
     ins.push('-i', p);
     fc.push(`[${i}:v]fps=24,scale=${canvas.width}:${canvas.height}:force_original_aspect_ratio=decrease,pad=${canvas.width}:${canvas.height}:-1:-1,setsar=1,format=yuv420p,setpts=PTS-STARTPTS,tpad=stop_mode=clone:stop_duration=1,trim=end_frame=${n}[v${i}]`);
-    const src = pr.audio ? `[${i}:a]` : `anullsrc=channel_layout=stereo:sample_rate=48000,`;
+    // 集级 mute：整集不要原片的声音（纯画面混剪，歌由平台配），每段都换成静音，音轨照样留着
+    const src = pr.audio && !epSb.mute ? `[${i}:a]` : `anullsrc=channel_layout=stereo:sample_rate=48000,`;
     fc.push(`${src}aresample=48000,aformat=channel_layouts=stereo,asetpts=N/SR/TB,apad,atrim=end_sample=${n * 2000}[a${i}]`);
   });
-  fc.push(parts.map((_, i) => `[v${i}]`).join('') + `concat=n=${parts.length}:v=1:a=0${vfade}${vtail}[v]`);
-  fc.push(parts.map((_, i) => `[a${i}]`).join('') + `concat=n=${parts.length}:v=0:a=1` + (loudnorm && !epSb.audio?.length ? ',loudnorm=I=-16:TP=-1.5:LRA=11' : '') + (epSb.audio?.length ? '' : afade) + atail + '[a]');
+  const aTail = (loudnorm && !epSb.audio?.length ? ',loudnorm=I=-16:TP=-1.5:LRA=11' : '') + (epSb.audio?.length ? '' : afade) + atail;
+  if (!joinAt.some((d) => d > 0)) {
+    fc.push(parts.map((_, i) => `[v${i}]`).join('') + `concat=n=${parts.length}:v=1:a=0${vfade}${vtail}[v]`);
+    fc.push(parts.map((_, i) => `[a${i}]`).join('') + `concat=n=${parts.length}:v=0:a=1` + aTail + '[a]');
+  } else {
+    // 有转场：一段一段往上接，转场处画面 xfade、声音 acrossfade（同样长），其余首尾相接；offset 跟着已接好的长度走
+    let lv = 'w0', la = 'a0', run = frames(parts[0]) / 24;
+    parts.forEach((_, i) => fc.push(`[v${i}]settb=AVTB[w${i}]`));
+    for (let i = 1; i < parts.length; i++) {
+      const L = frames(parts[i]) / 24, d = joinAt[i];
+      if (d > 0) {
+        const off = run - d;
+        fc.push(`[${lv}][w${i}]xfade=transition=${edges[i].tr.type}:duration=${d.toFixed(4)}:offset=${off.toFixed(4)}[xv${i}]`, `[${la}][a${i}]acrossfade=d=${d.toFixed(4)}[xa${i}]`);
+        run = off + L;
+      } else {
+        fc.push(`[${lv}][${la}][w${i}][a${i}]concat=n=2:v=1:a=1[xv${i}][xa${i}]`);
+        run += L;
+      }
+      lv = `xv${i}`; la = `xa${i}`;
+    }
+    fc.push(`[${lv}]trim=end=${total.toFixed(4)},setpts=PTS-STARTPTS${vfade}${vtail}[v]`, `[${la}]atrim=end=${total.toFixed(4)},asetpts=PTS-STARTPTS${aTail}[a]`);
+  }
   execFileSync('ffmpeg', ['-y', '-v', 'error', ...ins, '-filter_complex', fc.join(';'), '-map', '[v]', '-map', '[a]',
     '-c:v', 'libx264', '-crf', '18', '-preset', 'medium', '-pix_fmt', 'yuv420p',
     // loudnorm 会把采样率升到 192k，AAC 只能退到 96k，部分播放器会卡画面；固定 48k，并把索引放到文件头
     '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', `${base}.mp4`]);
   if (epSb.audio?.length) mixAudio(work, base, epSb.audio, subs, loudnorm, afade);
   checkAV(`${base}.mp4`);
+  // 没有台词的片子（纯画面混剪）：字幕是空的，软字幕版和硬字幕版都等于整集本身，直接复制
+  if (!subs.length) {
+    for (const k of ['subbed', 'final']) execFileSync('cp', [`${base}.mp4`, `${base}.${k}.mp4`]);
+    const pr0 = ffprobe(`${base}.mp4`);
+    console.log(T(`✓ 第 ${epNo} 集 ${parts.length} 段 → ${base}.mp4（${pr0.duration.toFixed(2)} 秒，没有台词，不出字幕；.subbed / .final 是同一份）`, `✓ Episode ${epNo}, ${parts.length} segments -> ${base}.mp4 (${pr0.duration.toFixed(2)} s, no dialogue, no subtitles; .subbed / .final are copies)`, `✓ ${epNo}화 ${parts.length}개 시퀀스 -> ${base}.mp4 (${pr0.duration.toFixed(2)}초, 대사 없음, 자막 없음; .subbed / .final은 같은 파일)`));
+    return;
+  }
   // 本机 ffmpeg 没编 libass，烧不了硬字幕：封一条 mov_text 软字幕轨（QuickTime / IINA 可开关），
   // 要硬字幕时换带 libass 的 ffmpeg 再用 subtitles 滤镜
   execFileSync('ffmpeg', ['-y', '-v', 'error', '-i', `${base}.mp4`, '-i', `${base}.srt`,
