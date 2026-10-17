@@ -49,7 +49,7 @@ for (const [i, [from, to]] of moves.entries()) {
 }
 if (!dry) moves.forEach(([, to], i) => renameSync(tmp[i], to));
 
-// 2. fix.json：skip 列表、fix / in / speed / extra 的键
+// 2. fix.json：skip 列表、fix / in / speed / extra 的键（subs 按台词认，不动）
 const fixFile = join(dir, 'fix.json');
 const fix = readOpt(fixFile);
 if (fix[seg]) {
@@ -57,6 +57,7 @@ if (fix[seg]) {
   const next = {};
   for (const [key, v] of Object.entries(f)) {
     if (key === 'skip') next.skip = v.map(shift);
+    else if (key === 'subs') next.subs = v; // 手改字幕按台词原文认，和镜头号无关
     else if (v && typeof v === 'object' && !Array.isArray(v)) next[key] = Object.fromEntries(Object.entries(v).map(([n, x]) => [String(shift(Number(n))), x]));
     else next[key] = v;
   }

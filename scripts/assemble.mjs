@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // 把一集的段视频（cut.py 剪好的 <dir>/E02-01.mp4 …）按顺序拼成整集：统一响度、固定 48kHz，
 // 台词按剧本原文出 SRT（--align 用 whisper 对齐到实际说话时间），封一版软字幕，再烧一版硬字幕成片。
-// 用法：assemble.mjs --work <作品目录> --ep 1 [--dir video] [--loudnorm] [--align] [--no-burn]
+// 用法：assemble.mjs --work <作品目录> --ep 1 [--dir video] [--loudnorm] [--align] [--keep-subs] [--no-burn]
+// 手改的字幕时间存在 fix.json 这一段的 subs 里：{"E01-02": {"subs": {"台词原文": [起, 止]}}}，秒数从这句所在那一切的剪点算起，
+// 别的切剪长剪短、整集重拼都不影响。手改完 E0N.srt 后马上跑一次 --keep-subs（不要先重剪），把改过的时间存进去。
 
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
@@ -113,6 +115,48 @@ function mixAudio(work, base, entries, subs, loudnorm, fade = '') {
   console.log(T(`  配乐/音效 ${entries.length} 条已混入`, `  ${entries.length} music/sound entries mixed in`, `  배경음/효과음 ${entries.length}개 믹스 완료`));
 }
 
+// 手改字幕：--keep-subs 先读现有的 srt，按台词原文找到对应的句子，把它和这一切剪点的相对时间存进 fix.json 的 subs；
+// 然后（不管有没有 --keep-subs）用 subs 覆盖自动排的时间。同一段里同一句台词出现两次时只认第一次
+const subKey = (t) => t.replace(/[\s，。！？、,.!?…~～]+/g, '');
+function readSrt(file) {
+  if (!existsSync(file)) return [];
+  const sec = (x) => { const [h, m, r] = x.split(':'); return Number(h) * 3600 + Number(m) * 60 + Number(r.replace(',', '.')); };
+  return readFileSync(file, 'utf8').split(/\n\s*\n/).map((b) => b.trim().split('\n')).filter((b) => b.length >= 3 && b[1].includes('-->'))
+    .map((b) => { const [a, z] = b[1].split('-->').map((x) => sec(x.trim())); return { from: a, to: z, text: b.slice(2).join(' ') }; });
+}
+function keepSubs(dir, srtFile, subs, save) {
+  const fixFile = join(dir, 'fix.json');
+  const fix = existsSync(fixFile) ? JSON.parse(readFileSync(fixFile, 'utf8')) : {};
+  if (save) {
+    const old = readSrt(srtFile);
+    let n = 0;
+    for (const o of old) {
+      const s = subs.find((x) => subKey(x.text) === subKey(o.text));
+      if (!s) { console.log(T(`  ! --keep-subs：srt 里的「${o.text}」在剧本里找不到，跳过`, `  ! --keep-subs: "${o.text}" in the srt is not in the script; skipped`, `  ! --keep-subs: srt의 "${o.text}"이(가) 대본에 없어 건너뜁니다`)); continue; }
+      if (Math.abs(o.from - s.from) < 0.02 && Math.abs(o.to - s.to) < 0.02) continue;
+      const r = (x) => Math.round((x - s.cut0) * 1000) / 1000;
+      fix[s.seg] ??= {};
+      fix[s.seg].subs ??= {};
+      fix[s.seg].subs[s.text] = [r(o.from), r(o.to)];
+      n++;
+    }
+    writeFileSync(fixFile, JSON.stringify(fix, null, 1) + '\n');
+    console.log(T(`  --keep-subs：存了 ${n} 句手改的字幕时间 → fix.json`, `  --keep-subs: saved ${n} hand-timed subtitles -> fix.json`, `  --keep-subs: 수동 자막 시간 ${n}개 저장 -> fix.json`));
+  }
+  let used = 0;
+  for (const [seg, f] of Object.entries(fix)) {
+    for (const [text, [a, z]] of Object.entries(f.subs ?? {})) {
+      const s = subs.find((x) => x.seg === seg && subKey(x.text) === subKey(text));
+      if (!s) { console.log(T(`  ! fix.json ${seg} 的手改字幕「${text}」在这一段找不到（台词改过？），没用上`, `  ! Hand-timed subtitle "${text}" in fix.json ${seg} not found in that segment (line changed?); not applied`, `  ! fix.json ${seg}의 수동 자막 "${text}"을(를) 찾지 못해 적용하지 않았습니다(대사 변경?)`)); continue; }
+      s.from = s.cut0 + a;
+      s.to = s.cut0 + z;
+      used++;
+    }
+  }
+  if (used) console.log(T(`  手改字幕 ${used} 句（fix.json 的 subs）`, `  ${used} hand-timed subtitles (subs in fix.json)`, `  수동 자막 ${used}개 (fix.json의 subs)`));
+  subs.sort((a, b) => a.from - b.from);
+}
+
 function cmdAssemble(argv) {
   const W = loadWork(flag(argv, '--work'));
   const work = W.work;
@@ -183,7 +227,7 @@ function cmdAssemble(argv) {
       console.log(T(`  ${seg.id} 对齐 ${hit}/${lines.length} 句${hit < lines.length ? '（未识别的按分镜节拍）' : ''}`, `  ${seg.id} aligned ${hit}/${lines.length} lines${hit < lines.length ? ' (the rest follow the storyboard beats)' : ''}`, `  ${seg.id} 정렬 ${hit}/${lines.length}줄${hit < lines.length ? ' (나머지는 콘티 비트 기준)' : ''}`));
     }
     // 段文件开头多了 pre 秒的引入，字幕往前挪同样多；整集时间轴按「剪点到剪点」走，引入引出和相邻段叠在一起，不占时长
-    for (const l of lines) subs.push({ from: offset + l.from - eg.pre, to: offset + l.to - eg.pre, text: l.text });
+    for (const l of lines) subs.push({ from: offset + l.from - eg.pre, to: offset + l.to - eg.pre, text: l.text, seg: seg.id, cut0: offset + l.win[0] - eg.pre, cut1: offset + l.win[1] - eg.pre });
     parts.push(f);
     edges.push(eg);
     offset += frames(f) / 24 - eg.pre - eg.post;
@@ -200,6 +244,7 @@ function cmdAssemble(argv) {
   const tb = Number(epSb.tailBlack ?? 0);
   const vtail = tb > 0 ? `,tpad=stop_mode=add:stop_duration=${tb}:color=black` : '';
   const atail = tb > 0 ? `,apad,atrim=end=${(total + tb).toFixed(4)}` : '';
+  keepSubs(dir, `${join(dir, `E${String(epNo).padStart(2, '0')}`)}.srt`, subs, argv.includes('--keep-subs'));
   const list = join(dir, `E${String(epNo).padStart(2, '0')}.concat.txt`);
   writeFileSync(list, parts.map((p) => `file '${p.replace(/'/g, "'\\''")}'`).join('\n'));
   const base = join(dir, `E${String(epNo).padStart(2, '0')}`);
@@ -270,7 +315,7 @@ function cmdAssemble(argv) {
 
 const argv = process.argv.slice(2);
 if (!argv.includes('--work')) {
-  console.log(T('assemble.mjs --work <作品目录> --ep <集> [--dir video] [--loudnorm] [--align] [--no-burn]', 'assemble.mjs --work <work dir> --ep <episode> [--dir video] [--loudnorm] [--align] [--no-burn]', 'assemble.mjs --work <작품 폴더> --ep <화> [--dir video] [--loudnorm] [--align] [--no-burn]'));
+  console.log(T('assemble.mjs --work <作品目录> --ep <集> [--dir video] [--loudnorm] [--align] [--keep-subs] [--no-burn]', 'assemble.mjs --work <work dir> --ep <episode> [--dir video] [--loudnorm] [--align] [--keep-subs] [--no-burn]', 'assemble.mjs --work <작품 폴더> --ep <화> [--dir video] [--loudnorm] [--align] [--keep-subs] [--no-burn]'));
   process.exit(0);
 }
 cmdAssemble(argv);
