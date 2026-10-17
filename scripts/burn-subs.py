@@ -38,6 +38,29 @@ def sec(x):
 cues = []
 for b in open(f'{W}/{E}.srt', encoding='utf-8').read().strip().split('\n\n'):
     l = b.split('\n'); s, e = l[1].split(' --> '); cues.append((sec(s), sec(e), JOIN.join(l[2:])))
+# project.json 的 subStyle 为 oneline：去掉全部标点（句中的换成空格），一句一行不折行；
+# 一行放不下就在原标点处拆成前后几条，时间按字数分。字幕文件不动，只改烧进画面的样子
+if P.get('subStyle') == 'oneline':
+    import re
+    dr = ImageDraw.Draw(Image.new('RGBA', (1, 1)))
+    fits = lambda t: dr.textlength(t, font=font) <= CW - 160
+    out = []
+    for s, e, txt in cues:
+        parts = [x for x in re.split(f'[{re.escape(PUNCT)}…—“”"「」]+', txt) if x.strip()]
+        lines = []
+        for x in parts:
+            x = x.strip()
+            if lines and fits(lines[-1] + ' ' + x): lines[-1] += ' ' + x
+            else:
+                while not fits(x):  # 一个分句本身就放不下，按字切
+                    k = len(x)
+                    while k > 1 and not fits(x[:k]): k -= 1
+                    lines.append(x[:k]); x = x[k:]
+                lines.append(x)
+        n = sum(len(x.replace(' ', '')) for x in lines) or 1; t = s
+        for x in lines:
+            d = (e - s) * len(x.replace(' ', '')) / n; out.append((round(t, 3), round(t + d, 3), x)); t += d
+    cues = out
 tmp = tempfile.mkdtemp()
 ins, fc, prev = ['-i', f'{W}/{E}.mp4'], '', '0:v'
 for i, (s, e, txt) in enumerate(cues):
