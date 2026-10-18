@@ -182,6 +182,17 @@ If no extracted frame works, draw one with the setting sheets as references (`fr
 
 After the user approves, delete the raw shots and intermediate files. Keep only the final cut, subtitles and generation logs. Then write a retrospective from `retro-template.md`: record only what differs from the previous episode, and why. If a rule changed, update these reference docs.
 
+**Break the final cut down shot by shot before the retrospective.** Use `video-shots` from [reelbench-skills](https://github.com/eternityspring/reelbench-skills) and put the result in `_拉片/` in the work directory. ffmpeg measures the cuts and durations, so nothing is estimated; you fill in shot size, frame and rhythm role from the contact sheets.
+
+1. In `_拉片/`, run `video-shots.mjs seed ../成片/<title>.mp4 --track track.json --title "<title>" > shots.json`. Check the detected shot count: it should equal the cuts in `video/E0N-*.shots.json` plus the tail black. If it does not, use `recut` to split or merge.
+2. Run `frames` and `sheet` (sheet a and sheet b). From the contact sheets, fill in size, category, camera, frame and lines, and **mark a rhythm role on every shot** (hook, setup, build, beat, turn, payoff, breath, close).
+3. Run `validate --track track.json --frames frames` until all 15 gates pass. Then run `render --md` and `render --html --video ../成片/<title>.mp4` to get `shots.md` and `shots-report.html`.
+4. If someone needs a side-by-side video, run `video-sync.mjs export shots.json --video ../成片/<title>.mp4 --frames frames -o <title>-拉片对照.mp4` (a vertical film gives about 1580×1080: picture left, shot list right).
+
+Put the result in the "Shot breakdown" section of the retrospective: shot count, average shot length, cuts per minute, rhythm curve, longest shot. Keep `_拉片/` when cleaning up (about 15 MB); `panels/` can go, it can be rebuilt.
+
+**Compare with the breakdown when the post data comes back.** When the user sends the 6-, 24- and 72-hour data (2-second bounce rate, 5-second completion rate, drop-off curve), map each clear drop-off point to the shots in `_拉片/shots.json` and write it in the "Data vs. shots" section: which shots those seconds are, their rhythm roles, and why viewers left. If the conclusion holds, turn it into a rule in `writing.md` (跟谁吃的 was the first film broken down this way).
+
 ## Story language
 
 The story can be in Chinese, English or Korean. Set `"language": "zh" | "en" | "ko"` in `project.json`. The scripts use it to decide:

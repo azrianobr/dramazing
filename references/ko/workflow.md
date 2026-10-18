@@ -182,6 +182,17 @@ node scripts/assemble.mjs --work $W --ep $EP --loudnorm --align
 
 사용자가 확인하면 컷 원본 영상과 중간 파일을 지우고, 완성본, 자막, 영상 생성 기록만 남깁니다. 그다음 `retro-template.md`에 따라 회고를 씁니다: 앞 화와 달라진 점과 그 이유만 적습니다. 규칙이 바뀌었으면 이 reference 문서들을 고칩니다.
 
+**회고 전에 완성본을 숏 단위로 분해합니다.** [reelbench-skills](https://github.com/eternityspring/reelbench-skills)의 `video-shots`로 완성본을 숏별 표로 만들어 작품 폴더의 `_拉片/`에 둡니다. 컷 지점과 길이는 ffmpeg가 재므로 어림하지 않습니다. 숏 크기, 화면, 리듬 역할은 콘택트 시트를 보고 채웁니다.
+
+1. `_拉片/`에서 `video-shots.mjs seed ../成片/<제목>.mp4 --track track.json --title "<제목>" > shots.json`을 실행합니다. 검출된 숏 수를 확인합니다: `video/E0N-*.shots.json`의 컷 수에 끝 검은 화면을 더한 값과 같아야 합니다. 다르면 `recut`으로 나누거나 합칩니다.
+2. `frames`, `sheet`(a 시트와 b 시트)를 실행하고, 콘택트 시트를 보며 숏 크기, 유형, 카메라, 화면, 대사를 채웁니다. **리듬 역할은 모든 숏에 표시합니다**(훅, 설정, 고조, 강조, 전환, 회수, 숨 고르기, 마무리).
+3. `validate --track track.json --frames frames`로 15개 게이트를 모두 통과시킵니다. 그다음 `render --md`와 `render --html --video ../成片/<제목>.mp4`로 `shots.md`와 `shots-report.html`을 만듭니다.
+4. 대조 영상이 필요하면 `video-sync.mjs export shots.json --video ../成片/<제목>.mp4 --frames frames -o <제목>-拉片对照.mp4`를 실행합니다(세로 영상은 약 1580×1080, 왼쪽 화면, 오른쪽 숏 목록).
+
+결과는 회고의 「숏 분해」 절에 적습니다: 숏 수, 평균 숏 길이, 분당 컷 수, 리듬 곡선, 가장 긴 숏. 정리할 때 `_拉片/`는 남깁니다(약 15 MB). `panels/`는 다시 만들 수 있으니 지워도 됩니다.
+
+**게시 데이터가 오면 숏 분해와 대조합니다.** 사용자가 6, 24, 72시간 데이터(2초 이탈률, 5초 완주율, 이탈 곡선)를 보내면, 이탈이 뚜렷한 시점을 `_拉片/shots.json`의 숏에 맞춰 회고의 「데이터 대조」에 적습니다: 그 몇 초가 어느 숏인지, 각각 어떤 리듬 역할인지, 왜 떠났는지. 결론이 맞으면 `writing.md`의 규칙으로 만듭니다(《跟谁吃的》가 이렇게 분해한 첫 작품입니다).
+
 ## 이야기 언어
 
 이야기는 중국어, 영어, 한국어 중 하나로 쓸 수 있으며, `project.json`에 `"language": "zh" | "en" | "ko"`로 적습니다. 스크립트는 이 값에 따라 다음을 정합니다:

@@ -119,6 +119,7 @@ Claude Code 플러그인으로 설치할 수도 있습니다.
 - [whisper.cpp](https://github.com/ggerganov/whisper.cpp)(`whisper-cli`), 모델 `ggml-large-v3-turbo`와 `ggml-silero-v5.1.2`를 `~/models/whisper`에 둡니다(`WHISPER_MODELS`로 변경 가능)
 - 참고 이미지를 넣을 수 있는 이미지 도구(실측: [Codex CLI](https://github.com/openai/codex). OpenAI 이미지 API는 호환 서비스로 시험함)
 - 「첫 프레임 + 텍스트 → 영상」 방식이고 이야기 언어로 대사를 말할 수 있는 영상 도구(실측: Grok 웹의 Imagine)
+- 선택: 회고의 숏 분해용 [reelbench-skills](https://github.com/eternityspring/reelbench-skills)의 `video-shots`, `video-sync`(`references/ko/workflow.md` 12절 참고)
 - 지금은 macOS에서만 테스트했습니다. 자막 글꼴은 기본으로 macOS에 들어 있는 중국어, 영어, 한국어 글꼴을 쓰며, 라이선스는 그 기기 안에서의 사용만 허용합니다. 상업용 완성본이면 `project.json`의 `subFont`에 상업 사용이 허용된 글꼴을 지정하세요(환경 변수 `SUB_FONT`가 우선)
 
 ## 폴더 구성

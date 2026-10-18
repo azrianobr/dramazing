@@ -180,6 +180,17 @@ node scripts/assemble.mjs --work $W --ep $EP --loudnorm --align
 
 用户确认后，删镜头原片和中间文件，只留成片、字幕和出片记录。然后按 `retro-template.md` 写复盘：只记和上一集不同的地方，以及原因。规则有变就改这几份 reference 文档。
 
+**复盘前先拉片。** 用 [reelbench-skills](https://github.com/eternityspring/reelbench-skills) 的 `video-shots` 把成片拆成逐镜头的表，放在作品目录的 `_拉片/`。切点和时长由 ffmpeg 量，不用估；景别、画面和节奏角色看联系表填。
+
+1. 在 `_拉片/` 里跑 `video-shots.mjs seed ../成片/<片名>.mp4 --track track.json --title "<片名>" > shots.json`。核对检测到的镜数：应该等于 `video/E0N-*.shots.json` 的切数加片尾黑屏。对不上就用 `recut` 补刀或并刀。
+2. 跑 `frames`、`sheet`（a 表和 b 表），看联系表填景别、类别、运镜、画面、台词，**节奏角色整片标全**（钩子、铺垫、递进、重音、转折、兑现、换气、收口）。
+3. 跑 `validate --track track.json --frames frames`，15 道门全过。再 `render --md` 和 `render --html --video ../成片/<片名>.mp4`，出 `shots.md` 和 `shots-report.html`。
+4. 要给人看对照视频，再跑 `video-sync.mjs export shots.json --video ../成片/<片名>.mp4 --frames frames -o <片名>-拉片对照.mp4`（竖片输出约 1580×1080，左画面右镜头表）。
+
+拉片结果写进复盘的「拉片」一节：镜数、平均镜长、每分钟切次、节奏曲线、最长的一镜。清理时 `_拉片/` 留着（约 15 MB），`panels/` 可以删，能重跑出来。
+
+**发布数据回来后对照拉片。** 用户发来 6、24、72 小时数据（2 秒跳出率、5 秒完播率、流失曲线）时，把流失明显的时间点对到 `_拉片/shots.json` 的镜头上，写进复盘的「数据对照」：那几秒是哪几镜、各是什么节奏角色、为什么会走。结论成立就改成规则写进 `writing.md`（《跟谁吃的》是第一部这样拉的）。
+
 ## 故事语言
 
 故事可以是中文、英文或韩文，在 `project.json` 写 `"language": "zh" | "en" | "ko"`。脚本按它决定：
