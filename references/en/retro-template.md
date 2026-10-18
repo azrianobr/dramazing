@@ -18,6 +18,23 @@ Write one after each episode's final cut, and save it in the work directory as `
 | Video tool usage (quota % / credits / cost) | | |
 | Time from storyboard to final cut | | |
 
+## Shot breakdown
+
+`_拉片/shots-report.html` (how: `workflow.md` section 12).
+
+| Item | This episode | Previous episode |
+|---|---|---|
+| Shots / average shot length / cuts per minute | | |
+| Longest shot | | |
+| Rhythm curve | hook → setup → … → close | |
+
+## Data vs. shots
+
+Fill in after the post data comes back. Without data, write "waiting for data".
+
+| Time | Data (bounce / drop-off) | Shot | Rhythm role | Reading |
+|---|---|---|---|---|
+
 ## Rework
 
 | Shot | Problem | Cause | Fix |

@@ -119,6 +119,7 @@ Installed this way, the command is `/dramazing:dramazing`.
 - [whisper.cpp](https://github.com/ggerganov/whisper.cpp) (`whisper-cli`), with the `ggml-large-v3-turbo` and `ggml-silero-v5.1.2` models in `~/models/whisper` (change with `WHISPER_MODELS`)
 - An image tool that accepts reference images (tested: [Codex CLI](https://github.com/openai/codex); the OpenAI Images API was tried through a compatible service)
 - A "first frame + text → video" tool that can speak dialogue in the story language (tested: Imagine on the Grok website)
+- Optional: `video-shots` and `video-sync` from [reelbench-skills](https://github.com/eternityspring/reelbench-skills) for the shot breakdown in the retrospective (see `references/en/workflow.md` section 12)
 - Tested on macOS so far. Subtitles use the Chinese, English and Korean fonts built into macOS by default; their license covers use on that machine only. For a commercial release, set a font cleared for commercial use in `subFont` in `project.json` (the environment variable `SUB_FONT` takes precedence)
 
 ## Layout

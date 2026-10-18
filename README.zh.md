@@ -119,6 +119,7 @@ git clone https://github.com/azrianobr/dramazing ~/.claude/skills/dramazing
 - [whisper.cpp](https://github.com/ggerganov/whisper.cpp)（`whisper-cli`），模型 `ggml-large-v3-turbo` 和 `ggml-silero-v5.1.2`，放在 `~/models/whisper`（可用 `WHISPER_MODELS` 改）
 - 一个能传参考图的出图工具（实测：[Codex CLI](https://github.com/openai/codex)；OpenAI 图像接口经兼容服务试过）
 - 一个「首帧 + 文字 → 视频」、能说故事语言台词的视频工具（实测：Grok 网页的 Imagine）
+- 可选：复盘拉片用 [reelbench-skills](https://github.com/eternityspring/reelbench-skills) 的 `video-shots` 和 `video-sync`（见 `references/zh/workflow.md` 第 12 节）
 - 目前在 macOS 上测试过。字幕字体默认用 macOS 自带的中文、英文、韩文字体，授权只覆盖在本机使用；成片要商用，在 `project.json` 的 `subFont` 换成可商用字体（环境变量 `SUB_FONT` 优先）
 
 ## 目录
