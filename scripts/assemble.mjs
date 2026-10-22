@@ -288,7 +288,7 @@ function cmdAssemble(argv) {
     fc.push(`[${lv}]trim=end=${total.toFixed(4)},setpts=PTS-STARTPTS${vfade}${vtail}[v]`, `[${la}]atrim=end=${total.toFixed(4)},asetpts=PTS-STARTPTS${aTail}[a]`);
   }
   execFileSync('ffmpeg', ['-y', '-v', 'error', ...ins, '-filter_complex', fc.join(';'), '-map', '[v]', '-map', '[a]',
-    '-c:v', 'libx264', '-crf', '18', '-preset', 'medium', '-pix_fmt', 'yuv420p',
+    '-c:v', 'libx264', '-crf', '10', '-preset', 'slow', '-pix_fmt', 'yuv420p',
     // loudnorm 会把采样率升到 192k，AAC 只能退到 96k，部分播放器会卡画面；固定 48k，并把索引放到文件头
     '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', `${base}.mp4`]);
   if (epSb.audio?.length) mixAudio(work, base, epSb.audio, subs, loudnorm, afade);

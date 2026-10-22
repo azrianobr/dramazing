@@ -71,6 +71,6 @@ for i, (s, e, txt) in enumerate(cues):
     p = f'{tmp}/{i}.png'; im.save(p); ins += ['-i', p]
     fc += f"[{prev}][{i + 1}:v]overlay=0:H-{BOTTOM + up}:enable='between(t,{s},{e})'[v{i}];"; prev = f'v{i}'
 subprocess.run(['ffmpeg', '-v', 'error', '-y', *ins, '-filter_complex', fc.rstrip(';'), '-map', f'[{prev}]', '-map', '0:a',
-                '-c:v', 'libx264', '-crf', '16', '-preset', os.environ.get('X264_PRESET', 'slow'), '-c:a', 'copy', '-movflags', '+faststart', f'{W}/{E}.final.mp4'], check=True)
+                '-c:v', 'libx264', '-crf', '12', '-preset', os.environ.get('X264_PRESET', 'slow'), '-c:a', 'copy', '-movflags', '+faststart', f'{W}/{E}.final.mp4'], check=True)
 shutil.rmtree(tmp)
 print(T(f'✓ 硬字幕 {len(cues)} 句 → {W}/{E}.final.mp4', f'✓ burned {len(cues)} subtitles → {W}/{E}.final.mp4', f'✓ 자막 {len(cues)}줄 입힘 → {W}/{E}.final.mp4'))
