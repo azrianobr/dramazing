@@ -111,7 +111,8 @@ for (const seg of segmentsOf(W.storyboard, epNo)) {
     // 台词：语气说明放在台词后面并注明不念，放前面括号里会被当台词念出来；
     // 只写 lips in sync 时，压低声音这类语气会被做成嘴不动的画外音，要写明每个字都张嘴
     // 心声：说话人不能动嘴，否则画面里的人会对口型
-    const said = lines.map((l) => ({ kind: l.kind, who: l.who ? who(l.who) : null, say: speakable(l.say), tone: l.tone ?? null }));
+    // 说台词的人不在这一切的 chars 里：画外声，只出声音，画面里的人嘴闭着（《随叫随到》画外的妻子）
+    const said = lines.map((l) => ({ kind: l.kind === 'line' && l.who && chars.length && !chars.includes(l.who) ? 'offscreen' : l.kind, who: l.who ? who(l.who) : null, say: speakable(l.say), tone: l.tone ?? null }));
     // 选工具能出的最短档位，装得下分镜时长和台词（台词后留 0.5 秒）
     const need = Math.max(c.seconds, talk + 0.5);
     const seconds = durations.find((d) => d >= need) ?? durations[durations.length - 1];

@@ -277,7 +277,7 @@ for seg in a.segs or list(plan):
         fc += f'[{lv}]null[v];[{la}]aresample=48000[ao]'
     out = f'{W}/{seg}.mp4'
     subprocess.run(['ffmpeg', '-v', 'error', '-y', *ins, '-filter_complex', fc, '-map', '[v]', '-map', '[ao]', '-c:v', 'libx264',
-                    '-crf', '16', '-preset', os.environ.get('X264_PRESET', 'slow'), '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', out], check=True)
+                    '-crf', '10', '-preset', os.environ.get('X264_PRESET', 'slow'), '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', out], check=True)
     check_av(out)
     # pre/post：这一切前后多借的秒数；段首的 pre、段尾的 post 是给 assemble.mjs 接相邻段的「引入」「引出」，tr 是进入这一切的转场
     json.dump([{'shot': n, 'dur': d, **({'in': i} if i else {}), **({'speed': s} if s != 1 else {}), **({'src': os.path.relpath(f, WORK)} if n <= len(CUTS[seg]) and insert_of(CUTS[seg][n - 1]) else {}),

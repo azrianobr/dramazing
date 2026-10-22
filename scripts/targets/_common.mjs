@@ -3,8 +3,12 @@
 /** 台词写法：语气说明放在台词后面并注明不念（放前面括号里会被当台词念出来）；
  *  要写明每个字都张嘴，否则压低声音这类语气会被做成嘴不动的画外音；心声写明谁都不动嘴 */
 export function speech(lines, language = 'Mandarin Chinese') {
+  const note = (l) => (l.tone ? ` (performance note, never spoken aloud: ${l.tone})` : '');
   return lines.map((l) => (l.kind === 'line'
-    ? `${l.who} says, in ${language} with clearly moving lips in sync with every syllable (his or her mouth opens and closes visibly on each word): "${l.say}"${l.tone ? ` (performance note, never spoken aloud: ${l.tone})` : ''}`
+    ? `${l.who} says, in ${language} with clearly moving lips in sync with every syllable (his or her mouth opens and closes visibly on each word): "${l.say}"${note(l)}`
+    : l.kind === 'offscreen'
+    // 画外的人说话：照「每个字都张嘴」写，画面里的人会替他对口型
+    ? `The off-screen voice of ${l.who} (never visible in the frame) is heard saying, in ${language}, as a voice only; nobody in the frame moves their lips: "${l.say}"${note(l)}`
     : `An off-screen inner-voice narration${l.who ? ` by ${l.who}` : ''}${l.tone ? ` (${l.tone})` : ''}, in ${language}: "${l.say}" It is a voiceover only: nobody on screen moves their lips or speaks.`)).join(' Then ');
 }
 
