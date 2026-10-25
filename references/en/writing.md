@@ -17,6 +17,7 @@ Follow the rules below when you write. Each one comes from a real problem in vid
 ## 2. project.json: characters, scenes, props
 
 - **Describe each character's face, hair, costume and age in full.** For a young woman, state that she is an adult, and do not make her expression frightened or childlike. Freckles or an upturned face can both get a character judged as a minor.
+- **If the source has minors, make them adults and keep the age gap.** Grok may refuse minors. In 《岳父》 a little boy calls the burly owner "big brother"; it became a 22-year-old student calling a 50-year-old owner "brother", so the contrast survives, and "father-in-law" turns from a child's slip into a hint that he really fancies the daughter. Write the character sheets by the "state that young women are adults" rule.
 - **Put unusual features in `trait`.** A blind eye, a scar or a limp mentioned in the source text must stay the same throughout.
 - **Make `alias` an appearance phrase that identifies the character at a glance.** For example, "the young woman with long braids". Video models do not know character names.
 - **Match costumes and props to the source text.** Where the source says nothing, fill in details that fit the period and the character's position, write them into the setting, and follow them in every storyboard cut afterwards.
