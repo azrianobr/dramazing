@@ -145,7 +145,8 @@ for (const seg of segmentsOf(W.storyboard, epNo)) {
     const limits = [];
     const state = {}; let cur = null; // 从首帧描述里按分句认每个人的姿态（坐着 / 背对镜头）
     for (const clause of (c.frame ?? '').split(P.clause)) {
-      const n = names.find((x) => clause.includes(x)); if (n) cur = n;
+      // 一句里提到几个人时，主语是最先出现的那个（「他坐在她右边」说的是他）
+      const n = names.filter((x) => clause.includes(x)).sort((x, y) => clause.indexOf(x) - clause.indexOf(y))[0]; if (n) cur = n;
       if (!cur) continue;
       state[cur] ??= {};
       if (P.sit.test(clause)) state[cur].sit = true;

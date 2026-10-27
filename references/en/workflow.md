@@ -163,6 +163,14 @@ python3 scripts/review.py --work $W --ep $EP                              # revi
 
   **The joining trap.** In a segment file, the audio timestamps often do not match the actual sound: the container says 22.3 seconds, but only 22.229 seconds decode. Joining by timestamps (a concat list, even with `aresample` to fill gaps) makes later sound drift early or late. `assemble.mjs` pads or trims each segment's picture to n frames, pads or trims its sound by sample count to the same n/24 seconds, and joins the two tracks end to end separately. Inside a segment, `cut.py` does the same for every shot: it rounds the length to 1/24 second, pads or trims the picture to that many frames and the sound to the same length, and then joins. Without this, the picture falls further behind after each sped-up shot: at the end of segment 1 of 大水, the sound came about 0.1 seconds before the picture. Do not fill picture gaps by rewriting timestamps from frame numbers and forcing a constant frame rate; frames get dropped. The fourth version of 加油 tried it and lost the last 276 frames.
 
+- **Re-voicing: Grok gives the picture and the lip movement, the voice is cloned with MiMo (optional).** Use it when Grok misreads a word (in 干拌吗 it said 手引 for 蚯蚓), the voice is wrong, or a returning actor must keep their old voice. Episode-level `mute: true` turns Grok's audio off; each dubbed line is one entry in the episode-level `audio`. Steps:
+  1. Cut a reference: take 5–10 seconds from the actor's earlier solo-line cuts, only that person speaking, no music or other voices. Join the pieces and remove the silences.
+  2. Make the lines: `python3 scripts/dub.py say --model clone --voice ref-C01.wav --style "tone" --text "line" -o L1.wav`, two takes per line. `--model design` designs a new voice from a text description; `--model tts` uses a preset voice. The key comes from the `MIMO_API_KEY` env var. Send one request at a time; parallel requests hit the rate limit (429).
+  3. Measure the mouth: `dub.py segs video/E01-01/s3.mp4` prints when Grok starts and stops each line.
+  4. Fit: `dub.py fit L1.wav --from start --to end --dur mouth-length -o audio/dub/L1.wav`. If the stretch is outside 0.75–1.35x, use another take or move the cut. `at` = the cut's start in the episode + the mouth onset − the cut's `in` in `fix.json`.
+  5. Retime the subtitles in `E0N.srt` to the dubbed audio, then run `--keep-subs`.
+  6. Transcribe the dub to check the words; this is more reliable than checking Grok's pronunciation. Let the user judge whether the voice sounds right.
+
 ### 11. Final cut
 
 ```bash

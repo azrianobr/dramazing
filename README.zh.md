@@ -65,6 +65,7 @@ dramazing 是一个 AI 助手用的 skill（[Agent Skills](https://agentskills.i
 | 视频提示词和预检 | `scripts/video-prompts.mjs` | Grok 写法 | 通用写法，或自己写一个 target（[说明](references/zh/adapters/video-other.md)） |
 | 出片 | 你或 AI 助手，在视频工具里按正常界面操作 | Grok 网页 | 可灵、即梦、Veo、Runway 等，未实测 |
 | 剪辑、拼接、字幕、审片版 | `cut.py`、`assemble.mjs`、`review.py`、`burn-subs.py` | ffmpeg + whisper.cpp | — |
+| 换配音（可选） | `dub.py` | MiMo TTS（`mimo-v2.5-tts`、`-voicedesign`、`-voiceclone`） | 用 Grok 自己的声音 |
 
 只有「Codex 出图 + Grok 出片」这一组完整做过作品：一部 6 集横屏短剧和三部竖屏短片。换别的工具，第一集先多出几条试探镜头。
 

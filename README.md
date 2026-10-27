@@ -65,6 +65,7 @@ video tool animates first frames ──▶ cut, align dialogue ──▶ review 
 | Video prompts and preflight | `scripts/video-prompts.mjs` | Grok format | The generic format, or write your own target ([details](references/en/adapters/video-other.md)) |
 | Video | You or the AI assistant, through the video tool's normal interface | Grok (web) | Kling, Jimeng, Veo, Runway, etc. (not tested) |
 | Cutting, assembly, subtitles, review cut | `cut.py`, `assemble.mjs`, `review.py`, `burn-subs.py` | ffmpeg + whisper.cpp | — |
+| Re-voicing (optional) | `dub.py` | MiMo TTS (`mimo-v2.5-tts`, `-voicedesign`, `-voiceclone`) | Keep Grok's own voice |
 
 Only the "Codex for images + Grok for video" combination has made complete works: one 6-episode landscape drama and three vertical shorts. With other tools, make a few extra trial shots in the first episode.
 
