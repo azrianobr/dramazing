@@ -6,7 +6,7 @@ const w = (re) => new RegExp(`\\b(?:${re})\\b`, 'i');
 
 export default {
   /* ---------- reading the storyboard ---------- */
-  clause: /[,;]|\.(?:\s|$)/, // split the first-frame description into clauses
+  clause: /[,;:]|\.(?:\s|$)/, // split the first-frame description into clauses
   comma: /,/,
   sit: w('sits?|sitting|seated'),
   back: /back to (?:the )?camera|from behind|seen from the back|back turned|turned away|walks? away from (?:the )?camera|walking away from (?:the )?camera/i,

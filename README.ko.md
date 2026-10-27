@@ -65,6 +65,7 @@ dramazing은 AI 어시스턴트용 skill입니다([Agent Skills](https://agentsk
 | 영상 프롬프트와 사전 점검 | `scripts/video-prompts.mjs` | Grok용 작성법 | 범용 작성법, 또는 직접 target 작성([설명](references/ko/adapters/video-other.md)) |
 | 영상 생성 | 사용자나 AI 어시스턴트가 영상 도구의 정상 화면에서 조작 | Grok 웹 | Kling, Jimeng, Veo, Runway 등, 미실측 |
 | 편집, 이어 붙이기, 자막, 검수본 | `cut.py`, `assemble.mjs`, `review.py`, `burn-subs.py` | ffmpeg + whisper.cpp | — |
+| 더빙 교체(선택) | `dub.py` | MiMo TTS(`mimo-v2.5-tts`, `-voicedesign`, `-voiceclone`) | Grok 자체 목소리 사용 |
 
 「Codex로 이미지 생성 + Grok으로 영상 생성」 조합만 작품을 끝까지 만들어 봤습니다: 6화짜리 가로 화면 숏드라마 한 편과 세로 숏폼 세 편. 다른 도구로 바꾸면 1화에서 시험 컷을 몇 개 더 생성해 보세요.
 
