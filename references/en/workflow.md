@@ -26,6 +26,17 @@ The workflow has two points where you must stop and wait for the user to watch a
 1. **Narrative preview** (step 4): a rough cut built from the storyboard frames, to confirm the story is easy to follow. Checking image quality is not enough: it has really happened that every picture looked fine and nobody understood the story. Some users cannot say what is wrong from still frames (this happened in the remake of 渡口 episode 1); then ask, skip the preview, and review with trial shots and cut segments instead.
 2. **Trial shot** (step 7): generate one shot with a face and dialogue first, to confirm image quality, lip sync and sound. Do this for every episode.
 
+## Cast library
+
+After many episodes it is easy to end up with only a few faces: new clothes and new titles, but viewers still see the same person. Keep a cross-project cast library in `works/_演员库/` (or any shared folder) and cast every project from it instead of inventing faces per project.
+
+- **The structure is actor → roles.** In `cast.json` each actor has a fixed stage name, one casting sheet (`sheets/<id>.png`) and one fixed voice sample (`voices/<id>.wav`), and lists the roles they play in each project. One actor can play many roles: names and clothes change per project, the face and voice do not. An empty template is in `templates/<language>/cast.json`.
+- **Casting sheet**: white 16:9 canvas, a front bust on the left, front/side/back full body top right, four expressions (laughing, angry, crying, deadpan) bottom right. Do not write "beautiful" or "handsome"; give each actor 3–4 hard features you can spot at a glance (face shape, single/double eyelids, skin tone, a mole, a scar, a tooth gap, the hairstyle) and copy them into `looks`. Only lead faces get "good-looking like a TV drama actor, not an influencer". Tile every new face with the whole library; if two look like the same person, regenerate.
+- **Costume test**: before an actor joins the library, use the casting sheet as reference image 1 and generate one completely different outfit. If the face or build drifts, regenerate.
+- **Voice**: make a 6–13 second sample with `dub.py say --model design` from a voice description and save it in `voices/`. From then on every line of that actor uses `--model clone` on that sample. If the actor already spoke in an earlier film, cut a solo line from it as the sample.
+- **Casting**: before writing the storyboard, pick actors by type and age. In the project's character sheet prompt write "face and hairstyle as the person in reference image 1", attach their casting sheet, and include the hard-feature line from `looks`. Append the new role to `cast.json`.
+- **Account rules live in `rules` in `cast.json`** and are checked at casting, e.g. "every film has at least one woman with a lead face" (`lead: true`).
+
 ## Steps
 
 ### 1. Write the storyboard

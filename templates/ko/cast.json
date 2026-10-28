@@ -1,0 +1,28 @@
+{
+  "note": "배우 → 배역. 배우마다 고정 예명, 프로필 시트 한 장, 고정 목소리; roles에 작품별 배역을 적습니다.",
+  "rules": [
+    "작품마다 주연 얼굴 여성 최소 한 명"
+  ],
+  "actors": [
+    {
+      "id": "A01",
+      "name": "",
+      "gender": "F",
+      "age": 25,
+      "type": "",
+      "looks": "한눈에 알아볼 특징 3–4개",
+      "lead": true,
+      "sheet": "sheets/A01.png",
+      "voice": {
+        "sample": "voices/A01.wav",
+        "desc": ""
+      },
+      "roles": [
+        {
+          "project": "",
+          "role": ""
+        }
+      ]
+    }
+  ]
+}

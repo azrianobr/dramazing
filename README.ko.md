@@ -134,7 +134,7 @@ scripts/              검증, 이미지 생성, 프롬프트, 미리보기, 영�
   targets/            영상 프롬프트의 도구별 작성법: grok, generic
   lang/               이야기 언어별 매개변수와 프롬프트 고정 문장
 assets/               로고(밝은 / 어두운 테마), 아이콘, README 예시 이미지, 소셜 미리보기
-templates/zh|en|ko/   빈 project / script / storyboard
+templates/zh|en|ko/   빈 project / script / storyboard / cast(배우 라이브러리)
 examples/渡口/         전체 예시(중국어): 6화 분량의 설정, 대본, 콘티
 examples/last-tram/   영어 한 화짜리 작은 예시
 examples/majimak-jeoncha/  한국어 한 화짜리 작은 예시(같은 이야기의 한국어판)

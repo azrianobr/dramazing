@@ -134,7 +134,7 @@ scripts/              validation, images, prompts, preview, ingest, renumbering,
   targets/            video prompt formats per tool: grok, generic
   lang/               settings and fixed prompt sentences for each story language
 assets/               logo (light / dark), icon, README showcase images, social preview
-templates/zh|en|ko/   empty project / script / storyboard
+templates/zh|en|ko/   empty project / script / storyboard / cast (cast library)
 examples/渡口/         complete example (Chinese): setting, script and storyboard for 6 episodes
 examples/last-tram/   small single-episode example in English
 examples/majimak-jeoncha/  small single-episode example in Korean (the same story in Korean)

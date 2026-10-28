@@ -1,0 +1,28 @@
+{
+  "note": "actor → roles. Each actor has a fixed stage name, one casting sheet and one fixed voice; roles lists the parts they play in each project.",
+  "rules": [
+    "every film has at least one woman with a lead face"
+  ],
+  "actors": [
+    {
+      "id": "A01",
+      "name": "",
+      "gender": "F",
+      "age": 25,
+      "type": "",
+      "looks": "3–4 hard features you can spot at a glance",
+      "lead": true,
+      "sheet": "sheets/A01.png",
+      "voice": {
+        "sample": "voices/A01.wav",
+        "desc": ""
+      },
+      "roles": [
+        {
+          "project": "",
+          "role": ""
+        }
+      ]
+    }
+  ]
+}
