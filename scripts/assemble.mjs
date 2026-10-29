@@ -116,7 +116,7 @@ function mixAudio(work, base, entries, subs, loudnorm, fade = '') {
 }
 
 // 手改字幕：--keep-subs 先读现有的 srt，按台词原文找到对应的句子，把它和这一切剪点的相对时间存进 fix.json 的 subs；
-// 然后（不管有没有 --keep-subs）用 subs 覆盖自动排的时间。同一段里同一句台词出现两次时只认第一次
+// 然后（不管有没有 --keep-subs）用 subs 覆盖自动排的时间。同一段里同一句台词出现多次时，第二次起 key 写「台词#2」「台词#3」
 const subKey = (t) => t.replace(/[\s，。！？、,.!?…~～]+/g, '');
 function readSrt(file) {
   if (!existsSync(file)) return [];
@@ -131,13 +131,15 @@ function keepSubs(dir, srtFile, subs, save) {
     const old = readSrt(srtFile);
     let n = 0;
     for (const o of old) {
-      const s = subs.find((x) => subKey(x.text) === subKey(o.text));
+      const same = old.filter((x) => subKey(x.text) === subKey(o.text));
+      const k = same.indexOf(o);
+      const s = subs.filter((x) => subKey(x.text) === subKey(o.text))[k];
       if (!s) { console.log(T(`  ! --keep-subs：srt 里的「${o.text}」在剧本里找不到，跳过`, `  ! --keep-subs: "${o.text}" in the srt is not in the script; skipped`, `  ! --keep-subs: srt의 "${o.text}"이(가) 대본에 없어 건너뜁니다`)); continue; }
       if (Math.abs(o.from - s.from) < 0.02 && Math.abs(o.to - s.to) < 0.02) continue;
       const r = (x) => Math.round((x - s.cut0) * 1000) / 1000;
       fix[s.seg] ??= {};
       fix[s.seg].subs ??= {};
-      fix[s.seg].subs[s.text] = [r(o.from), r(o.to)];
+      fix[s.seg].subs[k ? `${s.text}#${k + 1}` : s.text] = [r(o.from), r(o.to)];
       n++;
     }
     writeFileSync(fixFile, JSON.stringify(fix, null, 1) + '\n');
@@ -146,7 +148,9 @@ function keepSubs(dir, srtFile, subs, save) {
   let used = 0;
   for (const [seg, f] of Object.entries(fix)) {
     for (const [text, [a, z]] of Object.entries(f.subs ?? {})) {
-      const s = subs.find((x) => x.seg === seg && subKey(x.text) === subKey(text));
+      // 同一段里同一句台词出现多次时，key 写「台词#2」指第二次出现的那句
+      const [t0, nth] = text.match(/^(.*?)(?:#(\d+))?$/).slice(1);
+      const s = subs.filter((x) => x.seg === seg && subKey(x.text) === subKey(t0))[(Number(nth) || 1) - 1];
       if (!s) { console.log(T(`  ! fix.json ${seg} 的手改字幕「${text}」在这一段找不到（台词改过？），没用上`, `  ! Hand-timed subtitle "${text}" in fix.json ${seg} not found in that segment (line changed?); not applied`, `  ! fix.json ${seg}의 수동 자막 "${text}"을(를) 찾지 못해 적용하지 않았습니다(대사 변경?)`)); continue; }
       s.from = s.cut0 + a;
       s.to = s.cut0 + z;

@@ -13,6 +13,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { SHEET_ASPECT, episodeScenes, flag, insertOf, loadWork, parseAspect, phrases, readJson, segmentsOf, T, writeJson } from './lib.mjs';
+const DEFAULT_IMAGE_MODEL = 'openai/gpt-image-2.5-sunburst-2026-09-08'; // 官方 API；余额不足时用 images.fallbackModel
 
 const USAGE = () => T(`frames.mjs — 出图
 
@@ -185,11 +186,21 @@ function cmdProvider(work, tag, prompt, refs, out, template) {
 
 // OpenAI 图像接口（官方或兼容的服务）：有参考图走 /images/edits，没有走 /images/generations。
 // 不传 size：比例由提示词末尾那句决定（实测带参考图时服务端会忽略 size，按比例句出图）；要传就写 images.size / images.quality
+// 主模型余额不足（402 / quota / 余额）时，自动换 images.fallbackModel 再出一次
 async function openaiProvider(work, tag, prompt, refs, out, cfg) {
+  const r = await openaiOnce(work, tag, prompt, refs, out, cfg);
+  if (r.made || !/402|quota|insufficient|balance|余额|billing/i.test(r.err ?? '')) return r;
+  const fb = cfg.fallbackModel ?? 'gpt-image-2.5-sunburst';
+  if (fb === (cfg.model ?? DEFAULT_IMAGE_MODEL)) return r;
+  console.error(T(`${tag}：主模型余额不足，改用 ${fb}`, `${tag}: primary model out of credit, retrying with ${fb}`, `${tag}: 기본 모델 잔액 부족, ${fb}로 다시 시도`));
+  return openaiOnce(work, tag, prompt, refs, out, { ...cfg, model: fb });
+}
+
+async function openaiOnce(work, tag, prompt, refs, out, cfg) {
   const t0 = Date.now();
   const key = process.env.DZ_IMAGES_KEY ?? die(T('openai 出图要先设置环境变量 DZ_IMAGES_KEY（接口密钥）', 'the openai provider needs the DZ_IMAGES_KEY environment variable (API key)', 'openai 방식은 환경 변수 DZ_IMAGES_KEY(API 키)가 필요합니다'));
   const base = String(cfg.baseUrl ?? 'https://api.openai.com/v1').replace(/\/$/, '');
-  const opts = { model: cfg.model ?? 'gpt-image-2.5-sunburst', prompt: fullPrompt(prompt, targetOf(tag)), ...(cfg.size && { size: cfg.size }), ...(cfg.quality && { quality: cfg.quality }) };
+  const opts = { model: cfg.model ?? DEFAULT_IMAGE_MODEL, prompt: fullPrompt(prompt, targetOf(tag)), ...(cfg.size && { size: cfg.size }), ...(cfg.quality && { quality: cfg.quality }) };
   let res, body, err = '';
   try {
     if (refs.length) {
@@ -212,7 +223,7 @@ async function openaiProvider(work, tag, prompt, refs, out, cfg) {
   logImage(work, { tag, bin: 'openai', code, secs: (Date.now() - t0) / 1e3, out, usage: body?.usage ?? null,
     model: opts.model, returned: body && { size: body.size, quality: body.quality } });
   if (!made) { mkdirSync(join(work, '_logs'), { recursive: true }); writeFileSync(join(work, '_logs', `img-${tag.replace(/[:/]/g, '_')}.err`), err); }
-  return { code, usage: body?.usage ?? null, made };
+  return { code, usage: body?.usage ?? null, made, err: made ? '' : `${res?.status ?? ''} ${err}` };
 }
 
 // 每张图记一行：耗时、实际尺寸、用量；服务端换了模型或尺寸，从这里看得出来
