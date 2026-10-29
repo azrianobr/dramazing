@@ -1,0 +1,22 @@
+Reference image 1 is the model sheet of actor <stage name>: face, features and identity follow reference image 1. Reference image 2 is their full-body photo: height, proportions and posture follow reference image 2.
+(When creating a new person from scratch, delete this paragraph and describe the face fully in section 3.)
+
+1. Subject and overall style
+An ultra-detailed, photorealistic, cinematic character costume sheet of an adult <man/woman>, combining a TV-drama costume test, fashion-magazine photography and soft natural portrait light. The subject is an adult Chinese <role>, with an overall air of <three or four adjectives>. Real skin texture, natural pores and colour, clear eyes, fine distinct hair strands, rich costume materials. Palette: <tone>, built from <three to five colours>. Clean, restrained and unified, like a professional costume archive, not a casual photo or a collage poster.
+
+2. Canvas and layout
+16:9 landscape, pure white background (#FFFFFF), divided into three zones by thin rules. LEFT, about 34% of the width: a front-facing head-and-shoulders portrait, face at the visual centre, sharp features. RIGHT-TOP: three full-body views of the same person, left to right: front, strict 90-degree left profile, back; same size, same head height, feet on one ground line, nothing cropped. RIGHT-BOTTOM: four close-ups, left to right: <the four expressions or hand actions this film needs>. All views are the same person with identical face, hair, costume, accessories and proportions.
+
+3. Face and features
+A clearly adult Chinese <man/woman>, about <age><, looking exactly like reference image 1>. <face shape, jaw>. <skin tone and texture>, real skin layers and fine pores, no plastic look, no heavy retouching. <eye shape, iris, lashes, gaze>. <brows>, <nose>. <lips, colour, habitual expression>. <makeup>. <earrings etc.>. Banned: influencer face, enlarged eyes, sharp distorted chin, heavy blush, heavy retouching, anime or illustration style.
+
+4. Hairstyle
+<colour, texture, shine>. <parting, fringe, length, how it is pinned>. <hair accessories>. The side view clearly shows <...>; the back view clearly shows <...>.
+
+5. Costume: <one-line summary>
+1) Top: <neckline, sleeves, fabric, colour, seams>. 2) Waist: <waistline, belt>. 3) Bottom: <length, silhouette, folds>. 4) Accessories: <which hand or side each item is on; what the hands hold, or empty hands>. 5) Shoes: <style, colour, material>. Keep the palette strictly to <colours>.
+
+6. The three full-body views
+Front: standing naturally, facing the camera, shoulders relaxed, <hands>, correct fingers, <expression>; shows <...>. Side: strict 90-degree left profile; shows <...>. Back: straight from behind; shows <...>. Natural, realistic proportions, no stretched legs<; height and posture as in reference image 2>.
+
+No text, labels, logos or watermarks anywhere on the image.

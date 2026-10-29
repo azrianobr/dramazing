@@ -255,7 +255,8 @@ for seg in a.segs or list(plan):
             # 只给有台词的切做 loudnorm，而且在整条原片上量（6 秒带说话，量得稳），再截取；没台词的切保持原音量
             # 以前整段一起做：段里只要有一句短台词，其它切的近乎静音就被一起拉高约 30 dB（《光坐着》开头的雨声）
             ln = (NORM + 'aresample=48000,') if has_lines(f'{seg}/s{nums[i]}') else ''
-            fc += f'[{x}:a]{ln}atrim={a0}:{a1},asetpts=PTS-STARTPTS,aresample=48000,' + (f'atempo={sp},' if sp != 1 else '') + (f'afade=t=out:st={fo}:d=0.08,' if not post else '') + f'apad,atrim=end_sample={nf * 2000},asetpts=PTS-STARTPTS[a{i}];'
+            fc += f'[{x}:a]{ln}atrim={a0}:{a1},asetpts=PTS-STARTPTS,aresample=48000,' + (f'atempo={sp},' if sp != 1 else '') + (f'afade=t=out:st={fo}:d=0.08,' if not post else '') + f'apad,atrim=end_sample={nf * 2000},asetpts=N/SR/TB[a{i}];'
+            # 时间戳按采样数重算：loudnorm 会让这一切声音的 pts 跳一下，concat 据此把下一切往后推约 2 帧，剪点留空档、后面的字幕和配音越来越晚（《改口费》《干拌吗》）
         else:  # 录屏、截图没有声音：垫一段同样长的静音，concat 才拼得上
             fc += f'anullsrc=channel_layout=stereo:sample_rate=48000,atrim=end_sample={nf * 2000},asetpts=PTS-STARTPTS[a{i}];'
     k = len(shots)
