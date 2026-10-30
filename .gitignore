@@ -10,3 +10,6 @@ works/
 *.bak*
 __pycache__/
 .DS_Store
+
+# 用户提供的参考文档，只留本机（10-30）
+docs/refs/

@@ -14,6 +14,21 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync
 import { join, resolve } from 'node:path';
 import { SHEET_ASPECT, episodeScenes, flag, insertOf, loadWork, parseAspect, phrases, readJson, segmentsOf, T, writeJson } from './lib.mjs';
 const DEFAULT_IMAGE_MODEL = 'openai/gpt-image-2.5-sunburst-2026-09-08'; // 官方 API；余额不足时用 images.fallbackModel
+const DEFAULT_IMAGE_QUALITY = 'high'; // 不传时服务端按 auto 自己挑，改图（fix）常落到 low；要省就写 images.quality
+const DEFAULT_LONG_EDGE = 2048; // 长边像素；可用 images.longEdge 改，images.size 写死时以它为准
+
+// 按画幅算接口要的尺寸。Sunburst 自定义尺寸的要求：宽高都是 16 的倍数、最长边不超过 3840、
+// 长边不超过短边的 3 倍、总像素在 655,360～8,294,400 之间。比例超出 3 倍时按 3 倍出，靠提示词末尾那句定画幅
+export function apiSize(ratio, longEdge = DEFAULT_LONG_EDGE) {
+  const r = Math.min(Math.max(ratio, 1 / 3), 3), k = Math.max(r, 1 / r);
+  const r16 = (x) => Math.max(16, Math.round(x / 16) * 16);
+  let long = Math.min(r16(longEdge), 3840);
+  const px = (l) => l * r16(l / k);
+  while (px(long) > 8294400) long -= 16;
+  while (px(long) < 655360 && long < 3840) long += 16;
+  const short = r16(long / k);
+  return r >= 1 ? `${long}x${short}` : `${short}x${long}`;
+}
 
 const USAGE = () => T(`frames.mjs — 出图
 
@@ -185,7 +200,7 @@ function cmdProvider(work, tag, prompt, refs, out, template) {
 }
 
 // OpenAI 图像接口（官方或兼容的服务）：有参考图走 /images/edits，没有走 /images/generations。
-// 不传 size：比例由提示词末尾那句决定（实测带参考图时服务端会忽略 size，按比例句出图）；要传就写 images.size / images.quality
+// size 按这张图的画幅算（分镜图按作品画幅，设定图 16:9），images.size 写死时用它；提示词末尾的比例句照样留着。quality 默认 high，可用 images.quality 改
 // 主模型余额不足（402 / quota / 余额）时，自动换 images.fallbackModel 再出一次
 async function openaiProvider(work, tag, prompt, refs, out, cfg) {
   const r = await openaiOnce(work, tag, prompt, refs, out, cfg);
@@ -200,7 +215,7 @@ async function openaiOnce(work, tag, prompt, refs, out, cfg) {
   const t0 = Date.now();
   const key = process.env.DZ_IMAGES_KEY ?? die(T('openai 出图要先设置环境变量 DZ_IMAGES_KEY（接口密钥）', 'the openai provider needs the DZ_IMAGES_KEY environment variable (API key)', 'openai 방식은 환경 변수 DZ_IMAGES_KEY(API 키)가 필요합니다'));
   const base = String(cfg.baseUrl ?? 'https://api.openai.com/v1').replace(/\/$/, '');
-  const opts = { model: cfg.model ?? DEFAULT_IMAGE_MODEL, prompt: fullPrompt(prompt, targetOf(tag)), ...(cfg.size && { size: cfg.size }), ...(cfg.quality && { quality: cfg.quality }) };
+  const opts = { model: cfg.model ?? DEFAULT_IMAGE_MODEL, prompt: fullPrompt(prompt, targetOf(tag)), size: cfg.size ?? apiSize(aspectFor(targetOf(tag)).ratio, cfg.longEdge), quality: cfg.quality ?? DEFAULT_IMAGE_QUALITY };
   let res, body, err = '';
   try {
     if (refs.length) {

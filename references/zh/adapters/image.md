@@ -57,13 +57,17 @@ node scripts/frames.mjs place --work $W --target frames/E01-01/f1.png --from ~/D
 "images": {
   "provider": "openai",
   "baseUrl": "https://api.openai.com/v1",
-  "model": "gpt-image-2.5-sunburst"
+  "model": "openai/gpt-image-2.5-sunburst-2026-09-08",
+  "fallbackModel": "gpt-image-2.5-sunburst",
+  "quality": "high",
+  "longEdge": 2048
 }
 ```
 
 - `baseUrl` 不写就是 OpenAI 官方地址；接兼容的服务时换成它的地址。
 - 密钥只从环境变量 `DZ_IMAGES_KEY` 读，不写进任何文件。不用 `OPENAI_API_KEY`，因为 Codex CLI 也读这个变量，设了它，Codex 可能改成按 API 计费。
-- 不传尺寸参数，画幅靠提示词末尾的「画面比例」那句。出好的图比例偏差超过 3% 会提醒。
+- 尺寸按这张图的画幅算好再传：分镜图按作品画幅，设定图按 16:9，长边默认 2048（竖屏 9:16 是 1152×2048），可用 `images.longEdge` 改，`images.size` 写死时以它为准。Sunburst 自定义尺寸的要求：宽高都是 16 的倍数，最长边不超过 3840，长边不超过短边的 3 倍，总像素在 655,360～8,294,400 之间；脚本按这几条取整，比例超过 3 倍时按 3 倍出。以前不传尺寸，出来是 941×1672，比 Grok 的 1080p 还小。提示词末尾的「画面比例」那句照样留着，出好的图比例偏差超过 3% 会提醒。
+- 质量档位默认传 `high`。不传时服务端按 `auto` 自己挑：《三十年》首帧整张出时多是中档，`fix` 改图时常落到最低档（输出 129–301 个图像 token，整张出是 1158），画面发糊。要省额度就在 `images.quality` 写 `medium` 或 `low`。
 - 每张图的耗时、实际尺寸，以及服务端返回的型号、质量档位、尺寸，记在 `_logs/images-usage.jsonl`。
 - macOS 上 `baseUrl` 是局域网地址时，终端 App 要在「系统设置 → 隐私与安全性 → 本地网络」里打开，否则报 `EHOSTUNREACH`。
 

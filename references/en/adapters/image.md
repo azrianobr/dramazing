@@ -59,13 +59,17 @@ Calls the image API directly, without Codex: `/images/edits` when there are refe
 "images": {
   "provider": "openai",
   "baseUrl": "https://api.openai.com/v1",
-  "model": "gpt-image-2.5-sunburst"
+  "model": "openai/gpt-image-2.5-sunburst-2026-09-08",
+  "fallbackModel": "gpt-image-2.5-sunburst",
+  "quality": "high",
+  "longEdge": 2048
 }
 ```
 
 - Without `baseUrl`, the official OpenAI address is used. For a compatible service, put its address here.
 - The key is read only from the environment variable `DZ_IMAGES_KEY` and is never written to a file. It is not `OPENAI_API_KEY`, because Codex CLI reads that variable too and may switch to API billing when it is set.
-- No size parameter is sent; the aspect comes from the "aspect ratio" line at the end of the prompt. An image more than 3% off the target ratio gets a warning.
+- The size is computed from each image's aspect and sent: storyboard frames use the work's aspect, sheets use 16:9, and the long edge defaults to 2048 (1152×2048 for vertical 9:16). Change it with `images.longEdge`; a fixed `images.size` wins. Sunburst custom sizes must have width and height in multiples of 16, a longest edge of at most 3840, a long edge at most 3 times the short edge, and 655,360 to 8,294,400 pixels in total; the script rounds to these rules and caps ratios beyond 3:1 at 3:1. Without a size the images came out 941×1672, smaller than Grok's 1080p. The "aspect ratio" line at the end of the prompt stays, and an image more than 3% off the target ratio gets a warning.
+- Quality defaults to `high`. Without it the service picks `auto` on its own: in *三十年* whole frames mostly came out mid-tier, and `fix` edits often dropped to the lowest tier (129–301 output image tokens against 1158 for a whole frame) and looked soft. To save credit, set `images.quality` to `medium` or `low`.
 - Each image's time, actual size, and the model, quality and size the service reports are logged in `_logs/images-usage.jsonl`.
 - On macOS, if `baseUrl` is a local-network address, turn the terminal app on under System Settings → Privacy & Security → Local Network, or the call fails with `EHOSTUNREACH`.
 
