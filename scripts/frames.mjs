@@ -88,7 +88,9 @@ let IMG = null, SIZES = {}, ASPECT = parseAspect();
 const openWork = async (dir) => { const W = loadWork(dir); const ph = await phrases(); IMG = ph.img; SIZES = ph.sizes; ASPECT = W.aspect; return W; };
 // 设定图（sheets/）和宫格图（_handoff/grid/）固定 16:9，其余（分镜图）按作品画幅
 const isGrid = (target) => String(target).startsWith('_handoff/grid/');
-const aspectFor = (target) => (String(target).startsWith('sheets/') || isGrid(target) ? parseAspect(SHEET_ASPECT) : ASPECT);
+// 横版封面（文件名带「横版」或 landscape）按 4:3 出，不跟作品画幅
+const COVER_H_ASPECT = '4:3';
+const aspectFor = (target) => (/横版|landscape/i.test(String(target)) ? parseAspect(COVER_H_ASPECT) : String(target).startsWith('sheets/') || isGrid(target) ? parseAspect(SHEET_ASPECT) : ASPECT);
 
 /* ---------------- plan ---------------- */
 
