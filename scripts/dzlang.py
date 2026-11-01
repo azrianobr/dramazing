@@ -118,8 +118,20 @@ def chat_frames(t, w, h, n, fps=24):
     S = 3  # 先按 3 倍画再缩小，圆角才不毛
     base = min(w, h); fs = round(base * 0.075)
     f = ImageFont.truetype(path, fs * S, index=int(idx)) if path else ImageFont.truetype(L()['font'], fs * S, index=L().get('fontIndex', 0))
-    tb = ImageDraw.Draw(Image.new('RGBA', (1, 1))).textbbox((0, 0), t['text'], font=f)
     padx, pady = round(fs * 0.62) * S, round(fs * 0.48) * S
+    probe = ImageDraw.Draw(Image.new('RGBA', (1, 1)))
+    # 太长就按字折行：气泡最宽占画面 78%，不然一行放不下会伸出画面（《换号》）
+    room, text, line = w * 0.78 * S - padx * 2, '', ''
+    # 优先断在标点后面；手写的 \n 照样换行
+    for ch in t['text']:
+        if ch == '\n': text += line + '\n'; line = ''; continue
+        if line and probe.textlength(line + ch, font=f) > room:
+            k = max(line.rfind(c) for c in '，。？！、；：,.?!')
+            if k >= len(line) // 3: text += line[:k + 1] + '\n'; line = line[k + 1:] + ch
+            else: text += line + '\n'; line = ch
+        else: line += ch
+    text += line
+    tb = probe.multiline_textbbox((0, 0), text, font=f, spacing=round(fs * 0.25) * S, align='center')
     bh = max(tb[3] - tb[1], fs * S) + pady * 2
     full_w = tb[2] - tb[0] + padx * 2; dots_w = round(fs * 2.6) * S
     tail_w = round(fs * 0.42) * S; left = t.get('tail', 'left') == 'left'
@@ -146,7 +158,7 @@ def chat_frames(t, w, h, n, fps=24):
                 d.ellipse((px - r, cy - r, px + r, cy + r), fill=(c, c, c, round(255 * (1 - text_a))))
         if text_a > 0:
             layer = Image.new('RGBA', im.size, (0, 0, 0, 0))
-            ImageDraw.Draw(layer).text((x0 + (bw - (tb[2] - tb[0])) / 2 - tb[0], y0 + (bh - (tb[3] - tb[1])) / 2 - tb[1]), t['text'], font=f, fill=FG + (round(255 * text_a),))
+            ImageDraw.Draw(layer).multiline_text((x0 + (bw - (tb[2] - tb[0])) / 2 - tb[0], y0 + (bh - (tb[3] - tb[1])) / 2 - tb[1]), text, font=f, fill=FG + (round(255 * text_a),), spacing=round(fs * 0.25) * S, align='center')
             im.alpha_composite(layer)
         # 阴影
         sh = Image.new('RGBA', im.size, (0, 0, 0, 0)); sh.putalpha(im.getchannel('A').point(lambda v: v * 0.28))
@@ -168,7 +180,7 @@ def chat_frames(t, w, h, n, fps=24):
         fade = min(1, max(0, (n - 1 - i) / (0.15 * fps)))
         if sc != 1: img = img.resize((max(1, round(img.width * sc)), max(1, round(img.height * sc))), Image.LANCZOS); ax, ay = ax * sc, ay * sc
         if fade < 1: img = img.copy(); img.putalpha(img.getchannel('A').point(lambda v: v * fade))
-        fr = Image.new('RGBA', (w, h), (0, 0, 0, 0)); fr.alpha_composite(img, (max(0, round(tipx - ax)), max(0, round(tipy - ay))))
+        fr = Image.new('RGBA', (w, h), (0, 0, 0, 0)); fr.alpha_composite(img, (max(0, min(w - img.width, round(tipx - ax))), max(0, round(tipy - ay))))
         frames.append(fr)
     return frames
 
