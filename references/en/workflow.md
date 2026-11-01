@@ -55,6 +55,9 @@ Follow `writing.md` to write this episode's `script.json` and `storyboard.json` 
 node scripts/validate.mjs --work $W --ep $EP
 ```
 
+- **Nostalgia and period pieces need a payoff that works without knowing the period.** 地瓜干 was made as scripted, and the user said "I didn't understand what this whole piece is saying": the story only works if viewers know a white-flour bun was precious in 1975, and it had no payoff. Adding a 2025 ending fixed it: the old couple at a full table, she still breaks a bun and gives him half, he says "五十年了，还是一人一半". When a script leans on period detail, ask before storyboarding whether a viewer without the background will get it. If not, add a present-day scene with the same couple and one line that states it.
+- **Beat numbers restart at 1 in each new scene, and new characters go into `characters` in `project.json`.** Global beat numbers drop the subtitles; an unregistered character shows up as undefined in the constraints.
+
 ### 2. Generate images
 
 ```bash
@@ -193,6 +196,9 @@ python3 scripts/review.py --work $W --ep $EP                              # revi
   4. Fit: `dub.py fit L1.wav --from start --to end --dur mouth-length -o audio/dub/L1.wav`. If the stretch is outside 0.75–1.35x, use another take or move the cut. `at` = the cut's start in the episode + the mouth onset − the cut's `in` in `fix.json`.
   5. Retime the subtitles in `E0N.srt` to the dubbed audio, then run `--keep-subs`.
   6. Transcribe the dub to check the words; this is more reliable than checking Grok's pronunciation. Let the user judge whether the voice sounds right.
+- **Denoise the source clips before cutting.** Grok clips often carry wind or cicadas, and per-cut `--loudnorm` lifts the gaps between lines to about -43 dB, which the user can hear (地瓜干). Run the source audio through `highpass=f=90,afftdn=nr=24:tn=1` with `-c:v copy`, and keep the originals in `_bak/versions/`. Gaps drop 6–10 dB and transcription is unaffected. Also mention less ambient sound in prompts.
+- **A jump between eras needs a transition.** 地瓜干 hard-cut from 1975 to 2025 and the user asked for an effect. Fade the last ~0.9 s of the earlier cut into a yellowed old photo (sepia matrix, grain, vignette, done in `rgb24`; in yuv or gbrp it turns greenish grey), then a 0.8 s white flash (`transition: fadewhite`) into the new era, with the year title fading in as the white clears.
+- **Check feet in first frames and the cut.** In 地瓜干 s13 both were barefoot while the wide shot had black cloth shoes; cropping the bottom 14% fixed it.
 
 ### 11. Final cut
 
