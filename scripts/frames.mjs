@@ -13,7 +13,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { SHEET_ASPECT, episodeScenes, flag, insertOf, loadWork, parseAspect, phrases, readJson, segmentsOf, T, writeJson } from './lib.mjs';
-const DEFAULT_IMAGE_MODEL = 'openai/gpt-image-2.5-sunburst-2026-09-08'; // 官方 API；余额不足时用 images.fallbackModel
+const DEFAULT_IMAGE_MODEL = 'openai/gpt-image-2.6-sunburst'; // 官方 API（Images 2.6，11-04 发布）；余额不足或服务还不认这个模型时用 images.fallbackModel
 const DEFAULT_IMAGE_QUALITY = 'high'; // 不传时服务端按 auto 自己挑，改图（fix）常落到 low；要省就写 images.quality
 const DEFAULT_LONG_EDGE = 2048; // 长边像素；可用 images.longEdge 改，images.size 写死时以它为准
 
@@ -203,13 +203,13 @@ function cmdProvider(work, tag, prompt, refs, out, template) {
 
 // OpenAI 图像接口（官方或兼容的服务）：有参考图走 /images/edits，没有走 /images/generations。
 // size 按这张图的画幅算（分镜图按作品画幅，设定图 16:9），images.size 写死时用它；提示词末尾的比例句照样留着。quality 默认 high，可用 images.quality 改
-// 主模型余额不足（402 / quota / 余额）时，自动换 images.fallbackModel 再出一次
+// 主模型余额不足（402 / quota / 余额），或服务不支持这个模型（not supported / model_not_found）时，自动换 images.fallbackModel 再出一次
 async function openaiProvider(work, tag, prompt, refs, out, cfg) {
   const r = await openaiOnce(work, tag, prompt, refs, out, cfg);
-  if (r.made || !/402|quota|insufficient|balance|余额|billing/i.test(r.err ?? '')) return r;
+  if (r.made || !/402|quota|insufficient|balance|余额|billing|not supported|model_not_found|does not exist/i.test(r.err ?? '')) return r;
   const fb = cfg.fallbackModel ?? 'gpt-image-2.5-sunburst';
   if (fb === (cfg.model ?? DEFAULT_IMAGE_MODEL)) return r;
-  console.error(T(`${tag}：主模型余额不足，改用 ${fb}`, `${tag}: primary model out of credit, retrying with ${fb}`, `${tag}: 기본 모델 잔액 부족, ${fb}로 다시 시도`));
+  console.error(T(`${tag}：主模型不可用（余额不足或服务不支持），改用 ${fb}`, `${tag}: primary model unavailable (out of credit or not supported), retrying with ${fb}`, `${tag}: 기본 모델 사용 불가(잔액 부족 또는 미지원), ${fb}로 다시 시도`));
   return openaiOnce(work, tag, prompt, refs, out, { ...cfg, model: fb });
 }
 
