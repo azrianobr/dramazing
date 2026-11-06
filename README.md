@@ -1,3 +1,5 @@
+[![AgentShield Security](https://merx.help/badge/A+.svg)](https://merx.help/shield)
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
