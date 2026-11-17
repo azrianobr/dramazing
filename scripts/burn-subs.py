@@ -46,7 +46,9 @@ if P.get('subStyle') == 'oneline':
     fits = lambda t: dr.textlength(t, font=font) <= CW - 160
     out = []
     for s, e, txt in cues:
-        parts = [x for x in re.split(f'[{re.escape(PUNCT)}…—“”"「」]+', txt) if x.strip()]
+        # 数字里的小数点（2.95）不是句号，先换成占位符，拆完再换回来
+        txt = re.sub(r'(?<=\d)\.(?=\d)', '\0', txt)
+        parts = [x.replace('\0', '.') for x in re.split(f'[{re.escape(PUNCT)}…—“”"「」]+', txt) if x.strip()]
         lines = []
         for x in parts:
             x = x.strip()
